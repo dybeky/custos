@@ -73,6 +73,9 @@
       "allowToChangeInstallationDirectory": true,
       "deleteAppDataOnUninstall": true
     },
+    "portable": {
+      "artifactName": "custos.exe"
+    },
     "extraResources": [
       {
         "from": "resources",
