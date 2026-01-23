@@ -25,6 +25,9 @@ nsis:
   createDesktopShortcut: true
   createStartMenuShortcut: true
 
+portable:
+  artifactName: custos.exe
+
 extraResources:
   - from: resources
     to: resources
