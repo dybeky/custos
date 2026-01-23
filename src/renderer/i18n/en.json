@@ -1,0 +1,128 @@
+{
+  "settings": {
+    "title": "Settings",
+    "subtitle": "Configure custos preferences",
+    "updates": "Updates",
+    "checkOnStartup": "Check for updates on startup",
+    "checkOnStartupDesc": "Automatically check for new versions when the app starts",
+    "autoDownload": "Auto-download updates",
+    "autoDownloadDesc": "Automatically download updates when available",
+    "checkForUpdates": "CHECK FOR UPDATES",
+    "about": "About",
+    "version": "Version:",
+    "developer": "Developer:",
+    "viewOnGitHub": "VIEW ON GITHUB",
+    "dangerZone": "Danger Zone",
+    "deleteAfterUse": "Delete program after use",
+    "deleteAfterUseDesc": "Automatically delete custos when you close it",
+    "deleteProgramNow": "DELETE PROGRAM NOW",
+    "back": "BACK",
+    "language": "Language",
+    "languageDesc": "Select interface language"
+  },
+  "update": {
+    "available": "Update Available",
+    "newVersionAvailable": "A new version is available",
+    "currentVersion": "Current version:",
+    "latestVersion": "Latest version:",
+    "update": "UPDATE",
+    "dismiss": "DISMISS",
+    "upToDate": "You're up to date!",
+    "youHaveLatestVersion": "You have the latest version",
+    "ok": "OK"
+  },
+  "dashboard": {
+    "title": "Dashboard",
+    "welcome": "Welcome",
+    "welcomeMessage": "Program written for COBRA servers to detect third-party software.",
+    "info": "Info",
+    "changelog": "Changelog",
+    "loading": "Loading...",
+    "released": "Released:",
+    "forCobraServers": "for COBRA servers",
+    "changelogNotFound": "Changelog not found on GitHub",
+    "failedToLoad": "Failed to load. Check internet connection."
+  },
+  "scan": {
+    "title": "Scan",
+    "startScan": "START SCAN",
+    "readyToScan": "Ready to scan",
+    "scanning": "Scanning...",
+    "scanningSubtitle": "Please wait, checking your system...",
+    "scanComplete": "Scan Complete",
+    "cancelScan": "CANCEL SCAN",
+    "scanDescription": "Scan AppData, Registry, Processes, Prefetch, Steam and more",
+    "scannersReady": "scanners ready",
+    "progress": "Progress:",
+    "complete": "Complete!",
+    "pending": "Pending",
+    "found": "found"
+  },
+  "manual": {
+    "title": "Manual Check",
+    "subtitle": "Open folders and tools manually for investigation",
+    "systemTools": "System Tools",
+    "folders": "Folders",
+    "games": "Games",
+    "registry": "Registry",
+    "telegramCheatBots": "Telegram Cheat Bots",
+    "telegramBotsDesc": "Open these bots to check if the user has interacted with them",
+    "additionalResources": "Additional Resources",
+    "additionalResourcesDesc": "Websites where cheats are commonly sold",
+    "dataUsage": "Data Usage",
+    "videos": "Videos",
+    "downloads": "Downloads"
+  },
+  "utilities": {
+    "title": "Utilities",
+    "subtitle": "Useful tools for anti-cheat verification",
+    "openWebsite": "OPEN WEBSITE",
+    "lastActivityViewDesc": "Shows computer activity log including program executions, file operations and more",
+    "usbDeviewDesc": "Lists all USB devices ever connected to the computer with dates and details",
+    "everythingDesc": "Instant file search tool that indexes all files on your drives",
+    "systemInformerDesc": "Advanced system monitor and process viewer (formerly Process Hacker)"
+  },
+  "general": {
+    "home": "Home",
+    "checkUpdates": "Check Updates",
+    "noReleases": "No releases found on GitHub",
+    "error": "Error",
+    "networkUnavailable": "Network unavailable",
+    "timeout": "Timeout"
+  },
+  "startup": {
+    "checkingForUpdates": "Checking for updates...",
+    "updateRequired": "Update Required",
+    "updateRequiredMessage": "A new version is required to continue using the application",
+    "closeApp": "EXIT",
+    "pleaseWait": "Please wait",
+    "initializing": "Initializing...",
+    "loadingVersion": "Loading version...",
+    "skip": "SKIP",
+    "downloading": "Downloading update...",
+    "installing": "Installing update..."
+  },
+  "confirm": {
+    "confirmDelete": "Are you sure you want to delete custos?\n\nThis will close the application and remove all program files.",
+    "confirmDeleteTitle": "Confirm Delete",
+    "deleteFailed": "Failed to delete program:"
+  },
+  "results": {
+    "title": "Results",
+    "clean": "Clean",
+    "suspicious": "Suspicious",
+    "filesScanned": "Files scanned",
+    "noThreatsFound": "No threats found",
+    "threatsFound": "threats found",
+    "scanResults": "Scan Results",
+    "exportResults": "EXPORT RESULTS"
+  },
+  "nav": {
+    "dashboard": "Dashboard",
+    "scan": "Scan",
+    "results": "Results",
+    "manual": "Manual",
+    "utilities": "Utilities",
+    "settings": "Settings"
+  }
+}
