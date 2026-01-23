@@ -1,0 +1,150 @@
+{
+  "app": {
+    "timeouts": {
+      "defaultProcessTimeoutMs": 10000,
+      "serviceTimeoutMs": 5000,
+      "powerShellTimeoutMs": 15000,
+      "exitDelayMs": 800,
+      "cleanupDelayMs": 1500,
+      "uiDelayMs": 500
+    }
+  },
+  "scanning": {
+    "appDataScanDepth": 3,
+    "windowsScanDepth": 1,
+    "programFilesScanDepth": 2,
+    "userFoldersScanDepth": 3,
+    "recentFilesDays": 7,
+    "executableExtensions": [".exe", ".bat", ".cmd", ".ps1"],
+    "excludedDirectories": [
+      "windows.old",
+      "$recycle.bin",
+      "system volume information",
+      "recovery",
+      "perflogs",
+      "windowsapps",
+      "winsxs",
+      ".git",
+      "node_modules",
+      "cache",
+      "caches",
+      "temp",
+      "tmp",
+      "logs",
+      "log",
+      "crash reports",
+      "crashreports",
+      "gpucache",
+      "code cache",
+      "shadercache",
+      "shader cache",
+      "service worker",
+      "webcache",
+      "blob_storage",
+      "session storage",
+      "local storage",
+      "indexeddb",
+      "installer",
+      "google",
+      "microsoft",
+      "mozilla",
+      "discord",
+      "spotify",
+      "steam",
+      "nvidia",
+      "amd",
+      "intel",
+      "adobe",
+      "packages",
+      "program files",
+      "program files (x86)",
+      "programdata",
+      "drivers",
+      "fonts",
+      "assembly",
+      "microsoft.net",
+      "reference assemblies",
+      "vscode",
+      "visual studio",
+      "jetbrains",
+      "unity",
+      "unreal",
+      "epic games",
+      "battlenet",
+      "riot games",
+      "origin",
+      "ea",
+      "ubisoft",
+      "gog galaxy",
+      "nuget"
+    ]
+  },
+  "paths": {
+    "windows": {
+      "prefetchPath": "C:\\Windows\\Prefetch",
+      "windowsPath": "C:\\Windows",
+      "programFilesX86": "C:\\Program Files (x86)",
+      "programFiles": "C:\\Program Files"
+    },
+    "steam": {
+      "additionalDrives": ["D:", "E:", "F:", "G:"],
+      "loginUsersRelativePath": "Steam\\config\\loginusers.vdf",
+      "unturnedScreenshotsRelativePath": "Steam\\steamapps\\common\\Unturned\\Screenshots"
+    }
+  },
+  "registry": {
+    "scanKeys": [
+      {
+        "path": "HKEY_CURRENT_USER\\SOFTWARE\\Classes\\Local Settings\\Software\\Microsoft\\Windows\\Shell\\MuiCache",
+        "name": "MuiCache (Run History)"
+      },
+      {
+        "path": "HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\FeatureUsage\\AppSwitched",
+        "name": "AppSwitched (ALT+TAB History)"
+      },
+      {
+        "path": "HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\FeatureUsage\\ShowJumpView",
+        "name": "ShowJumpView (Taskbar History)"
+      },
+      {
+        "path": "HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Run",
+        "name": "Autorun HKCU"
+      },
+      {
+        "path": "HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run",
+        "name": "Autorun HKLM"
+      },
+      {
+        "path": "HKEY_CURRENT_USER\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\AppCompatFlags\\Layers",
+        "name": "Compatibility Flags"
+      },
+      {
+        "path": "HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\RunMRU",
+        "name": "Run Dialog History"
+      },
+      {
+        "path": "HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\ComDlg32\\OpenSavePidlMRU",
+        "name": "Open/Save Dialog History"
+      },
+      {
+        "path": "HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\RecentDocs",
+        "name": "Recent Documents"
+      },
+      {
+        "path": "HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\UserAssist",
+        "name": "UserAssist (Program Usage)"
+      }
+    ]
+  },
+  "externalResources": {
+    "websitesToCheck": [
+      { "url": "https://oplata.info", "name": "Oplata.info" },
+      { "url": "https://funpay.com", "name": "FunPay.com" }
+    ],
+    "telegramBots": [
+      { "username": "@MelonySolutionBot", "name": "Melony Solution Bot" },
+      { "username": "@UndeadSellerBot", "name": "Undead Seller Bot" }
+    ],
+    "networkServices": ["netprofm", "NlaSvc", "Dhcp", "Dnscache"]
+  }
+}
