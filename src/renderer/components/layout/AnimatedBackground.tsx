@@ -1,3 +1,4 @@
+import { motion } from 'framer-motion'
 import { useSettingsStore } from '../../stores/settings-store'
 
 // Floating particles - spread across different starting positions
@@ -69,7 +70,7 @@ export function AnimatedBackground() {
       {effectsEnabled && (
         <div className="absolute inset-0">
           {particles.map((particle) => (
-            <div
+            <motion.div
               key={particle.id}
               className="absolute rounded-full"
               style={{
@@ -80,28 +81,19 @@ export function AnimatedBackground() {
                   ? 'radial-gradient(circle, #c6a2e8 0%, transparent 70%)'
                   : 'radial-gradient(circle, #515ef5 0%, transparent 70%)',
                 boxShadow: `0 0 ${particle.size * 2}px ${particle.id % 2 === 0 ? '#c6a2e8' : '#515ef5'}`,
-                animation: `float-particle-${particle.id} ${particle.duration}s linear infinite`,
+                opacity: particle.opacity,
+              }}
+              initial={{ y: `${particle.startY}vh`, x: 0 }}
+              animate={{ y: '-120vh', x: particle.drift }}
+              transition={{
+                duration: particle.duration,
+                repeat: Infinity,
+                ease: 'linear',
               }}
             />
           ))}
         </div>
       )}
-
-      {/* Inline keyframes for each particle */}
-      <style>
-        {particles.map((particle) => `
-          @keyframes float-particle-${particle.id} {
-            0% {
-              transform: translateY(${particle.startY}vh) translateX(0);
-              opacity: ${particle.opacity};
-            }
-            100% {
-              transform: translateY(-120vh) translateX(${particle.drift}px);
-              opacity: ${particle.opacity};
-            }
-          }
-        `).join('\n')}
-      </style>
     </div>
   )
 }
