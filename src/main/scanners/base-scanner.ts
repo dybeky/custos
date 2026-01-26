@@ -1,11 +1,38 @@
-import { readdirSync, statSync, existsSync } from 'fs'
+import { existsSync } from 'fs'
+import { readdir, stat } from 'fs/promises'
 import { join, basename } from 'path'
 import { ScanResult, ScanProgress } from '../../shared/types'
 import { KeywordMatcher } from '../services/keyword-matcher'
 import { ScanSettings } from '../services/config-service'
+import { asyncExec } from '../utils/async-exec'
 
 export interface ScannerEventEmitter {
   onProgress?: (progress: ScanProgress) => void
+}
+
+/**
+ * Simple concurrency limiter for parallel operations
+ */
+class ConcurrencyLimiter {
+  private running = 0
+  private queue: (() => void)[] = []
+
+  constructor(private maxConcurrency: number) {}
+
+  async run<T>(fn: () => Promise<T>): Promise<T> {
+    while (this.running >= this.maxConcurrency) {
+      await new Promise<void>(resolve => this.queue.push(resolve))
+    }
+
+    this.running++
+    try {
+      return await fn()
+    } finally {
+      this.running--
+      const next = this.queue.shift()
+      if (next) next()
+    }
+  }
 }
 
 export abstract class BaseScanner {
@@ -13,6 +40,12 @@ export abstract class BaseScanner {
   protected scanSettings: ScanSettings
   protected excludedDirs: Set<string>
   protected cancelled = false
+
+  // Concurrency limit for parallel file system operations
+  protected static readonly MAX_CONCURRENCY = 10
+
+  // Cache for NTFS hidden attribute checks
+  private hiddenCache = new Map<string, boolean>()
 
   abstract readonly name: string
   abstract readonly description: string
@@ -33,93 +66,176 @@ export abstract class BaseScanner {
 
   reset(): void {
     this.cancelled = false
+    this.hiddenCache.clear()
   }
 
-  protected scanFolder(
+  protected async scanFolder(
     path: string,
     extensions: string[],
     maxDepth: number
-  ): string[] {
+  ): Promise<string[]> {
     const results: string[] = []
     if (!existsSync(path)) return results
 
-    this.scanFolderRecursive(path, extensions, maxDepth, 0, results)
+    await this.scanFolderRecursive(path, extensions, maxDepth, 0, results)
     return results
   }
 
-  private scanFolderRecursive(
+  private async scanFolderRecursive(
     path: string,
     extensions: string[],
     maxDepth: number,
     currentDepth: number,
-    results: string[]
-  ): void {
+    results: string[],
+    limiter?: ConcurrencyLimiter
+  ): Promise<void> {
     if (currentDepth > maxDepth) return
     if (this.cancelled) return
 
-    try {
-      const entries = readdirSync(path, { withFileTypes: true })
+    // Create limiter at root level
+    const concurrencyLimiter = limiter || new ConcurrencyLimiter(BaseScanner.MAX_CONCURRENCY)
 
-      for (const entry of entries) {
+    try {
+      const entries = await readdir(path, { withFileTypes: true })
+
+      // Batch check NTFS hidden attributes for efficiency
+      if (process.platform === 'win32' && entries.length > 0) {
+        const allPaths = entries.map(e => join(path, e.name))
+        await this.checkNtfsHiddenBatch(allPaths)
+      }
+
+      // Process entries in batches
+      const batchSize = 50
+      for (let i = 0; i < entries.length; i += batchSize) {
         if (this.cancelled) return
 
-        try {
-          const fullPath = join(path, entry.name)
-          const name = entry.name
+        const batch = entries.slice(i, i + batchSize)
+        const subDirPromises: Promise<void>[] = []
 
-          // Skip system files
+        for (const entry of batch) {
+          if (this.cancelled) return
+
           try {
-            const stats = statSync(fullPath)
-            if (stats.isSymbolicLink()) continue
-          } catch {
-            continue
-          }
+            const fullPath = join(path, entry.name)
+            const name = entry.name
 
-          const isHidden = this.isHiddenFile(fullPath)
-
-          if (entry.isDirectory()) {
-            // Skip excluded directories
-            if (this.excludedDirs.has(name.toLowerCase())) continue
-
-            // Check if directory name matches keywords
-            if (this.keywordMatcher.containsKeywordWithWhitelist(name, fullPath)) {
-              const suffix = isHidden ? ' [HIDDEN]' : ''
-              results.push(fullPath + suffix)
+            // Skip system files
+            try {
+              const stats = await stat(fullPath)
+              if (stats.isSymbolicLink()) continue
+            } catch (error) {
+              // Log access errors at debug level
+              const code = (error as NodeJS.ErrnoException).code
+              if (code !== 'ENOENT' && code !== 'EPERM' && code !== 'EACCES') {
+                console.debug(`[${this.name}] Skipped ${fullPath}: ${code}`)
+              }
+              continue
             }
 
-            // Recurse into subdirectory
-            this.scanFolderRecursive(fullPath, extensions, maxDepth, currentDepth + 1, results)
-          } else if (entry.isFile()) {
-            // Check if file name matches keywords
-            if (this.keywordMatcher.containsKeywordWithWhitelist(name, fullPath)) {
-              if (extensions.length === 0 || this.hasExtension(name, extensions)) {
+            const isHidden = this.isHiddenFile(fullPath)
+
+            if (entry.isDirectory()) {
+              // Skip excluded directories
+              if (this.excludedDirs.has(name.toLowerCase())) continue
+
+              // Check if directory name matches keywords
+              if (this.keywordMatcher.containsKeywordWithWhitelist(name, fullPath)) {
                 const suffix = isHidden ? ' [HIDDEN]' : ''
                 results.push(fullPath + suffix)
               }
+
+              // Queue subdirectory with concurrency limit
+              if (currentDepth < maxDepth) {
+                subDirPromises.push(
+                  concurrencyLimiter.run(() =>
+                    this.scanFolderRecursive(fullPath, extensions, maxDepth, currentDepth + 1, results, concurrencyLimiter)
+                  )
+                )
+              }
+            } else if (entry.isFile()) {
+              // Check if file name matches keywords
+              if (this.keywordMatcher.containsKeywordWithWhitelist(name, fullPath)) {
+                if (extensions.length === 0 || this.hasExtension(name, extensions)) {
+                  const suffix = isHidden ? ' [HIDDEN]' : ''
+                  results.push(fullPath + suffix)
+                }
+              }
+            }
+          } catch (error) {
+            // Log unexpected errors
+            const code = (error as NodeJS.ErrnoException).code
+            if (code && code !== 'ENOENT' && code !== 'EPERM' && code !== 'EACCES') {
+              console.debug(`[${this.name}] Error processing entry: ${code}`)
             }
           }
-        } catch {
-          // Skip files/folders we can't access
+        }
+
+        // Wait for all subdirectory scans in this batch
+        if (subDirPromises.length > 0) {
+          await Promise.all(subDirPromises)
         }
       }
-    } catch {
-      // Skip folders we can't read
+    } catch (error) {
+      // Log folder read errors
+      const code = (error as NodeJS.ErrnoException).code
+      if (code && code !== 'ENOENT' && code !== 'EPERM' && code !== 'EACCES') {
+        console.debug(`[${this.name}] Cannot read folder ${path}: ${code}`)
+      }
     }
   }
 
+  /**
+   * Check if file is hidden (considers both Unix-style dotfiles and NTFS hidden attribute)
+   */
   private isHiddenFile(filePath: string): boolean {
+    const fileName = basename(filePath)
+
+    // Unix-style hidden files (start with .)
+    if (fileName.startsWith('.')) {
+      return true
+    }
+
+    // On Windows, check NTFS hidden attribute from cache
+    if (process.platform === 'win32') {
+      return this.hiddenCache.get(filePath) || false
+    }
+
+    return false
+  }
+
+  /**
+   * Check NTFS hidden attribute using PowerShell (batch mode for efficiency)
+   */
+  private async checkNtfsHiddenBatch(paths: string[]): Promise<void> {
+    if (process.platform !== 'win32' || paths.length === 0) return
+
     try {
-      // On Windows, check file attributes
-      if (process.platform === 'win32') {
-        const stats = statSync(filePath)
-        // File is hidden if it has the hidden attribute (mode check)
-        // Windows hidden files typically start with . or have hidden attribute
-        const fileName = basename(filePath)
-        return fileName.startsWith('.')
+      // Build PowerShell script to check multiple files
+      const pathsJson = JSON.stringify(paths)
+      const psScript = `
+$paths = ${pathsJson} | ConvertFrom-Json
+foreach ($p in $paths) {
+  try {
+    $attr = (Get-Item -LiteralPath $p -Force -ErrorAction SilentlyContinue).Attributes
+    if ($attr -band [IO.FileAttributes]::Hidden) {
+      $p
+    }
+  } catch {}
+}
+`
+      const encoded = Buffer.from(psScript, 'utf16le').toString('base64')
+      const output = await asyncExec(
+        `powershell -NoProfile -ExecutionPolicy Bypass -EncodedCommand ${encoded}`,
+        { timeout: 5000, maxBuffer: 1024 * 1024 }
+      )
+
+      // Mark hidden files in cache
+      const hiddenPaths = output.split('\n').map(l => l.trim()).filter(Boolean)
+      for (const hp of hiddenPaths) {
+        this.hiddenCache.set(hp, true)
       }
-      return false
     } catch {
-      return false
+      // PowerShell check failed, fall back to basic check
     }
   }
 

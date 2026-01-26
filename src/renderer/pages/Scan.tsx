@@ -22,7 +22,8 @@ export function Scan() {
   } = useScanStore()
 
   useEffect(() => {
-    // Load scanners info
+    // Set up event listeners on component mount
+    // Store functions from zustand are stable and don't change
     window.electronAPI.getScanners().then(setScanners)
 
     // Set up event listeners
@@ -42,6 +43,7 @@ export function Scan() {
       unsubComplete()
       unsubError()
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   const handleStartScan = async () => {

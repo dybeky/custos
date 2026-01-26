@@ -36,7 +36,7 @@ export class AppDataScanner extends BaseScanner {
           })
         }
 
-        const findings = this.scanFolder(
+        const findings = await this.scanFolder(
           folder,
           [], // No extension filtering - search all files
           this.scanSettings.appDataScanDepth

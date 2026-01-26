@@ -1,74 +1,88 @@
 import { readFileSync, existsSync } from 'fs'
-import { join, dirname } from 'path'
+import { join } from 'path'
 import { app } from 'electron'
+import { z } from 'zod'
 
-export interface AppTimeouts {
-  defaultProcessTimeoutMs: number
-  serviceTimeoutMs: number
-  powerShellTimeoutMs: number
-  exitDelayMs: number
-  cleanupDelayMs: number
-  uiDelayMs: number
-}
+// Zod schemas for validation
+const AppTimeoutsSchema = z.object({
+  defaultProcessTimeoutMs: z.number().positive(),
+  serviceTimeoutMs: z.number().positive(),
+  powerShellTimeoutMs: z.number().positive(),
+  exitDelayMs: z.number().nonnegative(),
+  cleanupDelayMs: z.number().nonnegative(),
+  uiDelayMs: z.number().nonnegative()
+})
 
-export interface ScanSettings {
-  appDataScanDepth: number
-  windowsScanDepth: number
-  programFilesScanDepth: number
-  userFoldersScanDepth: number
-  recentFilesDays: number
-  executableExtensions: string[]
-  excludedDirectories: string[]
-}
+const ScanSettingsSchema = z.object({
+  appDataScanDepth: z.number().int().min(1).max(10),
+  windowsScanDepth: z.number().int().min(1).max(10),
+  programFilesScanDepth: z.number().int().min(1).max(10),
+  userFoldersScanDepth: z.number().int().min(1).max(10),
+  recentFilesDays: z.number().int().min(1).max(365),
+  executableExtensions: z.array(z.string()),
+  excludedDirectories: z.array(z.string())
+})
 
-export interface WindowsPaths {
-  prefetchPath: string
-  windowsPath: string
-  programFilesX86: string
-  programFiles: string
-}
+const WindowsPathsSchema = z.object({
+  prefetchPath: z.string(),
+  windowsPath: z.string(),
+  programFilesX86: z.string(),
+  programFiles: z.string()
+})
 
-export interface SteamPaths {
-  additionalDrives: string[]
-  loginUsersRelativePath: string
-  unturnedScreenshotsRelativePath: string
-}
+const SteamPathsSchema = z.object({
+  additionalDrives: z.array(z.string()),
+  loginUsersRelativePath: z.string(),
+  unturnedScreenshotsRelativePath: z.string()
+})
 
-export interface RegistryScanKey {
-  path: string
-  name: string
-}
+const RegistryScanKeySchema = z.object({
+  path: z.string(),
+  name: z.string()
+})
 
-export interface RegistrySettings {
-  scanKeys: RegistryScanKey[]
-}
+const RegistrySettingsSchema = z.object({
+  scanKeys: z.array(RegistryScanKeySchema)
+})
 
-export interface TelegramBot {
-  username: string
-  name: string
-}
+const TelegramBotSchema = z.object({
+  username: z.string(),
+  name: z.string()
+})
 
-export interface ExternalResourceSettings {
-  telegramBots: TelegramBot[]
-}
+const ExternalResourceSettingsSchema = z.object({
+  telegramBots: z.array(TelegramBotSchema)
+})
 
-export interface KeywordSettings {
-  patterns: string[]
-  exactMatch: string[]
-}
+const AppConfigSchema = z.object({
+  app: z.object({
+    timeouts: AppTimeoutsSchema
+  }),
+  scanning: ScanSettingsSchema,
+  paths: z.object({
+    windows: WindowsPathsSchema,
+    steam: SteamPathsSchema
+  }),
+  registry: RegistrySettingsSchema,
+  externalResources: ExternalResourceSettingsSchema
+})
 
-export interface AppConfig {
-  app: {
-    timeouts: AppTimeouts
-  }
-  scanning: ScanSettings
-  paths: {
-    windows: WindowsPaths
-    steam: SteamPaths
-  }
-  registry: RegistrySettings
-  externalResources: ExternalResourceSettings
-}
+const KeywordSettingsSchema = z.object({
+  patterns: z.array(z.string()),
+  exactMatch: z.array(z.string())
+})
+
+// Export types inferred from schemas
+export type AppTimeouts = z.infer<typeof AppTimeoutsSchema>
+export type ScanSettings = z.infer<typeof ScanSettingsSchema>
+export type WindowsPaths = z.infer<typeof WindowsPathsSchema>
+export type SteamPaths = z.infer<typeof SteamPathsSchema>
+export type RegistryScanKey = z.infer<typeof RegistryScanKeySchema>
+export type RegistrySettings = z.infer<typeof RegistrySettingsSchema>
+export type TelegramBot = z.infer<typeof TelegramBotSchema>
+export type ExternalResourceSettings = z.infer<typeof ExternalResourceSettingsSchema>
+export type AppConfig = z.infer<typeof AppConfigSchema>
+export type KeywordSettings = z.infer<typeof KeywordSettingsSchema>
 
 class ConfigService {
   private config: AppConfig | null = null
@@ -103,11 +117,19 @@ class ConfigService {
     try {
       const configPath = join(this.getResourcePath(), 'settings.json')
       const configContent = readFileSync(configPath, 'utf-8')
-      this.config = JSON.parse(configContent) as AppConfig
-      return this.config
+      const parsed = JSON.parse(configContent)
+
+      // Validate with Zod
+      const result = AppConfigSchema.safeParse(parsed)
+      if (result.success) {
+        this.config = result.data
+        return this.config
+      } else {
+        console.error('Config validation failed:', result.error.format())
+        return this.getDefaultConfig()
+      }
     } catch (error) {
       console.error('Failed to load config:', error)
-      // Return default config
       return this.getDefaultConfig()
     }
   }
@@ -118,8 +140,17 @@ class ConfigService {
     try {
       const keywordsPath = join(this.getResourcePath(), 'keywords.json')
       const keywordsContent = readFileSync(keywordsPath, 'utf-8')
-      this.keywords = JSON.parse(keywordsContent) as KeywordSettings
-      return this.keywords
+      const parsed = JSON.parse(keywordsContent)
+
+      // Validate with Zod
+      const result = KeywordSettingsSchema.safeParse(parsed)
+      if (result.success) {
+        this.keywords = result.data
+        return this.keywords
+      } else {
+        console.error('Keywords validation failed:', result.error.format())
+        return { patterns: [], exactMatch: [] }
+      }
     } catch (error) {
       console.error('Failed to load keywords:', error)
       return { patterns: [], exactMatch: [] }

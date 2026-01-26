@@ -4,7 +4,8 @@ import { createWriteStream, unlinkSync, existsSync } from 'fs'
 import { join } from 'path'
 import https from 'https'
 import http from 'http'
-import { getScannerFactory, ScannerName } from './scanners'
+import { getScannerFactory, ScannerName, BaseScanner } from './scanners'
+import { ThrottledProgress } from './utils/progress-throttle'
 import Store from 'electron-store'
 
 // Settings store
@@ -55,6 +56,60 @@ export function setupIpcHandlers(mainWindow: BrowserWindow): void {
     return scannerFactory.getScannerInfo()
   })
 
+  // Helper to run a group of scanners with concurrency limit
+  async function runScannerGroup(
+    scanners: BaseScanner[],
+    concurrency: number,
+    throttledProgress: ThrottledProgress,
+    completedRef: { count: number },
+    totalScanners: number
+  ): Promise<ScanResult[]> {
+    const results: ScanResult[] = []
+    const executing: Promise<void>[] = []
+
+    for (const scanner of scanners) {
+      if (scanAbortController?.signal.aborted) break
+
+      const scanPromise = (async () => {
+        // Send progress update for starting scanner
+        safeSend(IPC_CHANNELS.SCAN_PROGRESS, {
+          scannerName: scanner.name,
+          currentItem: completedRef.count + 1,
+          totalItems: totalScanners,
+          currentPath: `Starting ${scanner.name}...`,
+          percentage: (completedRef.count / totalScanners) * 100
+        } as ScanProgress)
+
+        const result = await scanner.scan({
+          onProgress: (progress: ScanProgress) => {
+            throttledProgress.emit(progress, (p) => safeSend(IPC_CHANNELS.SCAN_PROGRESS, p))
+          }
+        })
+
+        results.push(result)
+        completedRef.count++
+
+        // Send individual result
+        safeSend(IPC_CHANNELS.SCAN_RESULT, result)
+      })()
+
+      executing.push(scanPromise)
+
+      // Limit concurrency - use proper promise tracking
+      if (executing.length >= concurrency) {
+        // Wait for any promise to settle and remove it from the array
+        const completedPromise = await Promise.race(
+          executing.map((p, idx) => p.then(() => idx).catch(() => idx))
+        )
+        // Remove the completed promise by its index
+        executing.splice(completedPromise, 1)
+      }
+    }
+
+    await Promise.all(executing)
+    return results
+  }
+
   // Start scan
   ipcMain.handle(IPC_CHANNELS.SCAN_START, async (_event, scannerIds?: ScannerName[]): Promise<ScanResult[]> => {
     if (isScanning) {
@@ -65,37 +120,48 @@ export function setupIpcHandlers(mainWindow: BrowserWindow): void {
     scanAbortController = new AbortController()
     scannerFactory.resetAll()
 
-    const results: ScanResult[] = []
-    const scanners = scannerIds
+    const allScanners = scannerIds
       ? scannerIds.map(id => scannerFactory.getScanner(id)).filter((s): s is NonNullable<typeof s> => s !== undefined)
       : scannerFactory.getAllScanners()
 
+    // Group scanners by type for optimal parallel execution
+    const scannerNameMap = new Map<BaseScanner, string>()
+    allScanners.forEach(s => scannerNameMap.set(s, s.name.toLowerCase()))
+
+    // Group A: File system scanners (can run all in parallel)
+    const groupANames = ['appdata', 'prefetch', 'recent', 'game', 'steam']
+    const groupA = allScanners.filter(s => {
+      const name = scannerNameMap.get(s) || ''
+      return groupANames.some(n => name.includes(n))
+    })
+
+    // Group B: Registry/PowerShell scanners (run in parallel with limit)
+    const groupBNames = ['registry', 'bam', 'shellbag', 'amcache']
+    const groupB = allScanners.filter(s => {
+      const name = scannerNameMap.get(s) || ''
+      return groupBNames.some(n => name.includes(n))
+    })
+
+    // Group C: Independent scanners (process, browser)
+    const groupCNames = ['process', 'browser']
+    const groupC = allScanners.filter(s => {
+      const name = scannerNameMap.get(s) || ''
+      return groupCNames.some(n => name.includes(n))
+    })
+
+    const throttledProgress = new ThrottledProgress(100)
+    const completedRef = { count: 0 }
+    const totalScanners = allScanners.length
+
     try {
-      for (let i = 0; i < scanners.length; i++) {
-        if (scanAbortController.signal.aborted) break
+      // Run all groups in parallel
+      const [resultsA, resultsB, resultsC] = await Promise.all([
+        runScannerGroup(groupA, 5, throttledProgress, completedRef, totalScanners),
+        runScannerGroup(groupB, 4, throttledProgress, completedRef, totalScanners),
+        runScannerGroup(groupC, 2, throttledProgress, completedRef, totalScanners)
+      ])
 
-        const scanner = scanners[i]
-
-        // Send progress update for current scanner
-        safeSend(IPC_CHANNELS.SCAN_PROGRESS, {
-          scannerName: scanner.name,
-          currentItem: i + 1,
-          totalItems: scanners.length,
-          currentPath: `Starting ${scanner.name}...`,
-          percentage: (i / scanners.length) * 100
-        } as ScanProgress)
-
-        const result = await scanner.scan({
-          onProgress: (progress: ScanProgress) => {
-            safeSend(IPC_CHANNELS.SCAN_PROGRESS, progress)
-          }
-        })
-
-        results.push(result)
-
-        // Send individual result
-        safeSend(IPC_CHANNELS.SCAN_RESULT, result)
-      }
+      const results = [...resultsA, ...resultsB, ...resultsC]
 
       safeSend(IPC_CHANNELS.SCAN_COMPLETE, results)
       return results
@@ -211,8 +277,19 @@ export function setupIpcHandlers(mainWindow: BrowserWindow): void {
       let isResolved = false
       const MAX_REDIRECTS = 10
 
-      const downloadFile = (url: string, redirectCount = 0) => {
+      // Helper for async-safe file cleanup
+      const cleanupFile = async (): Promise<void> => {
+        try {
+          const { unlink } = await import('fs/promises')
+          await unlink(newExePath)
+        } catch { /* ignore - file may not exist */ }
+      }
+
+      const downloadFile = (url: string, redirectCount = 0): void => {
+        if (isResolved) return
+
         if (redirectCount > MAX_REDIRECTS) {
+          isResolved = true
           reject(new Error('Too many redirects'))
           return
         }
@@ -225,19 +302,25 @@ export function setupIpcHandlers(mainWindow: BrowserWindow): void {
           },
           timeout: 60000 // 60s timeout
         }, (response) => {
-          // Handle redirects
+          // Handle redirects - consume response and follow redirect
           if (response.statusCode === 302 || response.statusCode === 301) {
+            // Consume response data to free up memory
+            response.resume()
+
             const redirectUrl = response.headers.location
             if (redirectUrl) {
+              // Follow redirect recursively
               downloadFile(redirectUrl, redirectCount + 1)
-              return
             } else {
+              isResolved = true
               reject(new Error('Redirect missing location header'))
-              return
             }
+            return
           }
 
           if (response.statusCode !== 200) {
+            isResolved = true
+            response.resume()
             reject(new Error(`Download failed: ${response.statusCode}`))
             return
           }
@@ -250,9 +333,9 @@ export function setupIpcHandlers(mainWindow: BrowserWindow): void {
 
           const fileStream = createWriteStream(newExePath)
 
-          const cleanup = () => {
+          const cleanup = (): void => {
             isResolved = true
-            response.removeAllListeners('data')
+            response.removeAllListeners()
             fileStream.removeAllListeners()
           }
 
@@ -282,36 +365,39 @@ export function setupIpcHandlers(mainWindow: BrowserWindow): void {
           response.pipe(fileStream)
 
           fileStream.on('finish', () => {
+            if (isResolved) return
             cleanup()
             fileStream.close(() => resolve())
           })
 
           fileStream.on('error', (err) => {
+            if (isResolved) return
             cleanup()
-            fileStream.close()
-            // Clean up partial file
-            try { unlinkSync(newExePath) } catch { /* ignore */ }
-            reject(err)
+            fileStream.close(() => {
+              cleanupFile().finally(() => reject(err))
+            })
           })
 
           response.on('error', (err) => {
+            if (isResolved) return
             cleanup()
-            fileStream.close()
-            try { unlinkSync(newExePath) } catch { /* ignore */ }
-            reject(err)
+            fileStream.close(() => {
+              cleanupFile().finally(() => reject(err))
+            })
           })
         })
 
         request.on('error', (err) => {
-          // Clean up partial file
-          try { unlinkSync(newExePath) } catch { /* ignore */ }
-          reject(err)
+          if (isResolved) return
+          isResolved = true
+          cleanupFile().finally(() => reject(err))
         })
 
         request.on('timeout', () => {
+          if (isResolved) return
+          isResolved = true
           request.destroy()
-          try { unlinkSync(newExePath) } catch { /* ignore */ }
-          reject(new Error('Download timeout'))
+          cleanupFile().finally(() => reject(new Error('Download timeout')))
         })
       }
 
@@ -319,9 +405,21 @@ export function setupIpcHandlers(mainWindow: BrowserWindow): void {
     })
 
     // Create batch file to replace exe and restart
-    // Escape paths for batch file (double quotes handle most cases)
-    const escapedNewPath = newExePath.replace(/"/g, '""')
-    const escapedExePath = exePath.replace(/"/g, '""')
+    // Escape paths for batch file - escape all special characters
+    const escapeBatchPath = (path: string): string => {
+      // First escape caret (^) as it's the escape character itself
+      // Then escape other special characters: & | < > " %
+      return path
+        .replace(/\^/g, '^^')
+        .replace(/&/g, '^&')
+        .replace(/\|/g, '^|')
+        .replace(/</g, '^<')
+        .replace(/>/g, '^>')
+        .replace(/"/g, '""')
+        .replace(/%/g, '%%')
+    }
+    const escapedNewPath = escapeBatchPath(newExePath)
+    const escapedExePath = escapeBatchPath(exePath)
 
     const batchContent = `@echo off
 chcp 65001 >nul
@@ -378,14 +476,15 @@ del "%~f0"
 
   // Open path in explorer
   ipcMain.handle(IPC_CHANNELS.APP_OPEN_PATH, async (_event, path: string): Promise<void> => {
-    // Expand environment variables
-    let expandedPath = path.replace(/%([^%]+)%/g, (_, varName) => {
+    // Expand environment variables first
+    const expandedPath = path.replace(/%([^%]+)%/g, (_, varName) => {
       return process.env[varName] || ''
     })
 
-    // Handle special URI schemes (ms-settings, windowsdefender, etc.)
-    if (path.includes(':') && !path.match(/^[A-Z]:\\/i)) {
-      await shell.openExternal(path)
+    // Handle special URI schemes AFTER expansion (ms-settings, windowsdefender, etc.)
+    // Check on expandedPath, not original path
+    if (expandedPath.includes(':') && !expandedPath.match(/^[A-Z]:\\/i)) {
+      await shell.openExternal(expandedPath)
       return
     }
 
@@ -393,17 +492,32 @@ del "%~f0"
   })
 
   // Open registry key
-  ipcMain.handle('app:open-registry', async (_event, keyPath: string): Promise<void> => {
-    const { exec } = await import('child_process')
+  ipcMain.handle(IPC_CHANNELS.APP_OPEN_REGISTRY, async (_event, keyPath: string): Promise<void> => {
+    const { execFile } = await import('child_process')
+
+    // Validate and sanitize keyPath to prevent command injection
+    // Only allow valid registry key characters: alphanumeric, backslash, underscore, hyphen, spaces
+    if (!keyPath || !/^[A-Za-z0-9\\_\-\s]+$/.test(keyPath)) {
+      console.error('Invalid registry key path:', keyPath)
+      return
+    }
 
     // Set the last key in regedit
     const fullPath = keyPath.replace('HKCU', 'HKEY_CURRENT_USER')
 
-    // Write to registry to set last key
-    exec(`reg add "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Applets\\Regedit" /v "LastKey" /t REG_SZ /d "${fullPath}" /f`, (err) => {
+    // Use execFile instead of exec to prevent command injection
+    // Pass arguments as array, not interpolated string
+    execFile('reg', [
+      'add',
+      'HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Applets\\Regedit',
+      '/v', 'LastKey',
+      '/t', 'REG_SZ',
+      '/d', fullPath,
+      '/f'
+    ], (err) => {
       if (!err) {
-        // Open regedit
-        exec('regedit')
+        // Open regedit using execFile
+        execFile('regedit')
       }
     })
   })
@@ -411,7 +525,18 @@ del "%~f0"
   // Delete self (for "delete after use" feature)
   ipcMain.handle(IPC_CHANNELS.APP_DELETE_SELF, async (): Promise<void> => {
     const exePath = app.getPath('exe')
-    const escapedPath = exePath.replace(/"/g, '""')
+    // Escape paths for batch file - escape all special characters
+    const escapeBatchPath = (path: string): string => {
+      return path
+        .replace(/\^/g, '^^')
+        .replace(/&/g, '^&')
+        .replace(/\|/g, '^|')
+        .replace(/</g, '^<')
+        .replace(/>/g, '^>')
+        .replace(/"/g, '""')
+        .replace(/%/g, '%%')
+    }
+    const escapedPath = escapeBatchPath(exePath)
 
     // Create a batch file to delete the app after it closes
     const batchContent = `@echo off

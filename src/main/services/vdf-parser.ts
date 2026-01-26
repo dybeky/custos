@@ -16,9 +16,50 @@ export class VdfParseException extends Error {
   }
 }
 
+// Result type for better error handling
+export type Result<T, E = Error> =
+  | { success: true; data: T }
+  | { success: false; error: E }
+
+export interface ParseError {
+  message: string
+  lineNumber?: number
+  context?: string
+}
+
 export class VdfParser {
   /**
+   * Safely parses Steam loginusers.vdf file with Result type
+   * Returns either success with accounts or error with details
+   */
+  parseSteamAccountsSafe(vdfContent: string): Result<SteamAccount[], ParseError> {
+    try {
+      const accounts = this.parseSteamAccounts(vdfContent)
+      return { success: true, data: accounts }
+    } catch (error) {
+      if (error instanceof VdfParseException) {
+        return {
+          success: false,
+          error: {
+            message: error.message,
+            lineNumber: error.lineNumber,
+            context: 'VDF parsing failed'
+          }
+        }
+      }
+      return {
+        success: false,
+        error: {
+          message: error instanceof Error ? error.message : 'Unknown error',
+          context: 'Unexpected error during VDF parsing'
+        }
+      }
+    }
+  }
+
+  /**
    * Parses Steam loginusers.vdf file and extracts account information
+   * @throws VdfParseException on parsing errors
    */
   parseSteamAccounts(vdfContent: string): SteamAccount[] {
     const accounts: SteamAccount[] = []
@@ -28,7 +69,7 @@ export class VdfParser {
     let inUsersSection = false
 
     try {
-      for (let rawLine of lines) {
+      for (const rawLine of lines) {
         lineNumber++
         let line = rawLine.trim()
 
@@ -180,6 +221,24 @@ export class VdfParser {
     }
 
     return { isValid: errors.length === 0, errors }
+  }
+
+  /**
+   * Safely parses VDF content with Result type
+   */
+  parseGenericVdfSafe(vdfContent: string): Result<Record<string, unknown>, ParseError> {
+    try {
+      const result = this.parseGenericVdf(vdfContent)
+      return { success: true, data: result }
+    } catch (error) {
+      return {
+        success: false,
+        error: {
+          message: error instanceof Error ? error.message : 'Unknown error',
+          context: 'Generic VDF parsing failed'
+        }
+      }
+    }
   }
 
   /**

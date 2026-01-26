@@ -76,6 +76,7 @@ export const IPC_CHANNELS = {
   APP_DOWNLOAD_PROGRESS: 'app:download-progress',
   APP_OPEN_EXTERNAL: 'app:open-external',
   APP_OPEN_PATH: 'app:open-path',
+  APP_OPEN_REGISTRY: 'app:open-registry',
   APP_DELETE_SELF: 'app:delete-self',
   APP_QUIT: 'app:quit',
 

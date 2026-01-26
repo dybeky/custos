@@ -1,4 +1,4 @@
-import { forwardRef } from 'react'
+import { forwardRef, useId } from 'react'
 import { motion } from 'framer-motion'
 import { cn } from '../../utils/cn'
 
@@ -10,6 +10,7 @@ interface ToggleProps {
   label?: string
   description?: string
   className?: string
+  'aria-label'?: string
 }
 
 const sizes = {
@@ -34,21 +35,27 @@ export const Toggle = forwardRef<HTMLButtonElement, ToggleProps>(
       size = 'md',
       label,
       description,
-      className
+      className,
+      'aria-label': ariaLabel
     },
     ref
   ) => {
     const sizeStyles = sizes[size]
+    const labelId = useId()
+    const descriptionId = useId()
+
+    // Determine the aria-label: use explicit aria-label, or label text, or require one
+    const effectiveAriaLabel = ariaLabel || (label ? undefined : 'Toggle switch')
 
     return (
       <div className={cn('flex items-center justify-between', className)}>
         {(label || description) && (
           <div className="flex-1 mr-4">
             {label && (
-              <span className="text-sm font-medium text-text-primary">{label}</span>
+              <span id={labelId} className="text-sm font-medium text-text-primary">{label}</span>
             )}
             {description && (
-              <p className="text-xs text-text-secondary mt-0.5">{description}</p>
+              <p id={descriptionId} className="text-xs text-text-secondary mt-0.5">{description}</p>
             )}
           </div>
         )}
@@ -57,6 +64,9 @@ export const Toggle = forwardRef<HTMLButtonElement, ToggleProps>(
           type="button"
           role="switch"
           aria-checked={checked}
+          aria-label={effectiveAriaLabel}
+          aria-labelledby={label ? labelId : undefined}
+          aria-describedby={description ? descriptionId : undefined}
           disabled={disabled}
           onClick={() => onChange(!checked)}
           className={cn(
@@ -72,6 +82,7 @@ export const Toggle = forwardRef<HTMLButtonElement, ToggleProps>(
               'pointer-events-none inline-block rounded-full bg-white shadow-lg',
               sizeStyles.thumb
             )}
+            aria-hidden="true"
             animate={{
               x: checked ? (size === 'md' ? 20 : 16) : 2,
               y: size === 'md' ? 2 : 2

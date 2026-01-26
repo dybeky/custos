@@ -1,11 +1,29 @@
-import { execSync } from 'child_process'
 import { existsSync } from 'fs'
+import { join } from 'path'
 import { BaseScanner, ScannerEventEmitter } from './base-scanner'
 import { ScanResult } from '../../shared/types'
+import { asyncExec } from '../utils/async-exec'
 
 export class AmcacheScanner extends BaseScanner {
   readonly name = 'Amcache Scanner'
   readonly description = 'Scanning Amcache for program execution history'
+
+  // Get Windows directory dynamically
+  private get windowsDir(): string {
+    return process.env.WINDIR || process.env.SystemRoot || 'C:\\Windows'
+  }
+
+  /**
+   * Execute PowerShell script using Base64 EncodedCommand for reliable escaping
+   */
+  private async execPowerShell(script: string, timeout = 30000): Promise<string> {
+    // Encode script as UTF-16LE Base64 (required by PowerShell -EncodedCommand)
+    const encoded = Buffer.from(script, 'utf16le').toString('base64')
+    return asyncExec(
+      `powershell -NoProfile -ExecutionPolicy Bypass -EncodedCommand ${encoded}`,
+      { maxBuffer: 10 * 1024 * 1024, timeout }
+    )
+  }
 
   async scan(events?: ScannerEventEmitter): Promise<ScanResult> {
     const startTime = new Date()
@@ -26,7 +44,7 @@ export class AmcacheScanner extends BaseScanner {
       }
 
       // Method 1: Query InventoryApplicationFile (Windows 10+)
-      const inventoryResults = this.scanInventoryApplicationFile()
+      const inventoryResults = await this.scanInventoryApplicationFile()
       results.push(...inventoryResults)
 
       if (this.cancelled) return this.createErrorResult('Scan cancelled', startTime)
@@ -42,7 +60,7 @@ export class AmcacheScanner extends BaseScanner {
       }
 
       // Method 2: Query AppCompatFlags
-      const appCompatResults = this.scanAppCompatFlags()
+      const appCompatResults = await this.scanAppCompatFlags()
       results.push(...appCompatResults)
 
       if (this.cancelled) return this.createErrorResult('Scan cancelled', startTime)
@@ -58,7 +76,7 @@ export class AmcacheScanner extends BaseScanner {
       }
 
       // Method 3: Scan RecentFileCache.bcf if exists
-      const recentCacheResults = this.scanRecentFileCache()
+      const recentCacheResults = await this.scanRecentFileCache()
       results.push(...recentCacheResults)
 
       return this.createSuccessResult(results, startTime)
@@ -73,39 +91,31 @@ export class AmcacheScanner extends BaseScanner {
     }
   }
 
-  private scanInventoryApplicationFile(): string[] {
+  private async scanInventoryApplicationFile(): Promise<string[]> {
     const results: string[] = []
 
     try {
       // Query InventoryApplicationFile from Amcache via PowerShell
       // This contains info about executed programs
       const psScript = `
-        $ErrorActionPreference = 'SilentlyContinue'
+$ErrorActionPreference = 'SilentlyContinue'
 
-        Get-ItemProperty 'HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\*' |
-          Where-Object { $_.DisplayName -or $_.InstallLocation } |
-          ForEach-Object {
-            if ($_.InstallLocation) { $_.InstallLocation }
-            if ($_.DisplayName) { "APP: " + $_.DisplayName }
-          }
+Get-ItemProperty 'HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\*' |
+  Where-Object { $_.DisplayName -or $_.InstallLocation } |
+  ForEach-Object {
+    if ($_.InstallLocation) { $_.InstallLocation }
+    if ($_.DisplayName) { "APP: " + $_.DisplayName }
+  }
 
-        Get-ItemProperty 'HKLM:\\SOFTWARE\\WOW6432Node\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\*' |
-          Where-Object { $_.DisplayName -or $_.InstallLocation } |
-          ForEach-Object {
-            if ($_.InstallLocation) { $_.InstallLocation }
-            if ($_.DisplayName) { "APP: " + $_.DisplayName }
-          }
-      `
+Get-ItemProperty 'HKLM:\\SOFTWARE\\WOW6432Node\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\*' |
+  Where-Object { $_.DisplayName -or $_.InstallLocation } |
+  ForEach-Object {
+    if ($_.InstallLocation) { $_.InstallLocation }
+    if ($_.DisplayName) { "APP: " + $_.DisplayName }
+  }
+`
 
-      const output = execSync(
-        `powershell -NoProfile -ExecutionPolicy Bypass -Command "${psScript.replace(/"/g, '\\"').replace(/\n/g, ' ')}"`,
-        {
-          encoding: 'utf-8',
-          maxBuffer: 10 * 1024 * 1024,
-          timeout: 30000,
-          windowsHide: true
-        }
-      )
+      const output = await this.execPowerShell(psScript)
 
       const lines = output.split('\n')
       for (const line of lines) {
@@ -124,7 +134,7 @@ export class AmcacheScanner extends BaseScanner {
     return results
   }
 
-  private scanAppCompatFlags(): string[] {
+  private async scanAppCompatFlags(): Promise<string[]> {
     const results: string[] = []
 
     const registryPaths = [
@@ -135,12 +145,13 @@ export class AmcacheScanner extends BaseScanner {
       'HKLM\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\App Paths'
     ]
 
-    for (const regPath of registryPaths) {
-      if (this.cancelled) break
+    // Query all registry paths in parallel
+    const queryPromises = registryPaths.map(async regPath => {
+      if (this.cancelled) return []
 
+      const pathResults: string[] = []
       try {
-        const output = execSync(`reg query "${regPath}" /s 2>nul`, {
-          encoding: 'utf-8',
+        const output = await asyncExec(`reg query "${regPath}" /s 2>nul`, {
           maxBuffer: 10 * 1024 * 1024,
           timeout: 10000
         })
@@ -151,22 +162,28 @@ export class AmcacheScanner extends BaseScanner {
           if (!trimmed) continue
 
           if (this.keywordMatcher.containsKeyword(trimmed)) {
-            results.push(`[Amcache/AppCompat] ${trimmed}`)
+            pathResults.push(`[Amcache/AppCompat] ${trimmed}`)
           }
         }
       } catch {
         // Registry key doesn't exist or access denied
       }
+      return pathResults
+    })
+
+    const allResults = await Promise.all(queryPromises)
+    for (const pathResults of allResults) {
+      results.push(...pathResults)
     }
 
     return results
   }
 
-  private scanRecentFileCache(): string[] {
+  private async scanRecentFileCache(): Promise<string[]> {
     const results: string[] = []
 
-    // RecentFileCache.bcf location
-    const recentFileCachePath = 'C:\\Windows\\AppCompat\\Programs\\RecentFileCache.bcf'
+    // RecentFileCache.bcf location - use dynamic Windows path
+    const recentFileCachePath = join(this.windowsDir, 'AppCompat', 'Programs', 'RecentFileCache.bcf')
 
     if (!existsSync(recentFileCachePath)) {
       return results
@@ -176,23 +193,15 @@ export class AmcacheScanner extends BaseScanner {
       // Use PowerShell to read and parse the binary file
       // RecentFileCache.bcf contains UTF-16LE encoded file paths
       const psScript = `
-        $path = 'C:\\Windows\\AppCompat\\Programs\\RecentFileCache.bcf'
-        if (Test-Path $path) {
-          $bytes = [System.IO.File]::ReadAllBytes($path)
-          $text = [System.Text.Encoding]::Unicode.GetString($bytes)
-          $text -split '\\x00+' | Where-Object { $_ -match '\\\\' }
-        }
-      `
+$path = '${recentFileCachePath.replace(/\\/g, '\\\\')}'
+if (Test-Path $path) {
+  $bytes = [System.IO.File]::ReadAllBytes($path)
+  $text = [System.Text.Encoding]::Unicode.GetString($bytes)
+  $text -split '\\x00+' | Where-Object { $_ -match '\\\\' }
+}
+`
 
-      const output = execSync(
-        `powershell -NoProfile -ExecutionPolicy Bypass -Command "${psScript.replace(/"/g, '\\"').replace(/\n/g, ' ')}"`,
-        {
-          encoding: 'utf-8',
-          maxBuffer: 10 * 1024 * 1024,
-          timeout: 15000,
-          windowsHide: true
-        }
-      )
+      const output = await this.execPowerShell(psScript, 15000)
 
       const lines = output.split('\n')
       for (const line of lines) {

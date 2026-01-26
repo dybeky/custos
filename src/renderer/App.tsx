@@ -10,6 +10,7 @@ import { Results } from './pages/Results'
 import { Manual } from './pages/Manual'
 import { Utilities } from './pages/Utilities'
 import { Settings } from './pages/Settings'
+import { ErrorBoundary } from './components/ErrorBoundary'
 import { useSettingsStore } from './stores/settings-store'
 import { VersionInfo, DownloadProgress } from '../shared/types'
 import './i18n'
@@ -207,27 +208,29 @@ export function App() {
 
   // Main app (only when ready and no update required)
   return (
-    <HashRouter>
-      <div className="h-screen w-screen bg-background text-text-primary flex flex-col overflow-hidden">
-        <AnimatedBackground />
+    <ErrorBoundary>
+      <HashRouter>
+        <div className="h-screen w-screen bg-background text-text-primary flex flex-col overflow-hidden">
+          <AnimatedBackground />
 
-        <Header />
+          <Header />
 
-        <div className="flex flex-1 overflow-hidden relative z-10">
-          <Sidebar />
+          <div className="flex flex-1 overflow-hidden relative z-10">
+            <Sidebar />
 
-          <main className="flex-1 overflow-hidden flex flex-col">
-            <Routes>
-              <Route path="/" element={<Dashboard />} />
-              <Route path="/scan" element={<Scan />} />
-              <Route path="/results" element={<Results />} />
-              <Route path="/manual" element={<Manual />} />
-              <Route path="/utilities" element={<Utilities />} />
-              <Route path="/settings" element={<Settings />} />
-            </Routes>
-          </main>
+            <main className="flex-1 overflow-hidden flex flex-col">
+              <Routes>
+                <Route path="/" element={<Dashboard />} />
+                <Route path="/scan" element={<Scan />} />
+                <Route path="/results" element={<Results />} />
+                <Route path="/manual" element={<Manual />} />
+                <Route path="/utilities" element={<Utilities />} />
+                <Route path="/settings" element={<Settings />} />
+              </Routes>
+            </main>
+          </div>
         </div>
-      </div>
-    </HashRouter>
+      </HashRouter>
+    </ErrorBoundary>
   )
 }

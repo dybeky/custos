@@ -1,6 +1,6 @@
-import { execSync } from 'child_process'
 import { BaseScanner, ScannerEventEmitter } from './base-scanner'
 import { ScanResult } from '../../shared/types'
+import { asyncExec } from '../utils/async-exec'
 
 export class ShellbagsScanner extends BaseScanner {
   readonly name = 'Shellbags Scanner'
@@ -26,30 +26,34 @@ export class ShellbagsScanner extends BaseScanner {
       const results: string[] = []
       const seenPaths = new Set<string>()
 
-      let currentStep = 0
       const totalSteps = this.shellbagPaths.length
 
-      for (const regPath of this.shellbagPaths) {
-        if (this.cancelled) break
+      // Scan all shellbag paths in parallel
+      // Fix: Use index instead of currentStep++ to avoid race condition
+      const scanPromises = this.shellbagPaths.map(async (regPath, index) => {
+        if (this.cancelled) return []
 
-        currentStep++
         if (events?.onProgress) {
           events.onProgress({
             scannerName: this.name,
-            currentItem: currentStep,
+            currentItem: index + 1,
             totalItems: totalSteps,
             currentPath: regPath.split('\\').slice(-2).join('\\'),
-            percentage: (currentStep / totalSteps) * 100
+            percentage: ((index + 1) / totalSteps) * 100
           })
         }
 
-        const pathResults = this.scanShellbagPath(regPath, seenPaths)
+        return this.scanShellbagPath(regPath, seenPaths)
+      })
+
+      const allResults = await Promise.all(scanPromises)
+      for (const pathResults of allResults) {
         results.push(...pathResults)
       }
 
       // Also try to extract folder paths using PowerShell for better parsing
       if (!this.cancelled) {
-        const psResults = this.scanWithPowerShell(seenPaths)
+        const psResults = await this.scanWithPowerShell(seenPaths)
         results.push(...psResults)
       }
 
@@ -65,12 +69,11 @@ export class ShellbagsScanner extends BaseScanner {
     }
   }
 
-  private scanShellbagPath(regPath: string, seenPaths: Set<string>): string[] {
+  private async scanShellbagPath(regPath: string, seenPaths: Set<string>): Promise<string[]> {
     const results: string[] = []
 
     try {
-      const output = execSync(`reg query "${regPath}" /s 2>nul`, {
-        encoding: 'utf-8',
+      const output = await asyncExec(`reg query "${regPath}" /s 2>nul`, {
         maxBuffer: 20 * 1024 * 1024, // 20MB - shellbags can be large
         timeout: 30000
       })
@@ -132,6 +135,7 @@ export class ShellbagsScanner extends BaseScanner {
 
     // Match common path patterns
     // Drive letter paths: C:\folder\subfolder
+    // eslint-disable-next-line no-control-regex
     const drivePathRegex = /[A-Z]:\\[^<>:"|?*\x00-\x1F]+/gi
     const driveMatches = text.match(drivePathRegex)
     if (driveMatches) {
@@ -139,6 +143,7 @@ export class ShellbagsScanner extends BaseScanner {
     }
 
     // UNC paths: \\server\share
+    // eslint-disable-next-line no-control-regex
     const uncRegex = /\\\\[^\\<>:"|?*\x00-\x1F]+\\[^<>:"|?*\x00-\x1F]*/gi
     const uncMatches = text.match(uncRegex)
     if (uncMatches) {
@@ -147,7 +152,7 @@ export class ShellbagsScanner extends BaseScanner {
 
     // Folder names that might be stored without full path
     // Look for common cheat-related folder patterns
-    const folderNames = text.split(/[\\\/\s]+/).filter(part =>
+    const folderNames = text.split(/[\\/\s]+/).filter(part =>
       part.length > 3 &&
       !part.match(/^(REG_|HKEY_|Software|Microsoft|Windows|Shell|Bags?|MRU)$/i)
     )
@@ -156,7 +161,7 @@ export class ShellbagsScanner extends BaseScanner {
     return [...new Set(paths)] // Remove duplicates
   }
 
-  private scanWithPowerShell(seenPaths: Set<string>): string[] {
+  private async scanWithPowerShell(seenPaths: Set<string>): Promise<string[]> {
     const results: string[] = []
 
     try {
@@ -191,13 +196,11 @@ export class ShellbagsScanner extends BaseScanner {
         Get-ShellbagPaths 'HKCU:\\Software\\Classes\\Local Settings\\Software\\Microsoft\\Windows\\Shell\\BagMRU'
       `
 
-      const output = execSync(
+      const output = await asyncExec(
         `powershell -NoProfile -ExecutionPolicy Bypass -Command "${psScript.replace(/"/g, '\\"').replace(/\n/g, ' ')}"`,
         {
-          encoding: 'utf-8',
           maxBuffer: 20 * 1024 * 1024,
-          timeout: 30000,
-          windowsHide: true
+          timeout: 30000
         }
       )
 
