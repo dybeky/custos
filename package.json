@@ -56,9 +56,6 @@
     "vitest": "^3.0.0",
     "zod": "^3.24.0"
   },
-  "overrides": {
-    "tar": "^7.5.6"
-  },
   "build": {
     "appId": "com.cobra.custos",
     "productName": "Custos",
