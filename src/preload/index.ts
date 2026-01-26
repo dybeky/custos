@@ -93,7 +93,7 @@ const api = {
   },
 
   openRegistry: (keyPath: string): Promise<void> => {
-    return ipcRenderer.invoke('app:open-registry', keyPath)
+    return ipcRenderer.invoke(IPC_CHANNELS.APP_OPEN_REGISTRY, keyPath)
   },
 
   deleteSelf: (): Promise<void> => {

@@ -5,6 +5,8 @@ export class KeywordMatcher {
   private patterns: string[]
   private patternsLower: string[]
   private exactMatch: Set<string>
+  private compiledPattern: RegExp | null = null
+  private patternIndexMap: Map<string, number> = new Map()
 
   constructor(settings: KeywordSettings) {
     this.patterns = settings.patterns || []
@@ -12,6 +14,23 @@ export class KeywordMatcher {
     this.exactMatch = new Set(
       (settings.exactMatch || []).map(e => e.toLowerCase())
     )
+
+    // Compile all patterns into a single regex for O(1) matching
+    if (this.patternsLower.length > 0) {
+      // Escape regex special characters in patterns
+      const escaped = this.patternsLower.map(p =>
+        p.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+      )
+      // Build pattern index map for findKeyword
+      escaped.forEach((p, i) => this.patternIndexMap.set(p, i))
+
+      // Create pattern with word boundaries
+      // Use non-alphanumeric as word boundary: (?<![a-zA-Z0-9]) and (?![a-zA-Z0-9])
+      this.compiledPattern = new RegExp(
+        `(?<![a-zA-Z0-9])(${escaped.join('|')})(?![a-zA-Z0-9])`,
+        'i'
+      )
+    }
   }
 
   containsKeyword(text: string): boolean {
@@ -20,37 +39,13 @@ export class KeywordMatcher {
     const textLower = text.toLowerCase()
     const baseName = this.getFileNameWithoutExtension(textLower)
 
+    // Check exact matches first (O(1) lookup)
     if (this.exactMatch.has(baseName)) {
       return true
     }
 
-    for (const pattern of this.patternsLower) {
-      if (this.hasWordBoundaryMatch(textLower, pattern)) {
-        return true
-      }
-    }
-
-    return false
-  }
-
-  private hasWordBoundaryMatch(text: string, pattern: string): boolean {
-    let index = 0
-    while ((index = text.indexOf(pattern, index)) !== -1) {
-      const leftBoundary = index === 0 || !this.isLetterOrDigit(text[index - 1])
-      const endIndex = index + pattern.length
-      const rightBoundary = endIndex >= text.length || !this.isLetterOrDigit(text[endIndex])
-
-      if (leftBoundary && rightBoundary) {
-        return true
-      }
-
-      index++
-    }
-    return false
-  }
-
-  private isLetterOrDigit(char: string): boolean {
-    return /[a-zA-Z0-9]/.test(char)
+    // Use compiled regex for pattern matching (single pass)
+    return this.compiledPattern?.test(textLower) ?? false
   }
 
   private getFileNameWithoutExtension(filePath: string): string {
@@ -74,9 +69,17 @@ export class KeywordMatcher {
       return baseName
     }
 
-    for (let i = 0; i < this.patternsLower.length; i++) {
-      if (this.hasWordBoundaryMatch(textLower, this.patternsLower[i])) {
-        return this.patterns[i]
+    if (this.compiledPattern) {
+      const match = textLower.match(this.compiledPattern)
+      if (match && match[1]) {
+        // Use O(1) lookup with patternIndexMap instead of O(n) loop
+        const matchedLower = match[1].toLowerCase()
+        const escapedMatch = matchedLower.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+        const index = this.patternIndexMap.get(escapedMatch)
+        if (index !== undefined) {
+          return this.patterns[index]
+        }
+        return match[1]
       }
     }
 

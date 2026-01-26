@@ -17,7 +17,9 @@ export function Dashboard() {
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
+    // Load changelog only on component mount
     loadChangelog()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   const loadChangelog = async () => {

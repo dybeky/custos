@@ -1,6 +1,6 @@
-import { execSync } from 'child_process'
 import { BaseScanner, ScannerEventEmitter } from './base-scanner'
 import { ScanResult } from '../../shared/types'
+import { asyncExec } from '../utils/async-exec'
 
 interface ProcessInfo {
   name: string
@@ -77,25 +77,83 @@ export class ProcessScanner extends BaseScanner {
     }
   }
 
+  // Standardized buffer size for all process queries
+  private static readonly BUFFER_SIZE = 30 * 1024 * 1024 // 30MB
+
   private async getProcessList(): Promise<ProcessInfo[]> {
+    // Try PowerShell JSON first (most reliable and modern)
+    const psProcesses = await this.getProcessListPowerShell()
+    if (psProcesses.length > 0) {
+      return psProcesses
+    }
+
+    // Fallback to WMIC (deprecated but still available)
+    const wmicProcesses = await this.getProcessListWmic()
+    if (wmicProcesses.length > 0) {
+      return wmicProcesses
+    }
+
+    // Last resort: basic tasklist
+    return this.getProcessListTasklist()
+  }
+
+  private async getProcessListPowerShell(): Promise<ProcessInfo[]> {
     const processes: ProcessInfo[] = []
 
     try {
-      // Use WMIC to get process details including path and command line
-      // WMIC is deprecated but still works on Windows 10/11
-      const wmicOutput = execSync(
-        'wmic process get Name,ProcessId,ExecutablePath,CommandLine /FORMAT:CSV 2>nul',
+      // Use PowerShell with JSON output for reliable parsing
+      const psScript = `
+Get-CimInstance Win32_Process | Select-Object Name, ProcessId, ExecutablePath, CommandLine | ConvertTo-Json -Compress
+`
+      const encoded = Buffer.from(psScript, 'utf16le').toString('base64')
+      const output = await asyncExec(
+        `powershell -NoProfile -ExecutionPolicy Bypass -EncodedCommand ${encoded}`,
         {
-          encoding: 'utf-8',
-          maxBuffer: 50 * 1024 * 1024, // 50MB - command lines can be long
+          maxBuffer: ProcessScanner.BUFFER_SIZE,
           timeout: 30000
         }
       )
 
-      const lines = wmicOutput.split('\n')
+      const trimmed = output.trim()
+      if (!trimmed) return processes
 
-      // Skip header line (first non-empty line)
+      // Parse JSON output
+      const data = JSON.parse(trimmed)
+      const items = Array.isArray(data) ? data : [data]
+
+      for (const item of items) {
+        if (item.Name && item.ProcessId != null) {
+          processes.push({
+            name: item.Name || '',
+            pid: parseInt(item.ProcessId, 10),
+            executablePath: item.ExecutablePath || '',
+            commandLine: item.CommandLine || ''
+          })
+        }
+      }
+    } catch {
+      // PowerShell JSON method failed
+    }
+
+    return processes
+  }
+
+  private async getProcessListWmic(): Promise<ProcessInfo[]> {
+    const processes: ProcessInfo[] = []
+
+    try {
+      // WMIC is deprecated but still works
+      const output = await asyncExec(
+        'wmic process get Name,ProcessId,ExecutablePath,CommandLine /FORMAT:CSV 2>nul',
+        {
+          maxBuffer: ProcessScanner.BUFFER_SIZE,
+          timeout: 30000
+        }
+      )
+
+      const lines = output.split('\n')
       let headerPassed = false
+
       for (const line of lines) {
         const trimmed = line.trim()
         if (!trimmed) continue
@@ -105,89 +163,52 @@ export class ProcessScanner extends BaseScanner {
           continue
         }
 
-        // CSV format: Node,CommandLine,ExecutablePath,Name,ProcessId
-        // The CommandLine can contain commas, so we need to parse carefully
         const parts = this.parseWmicCsvLine(trimmed)
-
         if (parts.length >= 5) {
-          const cmdLine = parts[1] || ''
-          const execPath = parts[2] || ''
           const name = parts[3] || ''
           const pid = parseInt(parts[4], 10)
-
           if (name && !isNaN(pid)) {
             processes.push({
               name,
               pid,
-              executablePath: execPath,
-              commandLine: cmdLine
+              executablePath: parts[2] || '',
+              commandLine: parts[1] || ''
             })
           }
         }
       }
     } catch {
-      // WMIC failed, try PowerShell as fallback
-      try {
-        const psOutput = execSync(
-          'powershell -NoProfile -Command "Get-Process | Select-Object Name,Id,Path | ConvertTo-Csv -NoTypeInformation"',
-          {
-            encoding: 'utf-8',
-            maxBuffer: 20 * 1024 * 1024,
-            timeout: 30000,
-            windowsHide: true
-          }
-        )
+      // WMIC failed
+    }
 
-        const lines = psOutput.split('\n')
-        let headerPassed = false
+    return processes
+  }
 
-        for (const line of lines) {
-          const trimmed = line.trim()
-          if (!trimmed) continue
+  private async getProcessListTasklist(): Promise<ProcessInfo[]> {
+    const processes: ProcessInfo[] = []
 
-          if (!headerPassed) {
-            headerPassed = true
-            continue
-          }
+    try {
+      const output = await asyncExec('tasklist /FO CSV /NH', {
+        maxBuffer: ProcessScanner.BUFFER_SIZE,
+        timeout: 10000
+      })
 
-          // CSV format: "Name","Id","Path"
-          const match = trimmed.match(/"([^"]*)","(\d+)","([^"]*)"/)
-          if (match) {
-            processes.push({
-              name: match[1],
-              pid: parseInt(match[2], 10),
-              executablePath: match[3] || '',
-              commandLine: ''
-            })
-          }
-        }
-      } catch {
-        // PowerShell also failed, fallback to basic tasklist
-        try {
-          const output = execSync('tasklist /FO CSV /NH', {
-            encoding: 'utf-8',
-            maxBuffer: 10 * 1024 * 1024,
-            timeout: 10000
+      const lines = output.split('\n')
+      for (const line of lines) {
+        if (!line.trim()) continue
+
+        const match = line.match(/"([^"]+)","(\d+)"/)
+        if (match) {
+          processes.push({
+            name: match[1],
+            pid: parseInt(match[2], 10),
+            executablePath: '',
+            commandLine: ''
           })
-
-          const lines = output.split('\n')
-          for (const line of lines) {
-            if (!line.trim()) continue
-
-            const match = line.match(/"([^"]+)","(\d+)"/)
-            if (match) {
-              processes.push({
-                name: match[1],
-                pid: parseInt(match[2], 10),
-                executablePath: '',
-                commandLine: ''
-              })
-            }
-          }
-        } catch {
-          // All methods failed
         }
       }
+    } catch {
+      // Tasklist failed
     }
 
     return processes
@@ -211,9 +232,7 @@ export class ProcessScanner extends BaseScanner {
       }
     }
 
-    // Don't forget the last part
     parts.push(current.trim())
-
     return parts
   }
 }

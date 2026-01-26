@@ -1,8 +1,9 @@
-import { existsSync, readFileSync, copyFileSync, unlinkSync, readdirSync } from 'fs'
+import { existsSync, readFileSync } from 'fs'
+import { copyFile, unlink, readdir } from 'fs/promises'
 import { join } from 'path'
 import { homedir, tmpdir } from 'os'
 import { randomUUID } from 'crypto'
-import initSqlJs, { Database as SqlJsDatabase } from 'sql.js'
+import initSqlJs from 'sql.js'
 import { BaseScanner, ScannerEventEmitter } from './base-scanner'
 import { ScanResult } from '../../shared/types'
 
@@ -29,9 +30,62 @@ async function getSql() {
   return SQL
 }
 
+/**
+ * Sleep helper for retry delays
+ */
+function sleep(ms: number): Promise<void> {
+  return new Promise(resolve => setTimeout(resolve, ms))
+}
+
 export class BrowserHistoryScanner extends BaseScanner {
   readonly name = 'Browser History Scanner'
   readonly description = 'Deep search of browser history and caches by keywords'
+
+  // Retry configuration for locked databases
+  private static readonly MAX_RETRIES = 3
+  private static readonly INITIAL_DELAY_MS = 100
+
+  /**
+   * Copy file with exponential backoff retry (for locked browser databases)
+   */
+  private async copyWithRetry(src: string, dst: string): Promise<void> {
+    let lastError: Error | null = null
+
+    for (let attempt = 0; attempt < BrowserHistoryScanner.MAX_RETRIES; attempt++) {
+      try {
+        await copyFile(src, dst)
+        return
+      } catch (error) {
+        lastError = error as Error
+        // Only retry on specific errors (EBUSY, EACCES, EPERM)
+        const code = (error as NodeJS.ErrnoException).code
+        if (code !== 'EBUSY' && code !== 'EACCES' && code !== 'EPERM') {
+          throw error
+        }
+        // Exponential backoff: 100ms, 200ms, 400ms
+        const delay = BrowserHistoryScanner.INITIAL_DELAY_MS * Math.pow(2, attempt)
+        await sleep(delay)
+      }
+    }
+
+    throw lastError || new Error('Failed to copy file after retries')
+  }
+
+  /**
+   * Safe file deletion with error suppression
+   */
+  private async safeDelete(path: string): Promise<void> {
+    try {
+      await unlink(path)
+    } catch (error) {
+      // Log but don't throw - temp file cleanup failures aren't critical
+      const code = (error as NodeJS.ErrnoException).code
+      if (code !== 'ENOENT') {
+        // File exists but couldn't be deleted - will be cleaned up by OS later
+        console.warn(`Failed to delete temp file ${path}: ${code}`)
+      }
+    }
+  }
 
   // Chromium databases to check (History can be cleared, but these often remain)
   private chromiumDatabases: DatabaseConfig[] = [
@@ -83,39 +137,58 @@ export class BrowserHistoryScanner extends BaseScanner {
     this.reset()
 
     try {
-      const profiles = this.findAllBrowserProfiles()
+      const profiles = await this.findAllBrowserProfiles()
       const results: string[] = []
       const seenUrls = new Set<string>()
 
-      let totalSteps = profiles.length
+      const totalSteps = profiles.length
       let currentStep = 0
 
-      for (const profile of profiles) {
+      // Process profiles in parallel with concurrency limit of 3
+      const concurrency = 3
+      const profileChunks: BrowserProfile[][] = []
+      for (let i = 0; i < profiles.length; i += concurrency) {
+        profileChunks.push(profiles.slice(i, i + concurrency))
+      }
+
+      for (const chunk of profileChunks) {
         if (this.cancelled) break
 
-        currentStep++
-        if (events?.onProgress) {
-          events.onProgress({
-            scannerName: this.name,
-            currentItem: currentStep,
-            totalItems: totalSteps,
-            currentPath: `${profile.browser} - ${profile.profilePath}`,
-            percentage: (currentStep / totalSteps) * 100
+        const chunkPromises = chunk.map(async profile => {
+          if (this.cancelled) return []
+
+          currentStep++
+          if (events?.onProgress) {
+            events.onProgress({
+              scannerName: this.name,
+              currentItem: currentStep,
+              totalItems: totalSteps,
+              currentPath: `${profile.browser} - ${profile.profilePath}`,
+              percentage: (currentStep / totalSteps) * 100
+            })
+          }
+
+          const profileResults: string[] = []
+
+          // Scan all Chromium databases for this profile in parallel
+          const dbPromises = this.chromiumDatabases.map(async dbConfig => {
+            if (this.cancelled) return []
+
+            const dbPath = join(profile.profilePath, dbConfig.file)
+            return this.scanDatabase(dbPath, profile.browser, dbConfig, seenUrls)
           })
-        }
 
-        // Scan all Chromium databases
-        for (const dbConfig of this.chromiumDatabases) {
-          if (this.cancelled) break
+          const dbResults = await Promise.all(dbPromises)
+          for (const findings of dbResults) {
+            profileResults.push(...findings)
+          }
 
-          const dbPath = join(profile.profilePath, dbConfig.file)
-          const findings = await this.scanDatabase(
-            dbPath,
-            profile.browser,
-            dbConfig,
-            seenUrls
-          )
-          results.push(...findings)
+          return profileResults
+        })
+
+        const chunkResults = await Promise.all(chunkPromises)
+        for (const profileResults of chunkResults) {
+          results.push(...profileResults)
         }
       }
 
@@ -135,7 +208,7 @@ export class BrowserHistoryScanner extends BaseScanner {
     }
   }
 
-  private findAllBrowserProfiles(): BrowserProfile[] {
+  private async findAllBrowserProfiles(): Promise<BrowserProfile[]> {
     const profiles: BrowserProfile[] = []
     const localAppData = process.env.LOCALAPPDATA || join(homedir(), 'AppData', 'Local')
     const appData = process.env.APPDATA || join(homedir(), 'AppData', 'Roaming')
@@ -152,21 +225,24 @@ export class BrowserHistoryScanner extends BaseScanner {
       { browser: 'Chromium', basePath: join(localAppData, 'Chromium', 'User Data') }
     ]
 
-    for (const { browser, basePath } of browserPaths) {
-      if (!existsSync(basePath)) continue
+    // Process all browser paths in parallel
+    const browserPromises = browserPaths.map(async ({ browser, basePath }) => {
+      const browserProfiles: BrowserProfile[] = []
+
+      if (!existsSync(basePath)) return browserProfiles
 
       // Check Default profile
       const defaultProfile = join(basePath, 'Default')
       if (existsSync(defaultProfile)) {
-        profiles.push({ browser, profilePath: defaultProfile })
+        browserProfiles.push({ browser, profilePath: defaultProfile })
       }
 
       // Check numbered profiles (Profile 1, Profile 2, etc.)
       try {
-        const entries = readdirSync(basePath, { withFileTypes: true })
+        const entries = await readdir(basePath, { withFileTypes: true })
         for (const entry of entries) {
           if (entry.isDirectory() && entry.name.startsWith('Profile ')) {
-            profiles.push({ browser, profilePath: join(basePath, entry.name) })
+            browserProfiles.push({ browser, profilePath: join(basePath, entry.name) })
           }
         }
       } catch {
@@ -175,8 +251,15 @@ export class BrowserHistoryScanner extends BaseScanner {
 
       // For Opera - it doesn't have User Data structure
       if (browser.startsWith('Opera') && existsSync(join(basePath, 'History'))) {
-        profiles.push({ browser, profilePath: basePath })
+        browserProfiles.push({ browser, profilePath: basePath })
       }
+
+      return browserProfiles
+    })
+
+    const allBrowserProfiles = await Promise.all(browserPromises)
+    for (const browserProfiles of allBrowserProfiles) {
+      profiles.push(...browserProfiles)
     }
 
     return profiles
@@ -197,9 +280,9 @@ export class BrowserHistoryScanner extends BaseScanner {
     let tempPath: string | null = null
 
     try {
-      // Copy database to temp (browser may have it locked)
+      // Copy database to temp with retry (browser may have it locked)
       tempPath = join(tmpdir(), `custos_${browserName}_${config.name}_${randomUUID()}.db`)
-      copyFileSync(dbPath, tempPath)
+      await this.copyWithRetry(dbPath, tempPath)
 
       const SQL = await getSql()
       const fileBuffer = readFileSync(tempPath)
@@ -254,10 +337,10 @@ export class BrowserHistoryScanner extends BaseScanner {
         db.close()
       }
     } catch {
-      // Database locked or corrupted
+      // Database locked or corrupted after retries
     } finally {
       if (tempPath) {
-        try { unlinkSync(tempPath) } catch { }
+        await this.safeDelete(tempPath)
       }
     }
 
@@ -274,20 +357,36 @@ export class BrowserHistoryScanner extends BaseScanner {
     }
 
     try {
-      const profiles = readdirSync(profilesPath)
+      const profiles = await readdir(profilesPath)
 
-      for (const profile of profiles) {
+      // Process Firefox profiles in parallel (limit to 3)
+      const concurrency = 3
+      for (let i = 0; i < profiles.length; i += concurrency) {
         if (this.cancelled) break
 
-        const profilePath = join(profilesPath, profile)
+        const chunk = profiles.slice(i, i + concurrency)
+        const chunkPromises = chunk.map(async profile => {
+          if (this.cancelled) return []
 
-        // Scan places.sqlite (history + bookmarks)
-        const placesFindings = await this.scanFirefoxPlaces(profilePath, seenUrls)
-        results.push(...placesFindings)
+          const profilePath = join(profilesPath, profile)
+          const profileResults: string[] = []
 
-        // Scan formhistory.sqlite (search history)
-        const formFindings = await this.scanFirefoxFormHistory(profilePath, seenUrls)
-        results.push(...formFindings)
+          // Scan both databases in parallel
+          const [placesFindings, formFindings] = await Promise.all([
+            this.scanFirefoxPlaces(profilePath, seenUrls),
+            this.scanFirefoxFormHistory(profilePath, seenUrls)
+          ])
+
+          profileResults.push(...placesFindings)
+          profileResults.push(...formFindings)
+
+          return profileResults
+        })
+
+        const chunkResults = await Promise.all(chunkPromises)
+        for (const profileResults of chunkResults) {
+          results.push(...profileResults)
+        }
       }
     } catch {
       // Can't read profiles directory
@@ -308,7 +407,7 @@ export class BrowserHistoryScanner extends BaseScanner {
 
     try {
       tempPath = join(tmpdir(), `custos_firefox_places_${randomUUID()}.db`)
-      copyFileSync(placesPath, tempPath)
+      await this.copyWithRetry(placesPath, tempPath)
 
       const SQL = await getSql()
       const fileBuffer = readFileSync(tempPath)
@@ -402,10 +501,10 @@ export class BrowserHistoryScanner extends BaseScanner {
         db.close()
       }
     } catch {
-      // Database locked or corrupted
+      // Database locked or corrupted after retries
     } finally {
       if (tempPath) {
-        try { unlinkSync(tempPath) } catch { }
+        await this.safeDelete(tempPath)
       }
     }
 
@@ -424,7 +523,7 @@ export class BrowserHistoryScanner extends BaseScanner {
 
     try {
       tempPath = join(tmpdir(), `custos_firefox_form_${randomUUID()}.db`)
-      copyFileSync(formHistoryPath, tempPath)
+      await this.copyWithRetry(formHistoryPath, tempPath)
 
       const SQL = await getSql()
       const fileBuffer = readFileSync(tempPath)
@@ -463,10 +562,10 @@ export class BrowserHistoryScanner extends BaseScanner {
         db.close()
       }
     } catch {
-      // Database locked or corrupted
+      // Database locked or corrupted after retries
     } finally {
       if (tempPath) {
-        try { unlinkSync(tempPath) } catch { }
+        await this.safeDelete(tempPath)
       }
     }
 

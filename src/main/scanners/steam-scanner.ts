@@ -13,6 +13,9 @@ export class SteamScanner extends BaseScanner {
   private config: AppConfig
   private vdfParser: VdfParser
 
+  // SteamID64 is always 17 digits
+  private static readonly STEAMID_REGEX = /^\d{17}$/
+
   constructor(
     keywordMatcher: import('../services/keyword-matcher').KeywordMatcher,
     scanSettings: import('../services/config-service').ScanSettings,
@@ -21,6 +24,13 @@ export class SteamScanner extends BaseScanner {
     super(keywordMatcher, scanSettings)
     this.config = config
     this.vdfParser = new VdfParser()
+  }
+
+  /**
+   * Validate SteamID64 format (17 digits)
+   */
+  private isValidSteamId(steamId: string): boolean {
+    return SteamScanner.STEAMID_REGEX.test(steamId)
   }
 
   async scan(events?: ScannerEventEmitter): Promise<ScanResult> {
@@ -41,8 +51,11 @@ export class SteamScanner extends BaseScanner {
         steamPaths.push(join(drive, 'Steam'))
       }
 
-      // Also check user profile
-      steamPaths.push(join(homedir(), steam.loginUsersRelativePath).replace('\\config\\loginusers.vdf', ''))
+      // Also check user profile - use path.dirname style extraction
+      const userProfileSteamPath = join(homedir(), steam.loginUsersRelativePath)
+      // Extract Steam root from loginusers.vdf path (go up 2 levels: config/loginusers.vdf -> Steam)
+      const steamFromProfile = join(userProfileSteamPath, '..', '..')
+      steamPaths.push(steamFromProfile)
 
       let steamFound = false
       let accounts: SteamAccount[] = []
@@ -70,19 +83,21 @@ export class SteamScanner extends BaseScanner {
             const vdfContent = readFileSync(loginUsersPath, 'utf-8')
             accounts = this.vdfParser.parseSteamAccounts(vdfContent)
 
-            // Add account info to results
+            // Add account info to results with validation
             for (const account of accounts) {
-              results.push(`[Steam Account] ${account.accountName} (SteamID: ${account.steamId})${account.personaName ? ` - ${account.personaName}` : ''}`)
+              const steamIdValid = this.isValidSteamId(account.steamId)
+              const validationNote = steamIdValid ? '' : ' [Invalid SteamID format]'
+              results.push(`[Steam Account] ${account.accountName} (SteamID: ${account.steamId})${account.personaName ? ` - ${account.personaName}` : ''}${validationNote}`)
             }
           } catch {
             // Error parsing VDF file
           }
 
-          // Scan Steam folder for suspicious files
-          const steamFindings = this.scanFolder(
+          // Scan Steam folder for suspicious files using configured depth
+          const steamFindings = await this.scanFolder(
             steamPath,
             this.scanSettings.executableExtensions,
-            2
+            this.scanSettings.userFoldersScanDepth
           )
           results.push(...steamFindings)
 

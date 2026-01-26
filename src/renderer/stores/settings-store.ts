@@ -1,15 +1,17 @@
 import { create } from 'zustand'
-import { UserSettings } from '../../shared/types'
 
 interface SettingsState {
+  language: 'en' | 'ru'
   checkUpdatesOnStartup: boolean
   autoDownloadUpdates: boolean
   deleteAfterUse: boolean
   isLoading: boolean
   version: string
   effectsEnabled: boolean
+  saveDebounceTimer: ReturnType<typeof setTimeout> | null
 
   // Actions
+  setLanguage: (value: 'en' | 'ru') => void
   setCheckUpdatesOnStartup: (value: boolean) => void
   setAutoDownloadUpdates: (value: boolean) => void
   setDeleteAfterUse: (value: boolean) => void
@@ -21,12 +23,19 @@ interface SettingsState {
 }
 
 export const useSettingsStore = create<SettingsState>((set, get) => ({
+  language: 'en',
   checkUpdatesOnStartup: true,
   autoDownloadUpdates: false,
   deleteAfterUse: false,
   isLoading: true,
   version: '2.1.0',
   effectsEnabled: true,
+  saveDebounceTimer: null,
+
+  setLanguage: (value) => {
+    set({ language: value })
+    get().saveSettings()
+  },
 
   setCheckUpdatesOnStartup: (value) => {
     set({ checkUpdatesOnStartup: value })
@@ -55,6 +64,7 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
       const version = await window.electronAPI.getVersion()
 
       set({
+        language: settings.language,
         checkUpdatesOnStartup: settings.checkUpdatesOnStartup,
         autoDownloadUpdates: settings.autoDownloadUpdates,
         deleteAfterUse: settings.deleteAfterUse,
@@ -69,15 +79,25 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
 
   saveSettings: async () => {
     const state = get()
-    try {
-      await window.electronAPI.setSettings({
-        language: 'en',
-        checkUpdatesOnStartup: state.checkUpdatesOnStartup,
-        autoDownloadUpdates: state.autoDownloadUpdates,
-        deleteAfterUse: state.deleteAfterUse
-      })
-    } catch (error) {
-      console.error('Failed to save settings:', error)
+
+    // Debounce save to prevent race conditions with rapid toggles
+    if (state.saveDebounceTimer) {
+      clearTimeout(state.saveDebounceTimer)
     }
+
+    const timer = setTimeout(async () => {
+      try {
+        await window.electronAPI.setSettings({
+          language: state.language,
+          checkUpdatesOnStartup: state.checkUpdatesOnStartup,
+          autoDownloadUpdates: state.autoDownloadUpdates,
+          deleteAfterUse: state.deleteAfterUse
+        })
+      } catch (error) {
+        console.error('Failed to save settings:', error)
+      }
+    }, 100) // 100ms debounce
+
+    set({ saveDebounceTimer: timer })
   }
 }))

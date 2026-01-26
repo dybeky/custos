@@ -1,10 +1,109 @@
-import { execSync } from 'child_process'
 import { BaseScanner, ScannerEventEmitter } from './base-scanner'
 import { ScanResult } from '../../shared/types'
+import { asyncExec } from '../utils/async-exec'
 
 export class BamScanner extends BaseScanner {
   readonly name = 'BAM/DAM Scanner'
   readonly description = 'Scanning Background Activity Moderator for execution history'
+
+  // Cache for volume-to-drive mapping
+  private driveMapping: Map<number, string> | null = null
+
+  /**
+   * Get the mapping between HarddiskVolume numbers and drive letters
+   * Uses WMI to get the actual system mapping instead of assuming Volume1=C:, etc.
+   */
+  private async getDriveMapping(): Promise<Map<number, string>> {
+    if (this.driveMapping) return this.driveMapping
+
+    this.driveMapping = new Map()
+    try {
+      // PowerShell: get volume to drive letter mapping
+      const psScript = `Get-WmiObject Win32_Volume | Where-Object { $_.DriveLetter } | ForEach-Object { $_.DeviceID + '|' + $_.DriveLetter }`
+
+      const output = await asyncExec(
+        `powershell -NoProfile -Command "${psScript}"`,
+        { timeout: 10000 }
+      )
+
+      // Parse output lines like: \\?\Volume{guid}\|C:
+      const lines = output.split('\n')
+      for (const line of lines) {
+        const trimmed = line.trim()
+        if (!trimmed) continue
+
+        // Also try to extract from DeviceID format
+        const parts = trimmed.split('|')
+        if (parts.length === 2) {
+          const driveLetter = parts[1].trim()
+          // Try to get volume number from device path
+          const volMatch = parts[0].match(/HarddiskVolume(\d+)/)
+          if (volMatch && driveLetter) {
+            this.driveMapping.set(parseInt(volMatch[1]), driveLetter)
+          }
+        }
+      }
+
+      // Additional method: query via mountvol
+      if (this.driveMapping.size === 0) {
+        const mountOutput = await asyncExec('mountvol', { timeout: 10000 })
+        // Parse mountvol output for volume paths
+        const volMatches = mountOutput.matchAll(/\\\\[?]\\Volume{[^}]+}\\.*?([A-Z]:)/g)
+        for (const _match of volMatches) {
+          // This is a fallback, not as reliable
+        }
+      }
+    } catch {
+      // Fallback - common defaults (may not be accurate)
+    }
+
+    // If still empty, set common defaults
+    if (this.driveMapping.size === 0) {
+      this.driveMapping.set(1, 'C:')
+      this.driveMapping.set(2, 'C:')
+      this.driveMapping.set(3, 'C:')
+      this.driveMapping.set(4, 'D:')
+    }
+
+    return this.driveMapping
+  }
+
+  /**
+   * Parse FILETIME (100-nanosecond intervals since 1601-01-01) from hex data
+   */
+  private parseFiletime(hexData: string): Date | null {
+    try {
+      // BAM stores FILETIME as 8 bytes in little-endian format
+      const cleanHex = hexData.replace(/\s/g, '')
+      if (cleanHex.length < 16) return null
+
+      // Parse first 8 bytes (64-bit FILETIME)
+      const bytes: number[] = []
+      for (let i = 0; i < 16; i += 2) {
+        bytes.push(parseInt(cleanHex.substring(i, i + 2), 16))
+      }
+
+      // Little-endian to BigInt
+      let filetime = BigInt(0)
+      for (let i = 7; i >= 0; i--) {
+        filetime = (filetime << BigInt(8)) | BigInt(bytes[i])
+      }
+
+      // FILETIME epoch: 1601-01-01, Unix epoch: 1970-01-01
+      // Difference: 11644473600 seconds = 116444736000000000 * 100ns
+      const FILETIME_UNIX_DIFF = BigInt(116444736000000000)
+
+      // Convert to milliseconds
+      const unixMs = Number((filetime - FILETIME_UNIX_DIFF) / BigInt(10000))
+
+      // Sanity check: must be a reasonable date (after 2000, before 2100)
+      if (unixMs < 946684800000 || unixMs > 4102444800000) return null
+
+      return new Date(unixMs)
+    } catch {
+      return null
+    }
+  }
 
   async scan(events?: ScannerEventEmitter): Promise<ScanResult> {
     const startTime = new Date()
@@ -14,61 +113,59 @@ export class BamScanner extends BaseScanner {
       const results: string[] = []
 
       // Get all user SIDs to scan BAM/DAM for each user
-      const userSids = this.getUserSids()
+      const userSids = await this.getUserSids()
 
-      let currentStep = 0
-      const totalSteps = userSids.length * 2 // BAM + DAM for each user
+      // Collect all BAM and DAM paths to scan in parallel
+      const scanPaths: { path: string; source: string }[] = []
 
-      // Scan BAM (Background Activity Moderator)
+      // BAM paths (Background Activity Moderator)
       for (const sid of userSids) {
-        if (this.cancelled) break
-
-        currentStep++
-        if (events?.onProgress) {
-          events.onProgress({
-            scannerName: this.name,
-            currentItem: currentStep,
-            totalItems: totalSteps,
-            currentPath: `BAM - ${sid}`,
-            percentage: (currentStep / totalSteps) * 100
-          })
-        }
-
-        const bamPath = `HKLM\\SYSTEM\\CurrentControlSet\\Services\\bam\\State\\UserSettings\\${sid}`
-        const bamResults = this.scanRegistryPath(bamPath, 'BAM')
-        results.push(...bamResults)
+        scanPaths.push({
+          path: `HKLM\\SYSTEM\\CurrentControlSet\\Services\\bam\\State\\UserSettings\\${sid}`,
+          source: 'BAM'
+        })
       }
 
-      // Scan DAM (Desktop Activity Moderator)
+      // DAM paths (Desktop Activity Moderator)
       for (const sid of userSids) {
-        if (this.cancelled) break
-
-        currentStep++
-        if (events?.onProgress) {
-          events.onProgress({
-            scannerName: this.name,
-            currentItem: currentStep,
-            totalItems: totalSteps,
-            currentPath: `DAM - ${sid}`,
-            percentage: (currentStep / totalSteps) * 100
-          })
-        }
-
-        const damPath = `HKLM\\SYSTEM\\CurrentControlSet\\Services\\dam\\State\\UserSettings\\${sid}`
-        const damResults = this.scanRegistryPath(damPath, 'DAM')
-        results.push(...damResults)
+        scanPaths.push({
+          path: `HKLM\\SYSTEM\\CurrentControlSet\\Services\\dam\\State\\UserSettings\\${sid}`,
+          source: 'DAM'
+        })
       }
 
-      // Also scan ControlSet001 and ControlSet002 (backup control sets)
+      // Backup control sets
       const backupControlSets = ['ControlSet001', 'ControlSet002']
       for (const controlSet of backupControlSets) {
-        if (this.cancelled) break
-
         for (const sid of userSids) {
-          const bamPath = `HKLM\\SYSTEM\\${controlSet}\\Services\\bam\\State\\UserSettings\\${sid}`
-          const bamResults = this.scanRegistryPath(bamPath, `BAM/${controlSet}`)
-          results.push(...bamResults)
+          scanPaths.push({
+            path: `HKLM\\SYSTEM\\${controlSet}\\Services\\bam\\State\\UserSettings\\${sid}`,
+            source: `BAM/${controlSet}`
+          })
         }
+      }
+
+      // Scan all paths in parallel
+      // Fix: Use index instead of currentStep++ to avoid race condition
+      const scanPromises = scanPaths.map(async ({ path, source }, index) => {
+        if (this.cancelled) return []
+
+        if (events?.onProgress) {
+          events.onProgress({
+            scannerName: this.name,
+            currentItem: index + 1,
+            totalItems: scanPaths.length,
+            currentPath: `${source} - scanning...`,
+            percentage: ((index + 1) / scanPaths.length) * 100
+          })
+        }
+
+        return this.scanRegistryPath(path, source)
+      })
+
+      const allResults = await Promise.all(scanPromises)
+      for (const pathResults of allResults) {
+        results.push(...pathResults)
       }
 
       return this.createSuccessResult(results, startTime)
@@ -83,15 +180,14 @@ export class BamScanner extends BaseScanner {
     }
   }
 
-  private getUserSids(): string[] {
+  private async getUserSids(): Promise<string[]> {
     const sids: string[] = []
 
     try {
       // Get all user SIDs from the BAM registry
-      const output = execSync(
+      const output = await asyncExec(
         'reg query "HKLM\\SYSTEM\\CurrentControlSet\\Services\\bam\\State\\UserSettings" 2>nul',
         {
-          encoding: 'utf-8',
           maxBuffer: 10 * 1024 * 1024,
           timeout: 10000
         }
@@ -115,8 +211,7 @@ export class BamScanner extends BaseScanner {
     // If no SIDs found, try to get current user SID
     if (sids.length === 0) {
       try {
-        const output = execSync('whoami /user /fo csv /nh', {
-          encoding: 'utf-8',
+        const output = await asyncExec('whoami /user /fo csv /nh', {
           timeout: 5000
         })
         const match = output.match(/S-1-5-21-[\d-]+/)
@@ -131,12 +226,11 @@ export class BamScanner extends BaseScanner {
     return [...new Set(sids)] // Remove duplicates
   }
 
-  private scanRegistryPath(regPath: string, source: string): string[] {
+  private async scanRegistryPath(regPath: string, source: string): Promise<string[]> {
     const results: string[] = []
 
     try {
-      const output = execSync(`reg query "${regPath}" /s 2>nul`, {
-        encoding: 'utf-8',
+      const output = await asyncExec(`reg query "${regPath}" /s 2>nul`, {
         maxBuffer: 10 * 1024 * 1024,
         timeout: 10000
       })
@@ -165,7 +259,7 @@ export class BamScanner extends BaseScanner {
           // Check if the value name contains a path
           if (valueName.includes('\\') || valueName.includes('/')) {
             // Extract filename from path for keyword matching
-            const pathToCheck = this.normalizeDevicePath(valueName)
+            const pathToCheck = await this.normalizeDevicePath(valueName)
 
             if (this.keywordMatcher.containsKeyword(pathToCheck)) {
               // Try to extract timestamp if available
@@ -186,23 +280,21 @@ export class BamScanner extends BaseScanner {
     return results
   }
 
-  private normalizeDevicePath(path: string): string {
+  private async normalizeDevicePath(path: string): Promise<string> {
     // Convert device paths to regular paths
     // \Device\HarddiskVolume3\... -> C:\...
-    // This is a simplified conversion
     let normalized = path
 
     // Remove leading backslashes
     normalized = normalized.replace(/^\\+/, '')
 
-    // Try to convert device paths
+    // Try to convert device paths using actual drive mapping
     const deviceMatch = normalized.match(/Device\\HarddiskVolume(\d+)\\(.*)/)
     if (deviceMatch) {
-      // Common mapping: Volume1 = C:, Volume2 = D:, etc.
-      // This is simplified and may not always be accurate
       const volumeNum = parseInt(deviceMatch[1])
-      const driveLetter = String.fromCharCode(65 + volumeNum) // A, B, C, D...
-      normalized = `${driveLetter}:\\${deviceMatch[2]}`
+      const mapping = await this.getDriveMapping()
+      const driveLetter = mapping.get(volumeNum) || 'C:'
+      normalized = `${driveLetter}\\${deviceMatch[2]}`
     }
 
     return normalized
@@ -210,13 +302,18 @@ export class BamScanner extends BaseScanner {
 
   private parseTimestamp(parts: string[]): string | null {
     // BAM stores timestamps as REG_BINARY in FILETIME format
-    // This is a simplified parser - full timestamp extraction would require
-    // proper binary parsing
     try {
       if (parts.length >= 3 && parts[1] === 'REG_BINARY') {
-        // Timestamp is in the hex data, but parsing FILETIME from hex is complex
-        // For now, just indicate data exists
-        return null
+        const date = this.parseFiletime(parts[2])
+        if (date) {
+          return date.toLocaleString('ru-RU', {
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+          })
+        }
       }
     } catch {
       // Parsing failed

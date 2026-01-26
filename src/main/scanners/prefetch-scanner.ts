@@ -1,4 +1,5 @@
-import { readdirSync, existsSync } from 'fs'
+import { existsSync } from 'fs'
+import { readdir } from 'fs/promises'
 import { join } from 'path'
 import { BaseScanner, ScannerEventEmitter } from './base-scanner'
 import { ScanResult } from '../../shared/types'
@@ -31,7 +32,7 @@ export class PrefetchScanner extends BaseScanner {
       }
 
       const results: string[] = []
-      const files = readdirSync(prefetchPath)
+      const files = await readdir(prefetchPath)
 
       for (let i = 0; i < files.length; i++) {
         if (this.cancelled) break

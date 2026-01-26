@@ -2,7 +2,7 @@ import { NavLink } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { motion } from 'framer-motion'
 import { useScanStore } from '../../stores/scan-store'
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef } from 'react'
 import { createPortal } from 'react-dom'
 
 interface NavItem {
