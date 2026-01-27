@@ -6,10 +6,10 @@ import { BaseScanner, ScannerEventEmitter } from './base-scanner'
 import { ScanResult } from '../../shared/types'
 import { asyncExec } from '../utils/async-exec'
 
-// Reduced batch size for stability
-const BATCH_SIZE = 30
-// Overall scan timeout (45 seconds max)
-const SCAN_TIMEOUT_MS = 45000
+// Small batch size to prevent PowerShell hangs
+const BATCH_SIZE = 15
+// Overall scan timeout (30 seconds max)
+const SCAN_TIMEOUT_MS = 30000
 
 export class RecentFilesScanner extends BaseScanner {
   readonly name = 'Recent Files Scanner'
@@ -43,7 +43,7 @@ $results | ConvertTo-Json -Compress
       const encoded = Buffer.from(psScript, 'utf16le').toString('base64')
       const output = await asyncExec(
         `powershell -NoProfile -ExecutionPolicy Bypass -EncodedCommand ${encoded}`,
-        { timeout: 30000, maxBuffer: 10 * 1024 * 1024 }
+        { timeout: 8000, maxBuffer: 5 * 1024 * 1024 } // Short timeout to prevent hangs
       )
 
       // Parse JSON output

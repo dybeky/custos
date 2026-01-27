@@ -2,6 +2,7 @@ import { app, shell, BrowserWindow } from 'electron'
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import { setupIpcHandlers } from './ipc-handlers'
+import { logger } from './services/logger'
 
 let mainWindow: BrowserWindow | null = null
 
@@ -45,6 +46,10 @@ function createWindow(): void {
 }
 
 app.whenReady().then(() => {
+  // Initialize logger
+  logger.init()
+  logger.logStartup()
+
   // Set app user model id for Windows
   electronApp.setAppUserModelId('com.cobra.custos')
 
@@ -55,6 +60,7 @@ app.whenReady().then(() => {
   })
 
   createWindow()
+  logger.info('Main window created')
 
   app.on('activate', function () {
     if (BrowserWindow.getAllWindows().length === 0) createWindow()
@@ -62,14 +68,8 @@ app.whenReady().then(() => {
 })
 
 app.on('window-all-closed', () => {
+  logger.logShutdown()
   app.quit()
 })
 
-// Handle uncaught errors
-process.on('uncaughtException', (error) => {
-  console.error('Uncaught exception:', error)
-})
-
-process.on('unhandledRejection', (reason) => {
-  console.error('Unhandled rejection:', reason)
-})
+// Note: Error handlers are set up in logger service

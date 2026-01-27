@@ -81,20 +81,20 @@ export class ProcessScanner extends BaseScanner {
   private static readonly BUFFER_SIZE = 30 * 1024 * 1024 // 30MB
 
   private async getProcessList(): Promise<ProcessInfo[]> {
-    // Try PowerShell JSON first (most reliable and modern)
-    const psProcesses = await this.getProcessListPowerShell()
-    if (psProcesses.length > 0) {
-      return psProcesses
-    }
-
-    // Fallback to WMIC (deprecated but still available)
+    // Try WMIC first (fast and reliable, doesn't hang like PowerShell)
     const wmicProcesses = await this.getProcessListWmic()
     if (wmicProcesses.length > 0) {
       return wmicProcesses
     }
 
-    // Last resort: basic tasklist
-    return this.getProcessListTasklist()
+    // Fallback to tasklist (basic but fast)
+    const tasklistProcesses = await this.getProcessListTasklist()
+    if (tasklistProcesses.length > 0) {
+      return tasklistProcesses
+    }
+
+    // Last resort: PowerShell (can hang on some systems)
+    return this.getProcessListPowerShell()
   }
 
   private async getProcessListPowerShell(): Promise<ProcessInfo[]> {
@@ -110,7 +110,7 @@ Get-CimInstance Win32_Process | Select-Object Name, ProcessId, ExecutablePath, C
         `powershell -NoProfile -ExecutionPolicy Bypass -EncodedCommand ${encoded}`,
         {
           maxBuffer: ProcessScanner.BUFFER_SIZE,
-          timeout: 30000
+          timeout: 10000 // Short timeout - PowerShell can hang
         }
       )
 

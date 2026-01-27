@@ -28,27 +28,35 @@ export class ShellbagsScanner extends BaseScanner {
 
       const totalSteps = this.shellbagPaths.length
 
-      // Scan all shellbag paths in parallel
-      // Fix: Use index instead of currentStep++ to avoid race condition
-      const scanPromises = this.shellbagPaths.map(async (regPath, index) => {
-        if (this.cancelled) return []
+      // Scan shellbag paths with limited concurrency (max 2 at a time)
+      const concurrency = 2
+      let completed = 0
 
-        if (events?.onProgress) {
-          events.onProgress({
-            scannerName: this.name,
-            currentItem: index + 1,
-            totalItems: totalSteps,
-            currentPath: regPath.split('\\').slice(-2).join('\\'),
-            percentage: ((index + 1) / totalSteps) * 100
-          })
+      for (let i = 0; i < this.shellbagPaths.length; i += concurrency) {
+        if (this.cancelled) break
+
+        const chunk = this.shellbagPaths.slice(i, i + concurrency)
+        const chunkPromises = chunk.map(async (regPath) => {
+          if (this.cancelled) return []
+
+          completed++
+          if (events?.onProgress) {
+            events.onProgress({
+              scannerName: this.name,
+              currentItem: completed,
+              totalItems: totalSteps,
+              currentPath: regPath.split('\\').slice(-2).join('\\'),
+              percentage: (completed / totalSteps) * 100
+            })
+          }
+
+          return this.scanShellbagPath(regPath, seenPaths)
+        })
+
+        const chunkResults = await Promise.all(chunkPromises)
+        for (const pathResults of chunkResults) {
+          results.push(...pathResults)
         }
-
-        return this.scanShellbagPath(regPath, seenPaths)
-      })
-
-      const allResults = await Promise.all(scanPromises)
-      for (const pathResults of allResults) {
-        results.push(...pathResults)
       }
 
       // Note: PowerShell deep scan removed - registry query already gets the data

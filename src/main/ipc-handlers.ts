@@ -1,5 +1,6 @@
 import { ipcMain, shell, app, BrowserWindow } from 'electron'
 import { IPC_CHANNELS, ScanResult, ScanProgress, UserSettings, VersionInfo, ScannerInfo, DownloadProgress } from '../shared/types'
+import { logger } from './services/logger'
 import { createWriteStream, unlinkSync, existsSync } from 'fs'
 import { join } from 'path'
 import https from 'https'
@@ -56,6 +57,60 @@ export function setupIpcHandlers(mainWindow: BrowserWindow): void {
     return scannerFactory.getScannerInfo()
   })
 
+  // Timeout wrapper for scanner - ensures no scanner hangs forever
+  const SCANNER_TIMEOUT_MS = 30000 // 30 seconds max per scanner
+
+  async function runScannerWithTimeout(
+    scanner: BaseScanner,
+    events: { onProgress: (progress: ScanProgress) => void }
+  ): Promise<ScanResult> {
+    const startTime = Date.now()
+    logger.debug(`Scanner starting: ${scanner.name}`)
+
+    return new Promise((resolve) => {
+      const timeout = setTimeout(() => {
+        logger.warn(`Scanner timeout: ${scanner.name}`, { timeoutMs: SCANNER_TIMEOUT_MS })
+        scanner.cancel()
+        resolve({
+          scannerName: scanner.name,
+          success: false,
+          findings: [],
+          error: `Scanner timeout (${SCANNER_TIMEOUT_MS / 1000}s)`,
+          startTime: new Date(),
+          endTime: new Date(),
+          duration: SCANNER_TIMEOUT_MS,
+          count: 0,
+          hasFindings: false
+        })
+      }, SCANNER_TIMEOUT_MS)
+
+      scanner.scan(events)
+        .then(result => {
+          clearTimeout(timeout)
+          logger.debug(`Scanner completed: ${scanner.name}`, {
+            duration: `${Date.now() - startTime}ms`,
+            findings: result.findings.length
+          })
+          resolve(result)
+        })
+        .catch((err) => {
+          clearTimeout(timeout)
+          logger.error(`Scanner error: ${scanner.name}`, err)
+          resolve({
+            scannerName: scanner.name,
+            success: false,
+            findings: [],
+            error: 'Scanner error',
+            startTime: new Date(),
+            endTime: new Date(),
+            duration: 0,
+            count: 0,
+            hasFindings: false
+          })
+        })
+    })
+  }
+
   // Helper to run a group of scanners with concurrency limit
   async function runScannerGroup(
     scanners: BaseScanner[],
@@ -80,7 +135,7 @@ export function setupIpcHandlers(mainWindow: BrowserWindow): void {
           percentage: (completedRef.count / totalScanners) * 100
         } as ScanProgress)
 
-        const result = await scanner.scan({
+        const result = await runScannerWithTimeout(scanner, {
           onProgress: (progress: ScanProgress) => {
             throttledProgress.emit(progress, (p) => safeSend(IPC_CHANNELS.SCAN_PROGRESS, p))
           }
@@ -113,9 +168,11 @@ export function setupIpcHandlers(mainWindow: BrowserWindow): void {
   // Start scan
   ipcMain.handle(IPC_CHANNELS.SCAN_START, async (_event, scannerIds?: ScannerName[]): Promise<ScanResult[]> => {
     if (isScanning) {
+      logger.warn('Scan already in progress')
       throw new Error('Scan already in progress')
     }
 
+    logger.info('Scan started', { scannerIds: scannerIds || 'all' })
     isScanning = true
     scanAbortController = new AbortController()
     scannerFactory.resetAll()
@@ -163,9 +220,18 @@ export function setupIpcHandlers(mainWindow: BrowserWindow): void {
 
       const results = [...resultsA, ...resultsB, ...resultsC]
 
+      const totalFindings = results.reduce((sum, r) => sum + r.findings.length, 0)
+      logger.info('Scan completed', {
+        totalScanners: results.length,
+        totalFindings,
+        successful: results.filter(r => r.success).length,
+        failed: results.filter(r => !r.success).length
+      })
+
       safeSend(IPC_CHANNELS.SCAN_COMPLETE, results)
       return results
     } catch (error) {
+      logger.error('Scan failed', error instanceof Error ? error : new Error(String(error)))
       safeSend(IPC_CHANNELS.SCAN_ERROR, {
         message: error instanceof Error ? error.message : 'Unknown error'
       })
