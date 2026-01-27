@@ -91,14 +91,14 @@ export function Dashboard() {
           <CardContent>
             {isLoading ? (
               <div className="flex items-center justify-center py-8">
-                <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+                <div className="w-8 h-8 border-2 theme-border-primary border-t-transparent rounded-full animate-spin" />
               </div>
             ) : error ? (
               <p className="text-text-secondary text-center py-8">{error}</p>
             ) : changelog ? (
               <div>
                 <div className="flex items-center gap-2 mb-4">
-                  <span className="text-sm font-medium text-primary">v{changelog.version}</span>
+                  <span className="text-sm font-medium theme-text-primary">v{changelog.version}</span>
                   {changelog.date && (
                     <>
                       <span className="text-text-muted">•</span>

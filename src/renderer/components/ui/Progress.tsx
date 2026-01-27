@@ -11,7 +11,7 @@ interface ProgressProps extends HTMLAttributes<HTMLDivElement> {
 }
 
 const variants = {
-  default: 'bg-primary',
+  default: 'theme-progress',
   success: 'bg-success',
   warning: 'bg-warning',
   danger: 'bg-error'
@@ -77,7 +77,7 @@ interface CircularProgressProps {
 }
 
 const circularVariants = {
-  default: 'stroke-primary',
+  default: 'theme-stroke',
   success: 'stroke-success',
   warning: 'stroke-warning',
   danger: 'stroke-error'

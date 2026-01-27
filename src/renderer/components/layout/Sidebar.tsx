@@ -164,7 +164,7 @@ export function Sidebar() {
             className={({ isActive }) =>
               `group relative flex items-center justify-center py-3 mx-2 rounded-xl transition-all duration-200 ${
                 isActive
-                  ? 'bg-primary/10 text-primary'
+                  ? 'theme-active theme-text-primary'
                   : 'text-text-secondary hover:bg-white/10 hover:text-text-primary'
               }`
             }
@@ -176,7 +176,7 @@ export function Sidebar() {
                 {isActive && (
                   <motion.div
                     layoutId="sidebar-indicator"
-                    className="absolute left-0 w-1 h-8 bg-primary rounded-r-full"
+                    className="absolute left-0 w-1 h-8 theme-progress rounded-r-full"
                     transition={{ type: 'spring', stiffness: 500, damping: 30 }}
                   />
                 )}
@@ -199,8 +199,8 @@ export function Sidebar() {
                   {/* Scanning indicator */}
                   {item.path === '/scan' && status === 'scanning' && (
                     <span className="absolute -top-1 -right-1 w-3 h-3">
-                      <span className="absolute w-full h-full bg-primary rounded-full animate-ping opacity-75" />
-                      <span className="absolute w-full h-full bg-primary rounded-full" />
+                      <span className="absolute w-full h-full theme-progress rounded-full animate-ping opacity-75" />
+                      <span className="absolute w-full h-full theme-progress rounded-full" />
                     </span>
                   )}
                 </motion.span>

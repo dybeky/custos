@@ -1,94 +1,136 @@
 import { motion } from 'framer-motion'
-import { useSettingsStore } from '../../stores/settings-store'
+import { useSettingsStore, ThemeName } from '../../stores/settings-store'
 
-// Floating particles - spread across different starting positions
+// Theme configurations
+const themeConfigs: Record<ThemeName, {
+  gradient: string
+  blob1: string
+  blob2: string
+  particle1: string
+  particle2: string
+}> = {
+  aurora: {
+    gradient: 'linear-gradient(45deg, #c6a2e8, #515ef5, #c6a2e8, #515ef5)',
+    blob1: '#c6a2e8',
+    blob2: '#515ef5',
+    particle1: '#c6a2e8',
+    particle2: '#515ef5'
+  },
+  mono: {
+    gradient: 'linear-gradient(45deg, #ffffff, #444444, #ffffff, #444444)',
+    blob1: '#ffffff',
+    blob2: '#666666',
+    particle1: '#ffffff',
+    particle2: '#888888'
+  }
+}
+
+// Floating particles
 const particles = Array.from({ length: 30 }, (_, i) => ({
   id: i,
   size: Math.random() * 4 + 2,
   x: Math.random() * 100,
-  startY: Math.random() * 200 - 50, // Start from different Y positions (-50% to 150%)
+  startY: Math.random() * 200 - 50,
   duration: Math.random() * 15 + 10,
   opacity: Math.random() * 0.5 + 0.3,
-  drift: (Math.random() - 0.5) * 100, // Random horizontal drift
+  drift: (Math.random() - 0.5) * 100,
 }))
 
 export function AnimatedBackground() {
-  const { effectsEnabled } = useSettingsStore()
+  const { effectsEnabled, theme } = useSettingsStore()
+  const config = themeConfigs[theme]
 
   return (
     <div className="fixed inset-0 overflow-hidden pointer-events-none z-0">
-      {/* Animated gradient background - always visible */}
+      {/* Animated gradient background */}
       <div
         className="absolute inset-0 opacity-30 animate-gradient-bg"
         style={{
-          background: 'linear-gradient(45deg, #c6a2e8, #515ef5, #c6a2e8, #515ef5)',
+          background: config.gradient,
           backgroundSize: '400% 400%',
         }}
       />
 
-      {/* Purple blob */}
+      {/* Blob 1 */}
       <div
-        className="absolute w-[600px] h-[600px] rounded-full opacity-20 blur-[120px] animate-blob-1"
+        className={`absolute w-[600px] h-[600px] rounded-full opacity-20 blur-[120px] ${
+          theme === 'mono' ? 'mono-fade' : 'animate-blob-1'
+        }`}
         style={{
-          background: 'radial-gradient(circle, #c6a2e8 0%, transparent 70%)',
+          background: `radial-gradient(circle, ${config.blob1} 0%, transparent 70%)`,
           left: '10%',
           top: '20%'
         }}
       />
 
-      {/* Blue blob */}
+      {/* Blob 2 */}
       <div
-        className="absolute w-[500px] h-[500px] rounded-full opacity-20 blur-[100px] animate-blob-2"
+        className={`absolute w-[500px] h-[500px] rounded-full opacity-20 blur-[100px] ${
+          theme === 'mono' ? 'mono-pulse' : 'animate-blob-2'
+        }`}
         style={{
-          background: 'radial-gradient(circle, #515ef5 0%, transparent 70%)',
+          background: `radial-gradient(circle, ${config.blob2} 0%, transparent 70%)`,
           right: '15%',
           top: '30%'
         }}
       />
 
-      {/* Purple blob 2 */}
+      {/* Blob 3 */}
       <div
-        className="absolute w-[400px] h-[400px] rounded-full opacity-15 blur-[80px] animate-blob-3"
+        className={`absolute w-[400px] h-[400px] rounded-full opacity-15 blur-[80px] ${
+          theme === 'mono' ? 'mono-fade' : 'animate-blob-3'
+        }`}
         style={{
-          background: 'radial-gradient(circle, #c6a2e8 0%, transparent 70%)',
+          background: `radial-gradient(circle, ${config.blob1} 0%, transparent 70%)`,
           left: '30%',
-          bottom: '20%'
+          bottom: '20%',
+          animationDelay: theme === 'mono' ? '-2s' : '0s'
         }}
       />
 
-      {/* Blue blob 2 */}
+      {/* Blob 4 */}
       <div
-        className="absolute w-[350px] h-[350px] rounded-full opacity-15 blur-[90px] animate-blob-4"
+        className={`absolute w-[350px] h-[350px] rounded-full opacity-15 blur-[90px] ${
+          theme === 'mono' ? 'mono-pulse' : 'animate-blob-4'
+        }`}
         style={{
-          background: 'radial-gradient(circle, #515ef5 0%, transparent 70%)',
+          background: `radial-gradient(circle, ${config.blob2} 0%, transparent 70%)`,
           right: '25%',
-          bottom: '30%'
+          bottom: '30%',
+          animationDelay: theme === 'mono' ? '-3s' : '0s'
         }}
       />
 
-      {/* Floating particles - can be toggled */}
+      {/* Floating particles */}
       {effectsEnabled && (
         <div className="absolute inset-0">
           {particles.map((particle) => (
             <motion.div
               key={particle.id}
-              className="absolute rounded-full"
+              className={`absolute rounded-full ${
+                theme === 'mono' ? 'mono-particle' : ''
+              }`}
               style={{
                 width: particle.size,
                 height: particle.size,
                 left: `${particle.x}%`,
                 background: particle.id % 2 === 0
-                  ? 'radial-gradient(circle, #c6a2e8 0%, transparent 70%)'
-                  : 'radial-gradient(circle, #515ef5 0%, transparent 70%)',
-                boxShadow: `0 0 ${particle.size * 2}px ${particle.id % 2 === 0 ? '#c6a2e8' : '#515ef5'}`,
+                  ? `radial-gradient(circle, ${config.particle1} 0%, transparent 70%)`
+                  : `radial-gradient(circle, ${config.particle2} 0%, transparent 70%)`,
+                boxShadow: `0 0 ${particle.size * 2}px ${particle.id % 2 === 0 ? config.particle1 : config.particle2}`,
                 opacity: particle.opacity,
               }}
               initial={{ y: `${particle.startY}vh`, x: 0 }}
-              animate={{ y: '-120vh', x: particle.drift }}
+              animate={{
+                y: '-120vh',
+                x: theme === 'mono'
+                  ? [0, particle.drift * 0.5, particle.drift, particle.drift * 0.5, 0]
+                  : particle.drift
+              }}
               transition={{
                 duration: particle.duration,
                 repeat: Infinity,
-                ease: 'linear',
+                ease: theme === 'mono' ? 'easeInOut' : 'linear',
               }}
             />
           ))}
