@@ -34,7 +34,7 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   isLoading: true,
   version: '2.1.0',
   effectsEnabled: true,
-  theme: 'aurora' as ThemeName,
+  theme: 'mono' as ThemeName,
   saveDebounceTimer: null,
 
   setLanguage: (value) => {
@@ -78,7 +78,7 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
 
       // Load theme from localStorage
       const savedTheme = localStorage.getItem('custos-theme') as ThemeName | null
-      const theme = savedTheme && ['aurora', 'mono'].includes(savedTheme) ? savedTheme : 'aurora'
+      const theme = savedTheme && ['aurora', 'mono'].includes(savedTheme) ? savedTheme : 'mono'
       document.documentElement.setAttribute('data-theme', theme)
 
       set({
