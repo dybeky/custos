@@ -97,20 +97,22 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   },
 
   saveSettings: async () => {
-    const state = get()
+    const currentState = get()
 
     // Debounce save to prevent race conditions with rapid toggles
-    if (state.saveDebounceTimer) {
-      clearTimeout(state.saveDebounceTimer)
+    if (currentState.saveDebounceTimer) {
+      clearTimeout(currentState.saveDebounceTimer)
     }
 
     const timer = setTimeout(async () => {
       try {
+        // Get fresh state inside setTimeout to capture latest changes
+        const freshState = get()
         await window.electronAPI.setSettings({
-          language: state.language,
-          checkUpdatesOnStartup: state.checkUpdatesOnStartup,
-          autoDownloadUpdates: state.autoDownloadUpdates,
-          deleteAfterUse: state.deleteAfterUse
+          language: freshState.language,
+          checkUpdatesOnStartup: freshState.checkUpdatesOnStartup,
+          autoDownloadUpdates: freshState.autoDownloadUpdates,
+          deleteAfterUse: freshState.deleteAfterUse
         })
       } catch (error) {
         console.error('Failed to save settings:', error)

@@ -1,4 +1,5 @@
 import { exec } from 'child_process'
+import { logger } from '../services/logger'
 
 export interface AsyncExecOptions {
   timeout?: number
@@ -22,7 +23,13 @@ export async function asyncExec(
       timeout,
       killSignal: 'SIGKILL'
     }, (error, stdout) => {
-      // Always resolve (even on error) - just return what we got
+      // Log errors for debugging but still resolve to avoid breaking scanners
+      if (error) {
+        logger.debug('asyncExec command error', {
+          command: command.substring(0, 100),
+          error: error.message
+        })
+      }
       resolve(stdout || '')
     })
 
