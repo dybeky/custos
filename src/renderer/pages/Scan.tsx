@@ -87,7 +87,7 @@ export function Scan() {
                     ? 'bg-error/10'
                     : status === 'completed'
                     ? 'bg-success/10'
-                    : 'bg-primary/10'
+                    : 'theme-active'
                 }`}>
                   {status === 'completed' && totalFindings > 0 ? (
                     <svg className="w-16 h-16 text-error" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -98,7 +98,7 @@ export function Scan() {
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
                   ) : (
-                    <svg className="w-16 h-16 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <svg className="w-16 h-16 theme-text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
                     </svg>
                   )}
@@ -107,7 +107,7 @@ export function Scan() {
 
               {status === 'scanning' && (
                 <div className="absolute inset-0 flex items-center justify-center">
-                  <span className="text-2xl font-bold text-text-primary">
+                  <span className="text-2xl font-bold text-theme-text-primary">
                     {Math.round(overallProgress)}%
                   </span>
                 </div>
@@ -115,7 +115,7 @@ export function Scan() {
             </div>
 
             {/* Status Text */}
-            <h2 className="text-xl font-semibold text-text-primary mb-2">
+            <h2 className="text-xl font-semibold text-theme-text-primary mb-2">
               {status === 'scanning'
                 ? t('scan.scanning')
                 : status === 'completed'
@@ -161,7 +161,7 @@ export function Scan() {
                             ? 'bg-error/10 text-error'
                             : 'bg-success/10 text-success'
                           : isActive
-                          ? 'bg-primary/10 text-primary'
+                          ? 'theme-active theme-text-primary'
                           : 'bg-background-elevated text-text-muted'
                       }`}>
                         {isCompleted ? (
@@ -173,20 +173,20 @@ export function Scan() {
                             </svg>
                           )
                         ) : isActive ? (
-                          <div className="w-3 h-3 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+                          <div className="w-3 h-3 border-2 theme-border-primary border-t-transparent rounded-full animate-spin" />
                         ) : (
                           <span className="text-xs">{index + 1}</span>
                         )}
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className={`text-sm font-medium truncate ${
-                          isActive ? 'text-text-primary' : isCompleted ? 'text-text-secondary' : 'text-text-muted'
+                          isActive ? 'text-theme-text-primary' : isCompleted ? 'text-text-secondary' : 'text-text-muted'
                         }`}>
                           {scanner.name}
                         </p>
                       </div>
                       <span className={`text-xs ${
-                        isCompleted ? 'text-success' : isActive ? 'text-primary' : 'text-text-muted'
+                        isCompleted ? 'text-success' : isActive ? 'theme-text-primary' : 'text-text-muted'
                       }`}>
                         {isCompleted ? t('scan.complete') : isActive ? `${Math.round(progress?.percentage || 0)}%` : t('scan.pending')}
                       </span>

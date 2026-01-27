@@ -132,8 +132,8 @@ export function App() {
         <div className="bg-background-surface/90 backdrop-blur-xl border border-border rounded-2xl p-8 max-w-md w-full mx-4 shadow-2xl relative z-10">
           {/* Header */}
           <div className="text-center mb-6">
-            <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-primary/10 flex items-center justify-center">
-              <svg className="w-8 h-8 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <div className="w-16 h-16 mx-auto mb-4 rounded-2xl theme-active flex items-center justify-center">
+              <svg className="w-8 h-8 theme-text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
               </svg>
             </div>

@@ -4,7 +4,22 @@ import { Card, CardHeader, CardTitle, CardContent } from '../components/ui/Card'
 import { Button } from '../components/ui/Button'
 import { Toggle } from '../components/ui/Toggle'
 import { Modal } from '../components/ui/Modal'
-import { useSettingsStore } from '../stores/settings-store'
+import { useSettingsStore, ThemeName } from '../stores/settings-store'
+
+const themes: { id: ThemeName; name: string; colors: string[]; description: string }[] = [
+  {
+    id: 'aurora',
+    name: 'Aurora',
+    colors: ['#c6a2e8', '#515ef5', '#FF6B00'],
+    description: 'Purple & blue northern lights'
+  },
+  {
+    id: 'mono',
+    name: 'Monochrome',
+    colors: ['#ffffff', '#888888', '#ffffff'],
+    description: 'Clean black & white'
+  }
+]
 
 export function Settings() {
   const { t } = useTranslation()
@@ -12,9 +27,11 @@ export function Settings() {
     checkUpdatesOnStartup,
     autoDownloadUpdates,
     deleteAfterUse,
+    theme,
     setCheckUpdatesOnStartup,
     setAutoDownloadUpdates,
-    setDeleteAfterUse
+    setDeleteAfterUse,
+    setTheme
   } = useSettingsStore()
 
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
@@ -35,6 +52,55 @@ export function Settings() {
           <h1 className="text-2xl font-bold text-text-primary">{t('settings.title')}</h1>
           <p className="text-text-secondary mt-1">{t('settings.subtitle')}</p>
         </div>
+
+        {/* Theme Selection */}
+        <Card className="mb-4">
+          <CardHeader>
+            <CardTitle>{t('settings.theme')}</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 gap-3">
+              {themes.map((t) => (
+                <button
+                  key={t.id}
+                  onClick={() => setTheme(t.id)}
+                  className={`relative p-4 rounded-xl border-2 transition-all duration-300 ${
+                    theme === t.id
+                      ? 'theme-active scale-[1.02]'
+                      : 'border-border hover:border-border-hover bg-background-surface/50 hover:bg-background-elevated/50'
+                  }`}
+                >
+                  {/* Color preview */}
+                  <div className="flex gap-1.5 mb-3 justify-center">
+                    {t.colors.map((color, i) => (
+                      <div
+                        key={i}
+                        className="w-5 h-5 rounded-full"
+                        style={{
+                          background: color,
+                          boxShadow: `0 0 10px ${color}80`
+                        }}
+                      />
+                    ))}
+                  </div>
+
+                  {/* Theme name */}
+                  <div className="text-sm font-medium text-text-primary">{t.name}</div>
+                  <div className="text-xs text-text-muted mt-0.5">{t.description}</div>
+
+                  {/* Active indicator */}
+                  {theme === t.id && (
+                    <div className="absolute top-2 right-2">
+                      <svg className="w-5 h-5 theme-text-primary" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                      </svg>
+                    </div>
+                  )}
+                </button>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
 
         {/* Updates */}
         <Card className="mb-4">

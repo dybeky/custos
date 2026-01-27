@@ -244,7 +244,7 @@ export function Manual() {
           <Card>
             <CardHeader className="pb-2">
               <CardTitle className="text-sm flex items-center gap-2">
-                <span className="text-primary">{globeIcon}</span>
+                <span className="theme-text-primary">{globeIcon}</span>
                 {t('manual.additionalResources')}
               </CardTitle>
             </CardHeader>

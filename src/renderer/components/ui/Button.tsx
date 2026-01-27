@@ -14,9 +14,9 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 }
 
 const variants: Record<ButtonVariant, string> = {
-  primary: 'bg-primary hover:bg-primary-hover active:bg-primary/80 text-white shadow-glow',
+  primary: 'theme-primary-btn theme-glow',
   secondary: 'bg-background-elevated hover:bg-white/10 active:bg-white/5 text-text-primary border border-border',
-  outline: 'border border-primary text-primary hover:bg-primary/10 active:bg-primary/20',
+  outline: 'theme-outline-btn',
   danger: 'bg-error hover:bg-error/80 active:bg-error/70 text-white',
   ghost: 'text-text-secondary hover:text-text-primary hover:bg-white/5 active:bg-white/10'
 }
@@ -49,7 +49,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         ref={ref}
         className={cn(
           'inline-flex items-center justify-center font-medium transition-colors duration-150',
-          'focus:outline-none focus:ring-2 focus:ring-primary/50 focus:ring-offset-2 focus:ring-offset-background',
+          'focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--theme-primary)]/50 focus-visible:ring-offset-2 focus-visible:ring-offset-background',
           'disabled:opacity-50 disabled:cursor-not-allowed',
           variants[variant],
           sizes[size],

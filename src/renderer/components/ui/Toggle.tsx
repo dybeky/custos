@@ -71,10 +71,10 @@ export const Toggle = forwardRef<HTMLButtonElement, ToggleProps>(
           onClick={() => onChange(!checked)}
           className={cn(
             'relative inline-flex shrink-0 cursor-pointer rounded-full transition-colors duration-200',
-            'focus:outline-none focus:ring-2 focus:ring-primary/50 focus:ring-offset-2 focus:ring-offset-background',
+            'focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-background',
             'disabled:opacity-50 disabled:cursor-not-allowed',
             sizeStyles.track,
-            checked ? 'bg-primary' : 'bg-background-elevated border border-border'
+            checked ? 'theme-toggle-on' : 'theme-toggle-off'
           )}
         >
           <motion.span

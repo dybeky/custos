@@ -2,6 +2,7 @@
   "settings": {
     "title": "Settings",
     "subtitle": "Configure custos preferences",
+    "theme": "Theme",
     "updates": "Updates",
     "checkOnStartup": "Check for updates on startup",
     "checkOnStartupDesc": "Automatically check for new versions when the app starts",
