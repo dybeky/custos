@@ -2,24 +2,12 @@ import { BaseScanner, ScannerEventEmitter } from './base-scanner'
 import { ScanResult } from '../../shared/types'
 import { asyncExec } from '../utils/async-exec'
 
-// Overall scan timeout (60 seconds max)
-const SCAN_TIMEOUT_MS = 60000
+// Overall scan timeout (45 seconds max)
+const SCAN_TIMEOUT_MS = 45000
 
 export class AmcacheScanner extends BaseScanner {
   readonly name = 'Amcache Scanner'
   readonly description = 'Scanning Amcache for program execution history'
-
-  /**
-   * Execute PowerShell script using Base64 EncodedCommand for reliable escaping
-   */
-  private async execPowerShell(script: string, timeout = 30000): Promise<string> {
-    // Encode script as UTF-16LE Base64 (required by PowerShell -EncodedCommand)
-    const encoded = Buffer.from(script, 'utf16le').toString('base64')
-    return asyncExec(
-      `powershell -NoProfile -ExecutionPolicy Bypass -EncodedCommand ${encoded}`,
-      { maxBuffer: 10 * 1024 * 1024, timeout }
-    )
-  }
 
   async scan(events?: ScannerEventEmitter): Promise<ScanResult> {
     const startTime = new Date()
@@ -86,41 +74,41 @@ export class AmcacheScanner extends BaseScanner {
   private async scanInventoryApplicationFile(): Promise<string[]> {
     const results: string[] = []
 
-    try {
-      // Query InventoryApplicationFile from Amcache via PowerShell
-      // This contains info about executed programs
-      const psScript = `
-$ErrorActionPreference = 'SilentlyContinue'
+    // Use reg query instead of PowerShell - much faster and more reliable
+    const uninstallPaths = [
+      'HKLM\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall',
+      'HKLM\\SOFTWARE\\WOW6432Node\\Microsoft\\Windows\\CurrentVersion\\Uninstall'
+    ]
 
-Get-ItemProperty 'HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\*' |
-  Where-Object { $_.DisplayName -or $_.InstallLocation } |
-  ForEach-Object {
-    if ($_.InstallLocation) { $_.InstallLocation }
-    if ($_.DisplayName) { "APP: " + $_.DisplayName }
-  }
+    for (const regPath of uninstallPaths) {
+      if (this.cancelled) break
 
-Get-ItemProperty 'HKLM:\\SOFTWARE\\WOW6432Node\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\*' |
-  Where-Object { $_.DisplayName -or $_.InstallLocation } |
-  ForEach-Object {
-    if ($_.InstallLocation) { $_.InstallLocation }
-    if ($_.DisplayName) { "APP: " + $_.DisplayName }
-  }
-`
+      try {
+        const output = await asyncExec(`reg query "${regPath}" /s 2>nul`, {
+          maxBuffer: 10 * 1024 * 1024,
+          timeout: 15000
+        })
 
-      const output = await this.execPowerShell(psScript)
+        const lines = output.split('\n')
+        for (const line of lines) {
+          if (this.cancelled) break
+          const trimmed = line.trim()
+          if (!trimmed || trimmed.startsWith('HKEY_')) continue
 
-      const lines = output.split('\n')
-      for (const line of lines) {
-        if (this.cancelled) break
-        const trimmed = line.trim()
-        if (!trimmed) continue
-
-        if (this.keywordMatcher.containsKeyword(trimmed)) {
-          results.push(`[Amcache/Inventory] ${trimmed}`)
+          // Look for DisplayName and InstallLocation values
+          if (trimmed.includes('DisplayName') || trimmed.includes('InstallLocation')) {
+            const parts = trimmed.split(/\s{4,}/)
+            if (parts.length >= 3) {
+              const data = parts.slice(2).join(' ')
+              if (this.keywordMatcher.containsKeyword(data)) {
+                results.push(`[Amcache/Inventory] ${data}`)
+              }
+            }
+          }
         }
+      } catch {
+        // Registry query failed
       }
-    } catch {
-      // PowerShell query failed
     }
 
     return results
@@ -137,35 +125,41 @@ Get-ItemProperty 'HKLM:\\SOFTWARE\\WOW6432Node\\Microsoft\\Windows\\CurrentVersi
       'HKLM\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\App Paths'
     ]
 
-    // Query all registry paths in parallel
-    const queryPromises = registryPaths.map(async regPath => {
-      if (this.cancelled) return []
+    // Query registry paths with limited concurrency (max 2 at a time)
+    const concurrency = 2
+    for (let i = 0; i < registryPaths.length; i += concurrency) {
+      if (this.cancelled) break
 
-      const pathResults: string[] = []
-      try {
-        const output = await asyncExec(`reg query "${regPath}" /s 2>nul`, {
-          maxBuffer: 5 * 1024 * 1024,
-          timeout: 15000 // Increased from 5s to 15s for larger registry keys
-        })
+      const chunk = registryPaths.slice(i, i + concurrency)
+      const chunkPromises = chunk.map(async regPath => {
+        if (this.cancelled) return []
 
-        const lines = output.split('\n')
-        for (const line of lines) {
-          const trimmed = line.trim()
-          if (!trimmed) continue
+        const pathResults: string[] = []
+        try {
+          const output = await asyncExec(`reg query "${regPath}" /s 2>nul`, {
+            maxBuffer: 5 * 1024 * 1024,
+            timeout: 15000
+          })
 
-          if (this.keywordMatcher.containsKeyword(trimmed)) {
-            pathResults.push(`[Amcache/AppCompat] ${trimmed}`)
+          const lines = output.split('\n')
+          for (const line of lines) {
+            const trimmed = line.trim()
+            if (!trimmed) continue
+
+            if (this.keywordMatcher.containsKeyword(trimmed)) {
+              pathResults.push(`[Amcache/AppCompat] ${trimmed}`)
+            }
           }
+        } catch {
+          // Registry key doesn't exist or access denied
         }
-      } catch {
-        // Registry key doesn't exist or access denied
-      }
-      return pathResults
-    })
+        return pathResults
+      })
 
-    const allResults = await Promise.all(queryPromises)
-    for (const pathResults of allResults) {
-      results.push(...pathResults)
+      const chunkResults = await Promise.all(chunkPromises)
+      for (const pathResults of chunkResults) {
+        results.push(...pathResults)
+      }
     }
 
     return results

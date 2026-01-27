@@ -16,43 +16,42 @@ export class BamScanner extends BaseScanner {
 
   /**
    * Get the mapping between HarddiskVolume numbers and drive letters
-   * Uses WMI to get the actual system mapping instead of assuming Volume1=C:, etc.
+   * Uses wmic (faster and more reliable than PowerShell)
    */
   private async getDriveMapping(): Promise<Map<number, string>> {
     if (this.driveMapping) return this.driveMapping
 
     this.driveMapping = new Map()
     try {
-      // PowerShell: get volume to drive letter mapping using Get-CimInstance (faster than Get-WmiObject)
-      const psScript = `Get-CimInstance Win32_Volume | Where-Object { $_.DriveLetter } | ForEach-Object { $_.DeviceID + '|' + $_.DriveLetter }`
-
+      // Use wmic instead of PowerShell - much faster
       const output = await asyncExec(
-        `powershell -NoProfile -Command "${psScript}"`,
-        { timeout: 8000 }
+        'wmic volume get DeviceID,DriveLetter /format:csv 2>nul',
+        { timeout: 5000 }
       )
 
-      // Parse output lines like: \\?\Volume{guid}\|C:
+      // Parse CSV output: Node,DeviceID,DriveLetter
       const lines = output.split('\n')
       for (const line of lines) {
         const trimmed = line.trim()
-        if (!trimmed) continue
+        if (!trimmed || trimmed.startsWith('Node')) continue
 
-        // Also try to extract from DeviceID format
-        const parts = trimmed.split('|')
-        if (parts.length === 2) {
-          const driveLetter = parts[1].trim()
-          // Try to get volume number from device path
-          const volMatch = parts[0].match(/HarddiskVolume(\d+)/)
-          if (volMatch && driveLetter) {
-            this.driveMapping.set(parseInt(volMatch[1]), driveLetter)
+        const parts = trimmed.split(',')
+        if (parts.length >= 3) {
+          const deviceId = parts[1]
+          const driveLetter = parts[2]?.trim()
+          if (driveLetter && deviceId) {
+            const volMatch = deviceId.match(/HarddiskVolume(\d+)/)
+            if (volMatch) {
+              this.driveMapping.set(parseInt(volMatch[1]), driveLetter)
+            }
           }
         }
       }
     } catch {
-      // WMI/CIM query failed - immediately use defaults
+      // wmic failed - use defaults
     }
 
-    // If empty (WMI failed or no mapping found), set common defaults immediately
+    // If empty, set common defaults
     if (this.driveMapping.size === 0) {
       this.driveMapping.set(1, 'C:')
       this.driveMapping.set(2, 'C:')
@@ -140,27 +139,35 @@ export class BamScanner extends BaseScanner {
         }
       }
 
-      // Scan all paths in parallel
-      // Fix: Use index instead of currentStep++ to avoid race condition
-      const scanPromises = scanPaths.map(async ({ path, source }, index) => {
-        if (this.cancelled) return []
+      // Scan paths with limited concurrency (max 3 at a time to avoid process limiter overload)
+      const concurrency = 3
+      let completed = 0
 
-        if (events?.onProgress) {
-          events.onProgress({
-            scannerName: this.name,
-            currentItem: index + 1,
-            totalItems: scanPaths.length,
-            currentPath: `${source} - scanning...`,
-            percentage: ((index + 1) / scanPaths.length) * 100
-          })
+      for (let i = 0; i < scanPaths.length; i += concurrency) {
+        if (this.cancelled) break
+
+        const chunk = scanPaths.slice(i, i + concurrency)
+        const chunkPromises = chunk.map(async ({ path, source }) => {
+          if (this.cancelled) return []
+
+          completed++
+          if (events?.onProgress) {
+            events.onProgress({
+              scannerName: this.name,
+              currentItem: completed,
+              totalItems: scanPaths.length,
+              currentPath: `${source} - scanning...`,
+              percentage: (completed / scanPaths.length) * 100
+            })
+          }
+
+          return this.scanRegistryPath(path, source)
+        })
+
+        const chunkResults = await Promise.all(chunkPromises)
+        for (const pathResults of chunkResults) {
+          results.push(...pathResults)
         }
-
-        return this.scanRegistryPath(path, source)
-      })
-
-      const allResults = await Promise.all(scanPromises)
-      for (const pathResults of allResults) {
-        results.push(...pathResults)
       }
 
       return this.createSuccessResult(results, startTime)
