@@ -1,17 +1,13 @@
-import { existsSync } from 'fs'
-import { join } from 'path'
 import { BaseScanner, ScannerEventEmitter } from './base-scanner'
 import { ScanResult } from '../../shared/types'
 import { asyncExec } from '../utils/async-exec'
 
+// Overall scan timeout (60 seconds max)
+const SCAN_TIMEOUT_MS = 60000
+
 export class AmcacheScanner extends BaseScanner {
   readonly name = 'Amcache Scanner'
   readonly description = 'Scanning Amcache for program execution history'
-
-  // Get Windows directory dynamically
-  private get windowsDir(): string {
-    return process.env.WINDIR || process.env.SystemRoot || 'C:\\Windows'
-  }
 
   /**
    * Execute PowerShell script using Base64 EncodedCommand for reliable escaping
@@ -29,6 +25,10 @@ export class AmcacheScanner extends BaseScanner {
     const startTime = new Date()
     this.reset()
 
+    // Track overall scan time to prevent excessive duration
+    const scanStartMs = Date.now()
+    const isTimedOut = () => Date.now() - scanStartMs > SCAN_TIMEOUT_MS
+
     try {
       const results: string[] = []
 
@@ -37,47 +37,39 @@ export class AmcacheScanner extends BaseScanner {
         events.onProgress({
           scannerName: this.name,
           currentItem: 1,
-          totalItems: 3,
+          totalItems: 2,
           currentPath: 'Scanning Amcache registry...',
-          percentage: 33
+          percentage: 50
         })
       }
 
       // Method 1: Query InventoryApplicationFile (Windows 10+)
-      const inventoryResults = await this.scanInventoryApplicationFile()
-      results.push(...inventoryResults)
+      if (!isTimedOut()) {
+        const inventoryResults = await this.scanInventoryApplicationFile()
+        results.push(...inventoryResults)
+      }
 
-      if (this.cancelled) return this.createErrorResult('Scan cancelled', startTime)
+      if (this.cancelled || isTimedOut()) {
+        return this.cancelled
+          ? this.createErrorResult('Scan cancelled', startTime)
+          : this.createSuccessResult(results, startTime) // Return partial results on timeout
+      }
 
       if (events?.onProgress) {
         events.onProgress({
           scannerName: this.name,
           currentItem: 2,
-          totalItems: 3,
+          totalItems: 2,
           currentPath: 'Scanning AppCompat Programs...',
-          percentage: 66
-        })
-      }
-
-      // Method 2: Query AppCompatFlags
-      const appCompatResults = await this.scanAppCompatFlags()
-      results.push(...appCompatResults)
-
-      if (this.cancelled) return this.createErrorResult('Scan cancelled', startTime)
-
-      if (events?.onProgress) {
-        events.onProgress({
-          scannerName: this.name,
-          currentItem: 3,
-          totalItems: 3,
-          currentPath: 'Scanning RecentFileCache...',
           percentage: 100
         })
       }
 
-      // Method 3: Scan RecentFileCache.bcf if exists
-      const recentCacheResults = await this.scanRecentFileCache()
-      results.push(...recentCacheResults)
+      // Method 2: Query AppCompatFlags
+      if (!isTimedOut()) {
+        const appCompatResults = await this.scanAppCompatFlags()
+        results.push(...appCompatResults)
+      }
 
       return this.createSuccessResult(results, startTime)
     } catch (error) {
@@ -152,8 +144,8 @@ Get-ItemProperty 'HKLM:\\SOFTWARE\\WOW6432Node\\Microsoft\\Windows\\CurrentVersi
       const pathResults: string[] = []
       try {
         const output = await asyncExec(`reg query "${regPath}" /s 2>nul`, {
-          maxBuffer: 10 * 1024 * 1024,
-          timeout: 10000
+          maxBuffer: 5 * 1024 * 1024,
+          timeout: 15000 // Increased from 5s to 15s for larger registry keys
         })
 
         const lines = output.split('\n')
@@ -179,44 +171,4 @@ Get-ItemProperty 'HKLM:\\SOFTWARE\\WOW6432Node\\Microsoft\\Windows\\CurrentVersi
     return results
   }
 
-  private async scanRecentFileCache(): Promise<string[]> {
-    const results: string[] = []
-
-    // RecentFileCache.bcf location - use dynamic Windows path
-    const recentFileCachePath = join(this.windowsDir, 'AppCompat', 'Programs', 'RecentFileCache.bcf')
-
-    if (!existsSync(recentFileCachePath)) {
-      return results
-    }
-
-    try {
-      // Use PowerShell to read and parse the binary file
-      // RecentFileCache.bcf contains UTF-16LE encoded file paths
-      const psScript = `
-$path = '${recentFileCachePath.replace(/\\/g, '\\\\')}'
-if (Test-Path $path) {
-  $bytes = [System.IO.File]::ReadAllBytes($path)
-  $text = [System.Text.Encoding]::Unicode.GetString($bytes)
-  $text -split '\\x00+' | Where-Object { $_ -match '\\\\' }
-}
-`
-
-      const output = await this.execPowerShell(psScript, 15000)
-
-      const lines = output.split('\n')
-      for (const line of lines) {
-        if (this.cancelled) break
-        const trimmed = line.trim()
-        if (!trimmed || !trimmed.includes('\\')) continue
-
-        if (this.keywordMatcher.containsKeyword(trimmed)) {
-          results.push(`[Amcache/RecentFileCache] ${trimmed}`)
-        }
-      }
-    } catch {
-      // Failed to read RecentFileCache
-    }
-
-    return results
-  }
 }

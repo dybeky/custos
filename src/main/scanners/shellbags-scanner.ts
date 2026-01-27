@@ -51,11 +51,8 @@ export class ShellbagsScanner extends BaseScanner {
         results.push(...pathResults)
       }
 
-      // Also try to extract folder paths using PowerShell for better parsing
-      if (!this.cancelled) {
-        const psResults = await this.scanWithPowerShell(seenPaths)
-        results.push(...psResults)
-      }
+      // Note: PowerShell deep scan removed - registry query already gets the data
+      // and the PowerShell scan added 60s timeout causing potential freezes
 
       return this.createSuccessResult(results, startTime)
     } catch (error) {
@@ -159,70 +156,5 @@ export class ShellbagsScanner extends BaseScanner {
     paths.push(...folderNames)
 
     return [...new Set(paths)] // Remove duplicates
-  }
-
-  private async scanWithPowerShell(seenPaths: Set<string>): Promise<string[]> {
-    const results: string[] = []
-
-    try {
-      // Use PowerShell to extract more readable shellbag data
-      const psScript = `
-        $ErrorActionPreference = 'SilentlyContinue'
-
-        function Get-ShellbagPaths {
-          param([string]$BasePath)
-
-          $items = Get-ChildItem -Path $BasePath -Recurse -ErrorAction SilentlyContinue
-          foreach ($item in $items) {
-            # Try to read NodeSlot and other values that might contain paths
-            $props = Get-ItemProperty -Path $item.PSPath -ErrorAction SilentlyContinue
-            if ($props) {
-              $props.PSObject.Properties | ForEach-Object {
-                if ($_.Value -is [byte[]]) {
-                  # Try to decode as string
-                  try {
-                    $str = [System.Text.Encoding]::Unicode.GetString($_.Value)
-                    if ($str -match '[A-Z]:\\\\' -or $str -match '\\\\\\\\') {
-                      $str -split '\\x00' | Where-Object { $_ -match '\\\\' }
-                    }
-                  } catch {}
-                }
-              }
-            }
-          }
-        }
-
-        Get-ShellbagPaths 'HKCU:\\Software\\Microsoft\\Windows\\Shell\\BagMRU'
-        Get-ShellbagPaths 'HKCU:\\Software\\Classes\\Local Settings\\Software\\Microsoft\\Windows\\Shell\\BagMRU'
-      `
-
-      const output = await asyncExec(
-        `powershell -NoProfile -ExecutionPolicy Bypass -Command "${psScript.replace(/"/g, '\\"').replace(/\n/g, ' ')}"`,
-        {
-          maxBuffer: 20 * 1024 * 1024,
-          timeout: 30000
-        }
-      )
-
-      const lines = output.split('\n')
-      for (const line of lines) {
-        if (this.cancelled) break
-
-        const trimmed = line.trim()
-        if (!trimmed || !trimmed.includes('\\')) continue
-
-        const key = trimmed.toLowerCase()
-        if (seenPaths.has(key)) continue
-
-        if (this.keywordMatcher.containsKeyword(trimmed)) {
-          seenPaths.add(key)
-          results.push(`[Shellbags/Deep] ${trimmed}`)
-        }
-      }
-    } catch {
-      // PowerShell extraction failed
-    }
-
-    return results
   }
 }

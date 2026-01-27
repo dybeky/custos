@@ -1,4 +1,5 @@
-import { existsSync, readFileSync } from 'fs'
+import { existsSync } from 'fs'
+import { readFile } from 'fs/promises'
 import { join } from 'path'
 import { homedir } from 'os'
 import { BaseScanner, ScannerEventEmitter } from './base-scanner'
@@ -80,7 +81,7 @@ export class SteamScanner extends BaseScanner {
           steamFound = true
 
           try {
-            const vdfContent = readFileSync(loginUsersPath, 'utf-8')
+            const vdfContent = await readFile(loginUsersPath, 'utf-8')
             accounts = this.vdfParser.parseSteamAccounts(vdfContent)
 
             // Add account info to results with validation

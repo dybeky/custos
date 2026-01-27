@@ -11,6 +11,7 @@
     "types": ["node"],
     "resolveJsonModule": true,
     "isolatedModules": true,
+    "downlevelIteration": true,
     "baseUrl": ".",
     "paths": {
       "@shared/*": ["src/shared/*"]
@@ -19,6 +20,7 @@
   "include": [
     "src/main/**/*",
     "src/preload/**/*",
+    "src/shared/**/*",
     "electron.vite.config.ts"
   ]
 }
