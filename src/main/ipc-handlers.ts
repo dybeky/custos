@@ -150,14 +150,18 @@ export function setupIpcHandlers(mainWindow: BrowserWindow): void {
 
       executing.push(scanPromise)
 
-      // Limit concurrency - use proper promise tracking
+      // Limit concurrency - use proper promise tracking with wrapper objects
       if (executing.length >= concurrency) {
-        // Wait for any promise to settle and remove it from the array
-        const completedPromise = await Promise.race(
-          executing.map((p, idx) => p.then(() => idx).catch(() => idx))
+        // Create wrapper promises that resolve to their original promise reference
+        const wrappers = executing.map(p =>
+          p.then(() => ({ promise: p })).catch(() => ({ promise: p }))
         )
-        // Remove the completed promise by its index
-        executing.splice(completedPromise, 1)
+        // Wait for any promise to settle and remove it by reference (not index)
+        const { promise: completedPromise } = await Promise.race(wrappers)
+        const idx = executing.indexOf(completedPromise)
+        if (idx !== -1) {
+          executing.splice(idx, 1)
+        }
       }
     }
 
@@ -630,20 +634,38 @@ del "%~f0"
     app.quit()
   })
 
-  // Window controls
+  // Window controls with safety checks
   ipcMain.handle(IPC_CHANNELS.WINDOW_MINIMIZE, (): void => {
-    mainWindow.minimize()
+    try {
+      if (!mainWindow.isDestroyed()) {
+        mainWindow.minimize()
+      }
+    } catch (error) {
+      logger.debug('Window minimize failed', { error: error instanceof Error ? error.message : 'Unknown error' })
+    }
   })
 
   ipcMain.handle(IPC_CHANNELS.WINDOW_MAXIMIZE, (): void => {
-    if (mainWindow.isMaximized()) {
-      mainWindow.unmaximize()
-    } else {
-      mainWindow.maximize()
+    try {
+      if (!mainWindow.isDestroyed()) {
+        if (mainWindow.isMaximized()) {
+          mainWindow.unmaximize()
+        } else {
+          mainWindow.maximize()
+        }
+      }
+    } catch (error) {
+      logger.debug('Window maximize/unmaximize failed', { error: error instanceof Error ? error.message : 'Unknown error' })
     }
   })
 
   ipcMain.handle(IPC_CHANNELS.WINDOW_CLOSE, (): void => {
-    mainWindow.close()
+    try {
+      if (!mainWindow.isDestroyed()) {
+        mainWindow.close()
+      }
+    } catch (error) {
+      logger.debug('Window close failed', { error: error instanceof Error ? error.message : 'Unknown error' })
+    }
   })
 }

@@ -245,8 +245,9 @@ export class BrowserHistoryScanner extends BaseScanner {
             browserProfiles.push({ browser, profilePath: join(basePath, entry.name) })
           }
         }
-      } catch {
-        // Can't read directory
+      } catch (error) {
+        // Can't read directory - log for debugging
+        console.debug(`Failed to read browser profiles at ${basePath}:`, (error as Error).message)
       }
 
       // For Opera - it doesn't have User Data structure
@@ -331,13 +332,15 @@ export class BrowserHistoryScanner extends BaseScanner {
             }
           }
         }
-      } catch {
-        // Query failed (table doesn't exist, etc.)
+      } catch (error) {
+        // Query failed (table doesn't exist, etc.) - log for debugging
+        console.debug(`Database query failed for ${browserName}/${config.name}:`, (error as Error).message)
       } finally {
         db.close()
       }
-    } catch {
-      // Database locked or corrupted after retries
+    } catch (error) {
+      // Database locked or corrupted after retries - log for debugging
+      console.debug(`Failed to scan database ${dbPath}:`, (error as Error).message)
     } finally {
       if (tempPath) {
         await this.safeDelete(tempPath)
@@ -388,8 +391,9 @@ export class BrowserHistoryScanner extends BaseScanner {
           results.push(...profileResults)
         }
       }
-    } catch {
-      // Can't read profiles directory
+    } catch (error) {
+      // Can't read profiles directory - log for debugging
+      console.debug(`Failed to read Firefox profiles at ${profilesPath}:`, (error as Error).message)
     }
 
     return results
@@ -500,8 +504,9 @@ export class BrowserHistoryScanner extends BaseScanner {
       } finally {
         db.close()
       }
-    } catch {
-      // Database locked or corrupted after retries
+    } catch (error) {
+      // Database locked or corrupted after retries - log for debugging
+      console.debug(`Failed to scan Firefox places at ${profilePath}:`, (error as Error).message)
     } finally {
       if (tempPath) {
         await this.safeDelete(tempPath)
@@ -561,8 +566,9 @@ export class BrowserHistoryScanner extends BaseScanner {
       } finally {
         db.close()
       }
-    } catch {
-      // Database locked or corrupted after retries
+    } catch (error) {
+      // Database locked or corrupted after retries - log for debugging
+      console.debug(`Failed to scan Firefox form history at ${profilePath}:`, (error as Error).message)
     } finally {
       if (tempPath) {
         await this.safeDelete(tempPath)
