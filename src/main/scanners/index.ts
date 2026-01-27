@@ -1,5 +1,6 @@
 import { KeywordMatcher } from '../services/keyword-matcher'
 import { configService, AppConfig, ScanSettings, RegistrySettings } from '../services/config-service'
+import { ScannerInfo } from '../../shared/types'
 
 import { BaseScanner } from './base-scanner'
 import { AppDataScanner } from './appdata-scanner'
@@ -28,12 +29,6 @@ export type ScannerName =
   | 'amcache'
   | 'bam'
   | 'shellbags'
-
-export interface ScannerInfo {
-  id: ScannerName
-  name: string
-  description: string
-}
 
 export class ScannerFactory {
   private keywordMatcher: KeywordMatcher

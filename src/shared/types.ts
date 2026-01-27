@@ -21,9 +21,9 @@ export interface ScanProgress {
 
 // Scanner metadata
 export interface ScannerInfo {
+  id: string
   name: string
   description: string
-  enabled: boolean
 }
 
 // Settings types

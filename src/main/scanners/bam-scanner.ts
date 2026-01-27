@@ -9,6 +9,11 @@ export class BamScanner extends BaseScanner {
   // Cache for volume-to-drive mapping
   private driveMapping: Map<number, string> | null = null
 
+  reset(): void {
+    super.reset()
+    this.driveMapping = null
+  }
+
   /**
    * Get the mapping between HarddiskVolume numbers and drive letters
    * Uses WMI to get the actual system mapping instead of assuming Volume1=C:, etc.
@@ -18,12 +23,12 @@ export class BamScanner extends BaseScanner {
 
     this.driveMapping = new Map()
     try {
-      // PowerShell: get volume to drive letter mapping
-      const psScript = `Get-WmiObject Win32_Volume | Where-Object { $_.DriveLetter } | ForEach-Object { $_.DeviceID + '|' + $_.DriveLetter }`
+      // PowerShell: get volume to drive letter mapping using Get-CimInstance (faster than Get-WmiObject)
+      const psScript = `Get-CimInstance Win32_Volume | Where-Object { $_.DriveLetter } | ForEach-Object { $_.DeviceID + '|' + $_.DriveLetter }`
 
       const output = await asyncExec(
         `powershell -NoProfile -Command "${psScript}"`,
-        { timeout: 10000 }
+        { timeout: 8000 }
       )
 
       // Parse output lines like: \\?\Volume{guid}\|C:
@@ -43,21 +48,11 @@ export class BamScanner extends BaseScanner {
           }
         }
       }
-
-      // Additional method: query via mountvol
-      if (this.driveMapping.size === 0) {
-        const mountOutput = await asyncExec('mountvol', { timeout: 10000 })
-        // Parse mountvol output for volume paths
-        const volMatches = mountOutput.matchAll(/\\\\[?]\\Volume{[^}]+}\\.*?([A-Z]:)/g)
-        for (const _match of volMatches) {
-          // This is a fallback, not as reliable
-        }
-      }
     } catch {
-      // Fallback - common defaults (may not be accurate)
+      // WMI/CIM query failed - immediately use defaults
     }
 
-    // If still empty, set common defaults
+    // If empty (WMI failed or no mapping found), set common defaults immediately
     if (this.driveMapping.size === 0) {
       this.driveMapping.set(1, 'C:')
       this.driveMapping.set(2, 'C:')

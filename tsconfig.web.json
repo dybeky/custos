@@ -23,5 +23,8 @@
       "@i18n/*": ["src/renderer/i18n/*"]
     }
   },
-  "include": ["src/renderer/**/*"]
+  "include": [
+    "src/renderer/**/*",
+    "src/shared/**/*"
+  ]
 }

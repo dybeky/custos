@@ -44,8 +44,9 @@ export abstract class BaseScanner {
   // Concurrency limit for parallel file system operations
   protected static readonly MAX_CONCURRENCY = 10
 
-  // Cache for NTFS hidden attribute checks
+  // Cache for NTFS hidden attribute checks with size limit to prevent memory leaks
   private hiddenCache = new Map<string, boolean>()
+  private static readonly MAX_CACHE_SIZE = 10000
 
   abstract readonly name: string
   abstract readonly description: string
@@ -232,6 +233,11 @@ foreach ($p in $paths) {
       // Mark hidden files in cache
       const hiddenPaths = output.split('\n').map(l => l.trim()).filter(Boolean)
       for (const hp of hiddenPaths) {
+        // Evict half of the cache when limit is reached to prevent unbounded growth
+        if (this.hiddenCache.size >= BaseScanner.MAX_CACHE_SIZE) {
+          const keys = Array.from(this.hiddenCache.keys())
+          keys.slice(0, Math.floor(keys.length / 2)).forEach(k => this.hiddenCache.delete(k))
+        }
         this.hiddenCache.set(hp, true)
       }
     } catch {

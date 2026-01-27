@@ -63,8 +63,8 @@ export class RegistryScanner extends BaseScanner {
     try {
       // Use reg query command to export registry key
       const output = await asyncExec(`reg query "${path}" /s 2>nul`, {
-        maxBuffer: 10 * 1024 * 1024, // 10MB buffer
-        timeout: 10000
+        maxBuffer: 5 * 1024 * 1024, // 5MB buffer
+        timeout: 10000 // 10 second timeout for larger registry keys
       })
 
       const lines = output.split('\n')
