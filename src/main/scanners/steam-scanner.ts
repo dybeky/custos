@@ -6,6 +6,7 @@ import { BaseScanner, ScannerEventEmitter } from './base-scanner'
 import { ScanResult } from '../../shared/types'
 import { AppConfig } from '../services/config-service'
 import { VdfParser, SteamAccount } from '../services/vdf-parser'
+import { getAvailableDrives } from '../utils/drive-utils'
 
 export class SteamScanner extends BaseScanner {
   readonly name = 'Steam Scanner'
@@ -41,7 +42,11 @@ export class SteamScanner extends BaseScanner {
     try {
       const results: string[] = []
       const { steam } = this.config.paths
-      const drives = ['C:', ...steam.additionalDrives]
+
+      // Get all available system drives dynamically
+      const systemDrives = await getAvailableDrives()
+      // Merge with configured additional drives, removing duplicates
+      const drives = [...new Set([...systemDrives, ...steam.additionalDrives])]
 
       // Find Steam installation
       const steamPaths: string[] = []

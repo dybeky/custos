@@ -92,7 +92,7 @@ const api = {
     return ipcRenderer.invoke(IPC_CHANNELS.APP_OPEN_PATH, path)
   },
 
-  openRegistry: (keyPath: string): Promise<void> => {
+  openRegistry: (keyPath: string): Promise<{ success: boolean; error?: string }> => {
     return ipcRenderer.invoke(IPC_CHANNELS.APP_OPEN_REGISTRY, keyPath)
   },
 

@@ -562,33 +562,56 @@ del "%~f0"
   })
 
   // Open registry key
-  ipcMain.handle(IPC_CHANNELS.APP_OPEN_REGISTRY, async (_event, keyPath: string): Promise<void> => {
+  ipcMain.handle(IPC_CHANNELS.APP_OPEN_REGISTRY, async (_event, keyPath: string): Promise<{ success: boolean; error?: string }> => {
     const { execFile } = await import('child_process')
 
     // Validate and sanitize keyPath to prevent command injection
-    // Only allow valid registry key characters: alphanumeric, backslash, underscore, hyphen, spaces
-    if (!keyPath || !/^[A-Za-z0-9\\_\-\s]+$/.test(keyPath)) {
-      console.error('Invalid registry key path:', keyPath)
-      return
+    // Allow valid registry key characters: alphanumeric, backslash, underscore, hyphen, spaces, dots, parentheses
+    // Dots are needed for paths like "Microsoft.Windows" and parentheses for "(x86)"
+    if (!keyPath || !/^[A-Za-z0-9\\_\-\s.()]+$/.test(keyPath)) {
+      logger.warn('Invalid registry key path', { keyPath })
+      return { success: false, error: 'Invalid registry key path' }
     }
 
-    // Set the last key in regedit
-    const fullPath = keyPath.replace('HKCU', 'HKEY_CURRENT_USER')
+    // Expand HKCU to full form and add Computer\ prefix for Windows 10+ regedit navigation
+    const fullPath = 'Computer\\' + keyPath
+      .replace(/^HKCU\\/i, 'HKEY_CURRENT_USER\\')
+      .replace(/^HKLM\\/i, 'HKEY_LOCAL_MACHINE\\')
+      .replace(/^HKU\\/i, 'HKEY_USERS\\')
+      .replace(/^HKCR\\/i, 'HKEY_CLASSES_ROOT\\')
+      .replace(/^HKCC\\/i, 'HKEY_CURRENT_CONFIG\\')
 
-    // Use execFile instead of exec to prevent command injection
-    // Pass arguments as array, not interpolated string
-    execFile('reg', [
-      'add',
-      'HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Applets\\Regedit',
-      '/v', 'LastKey',
-      '/t', 'REG_SZ',
-      '/d', fullPath,
-      '/f'
-    ], (err) => {
-      if (!err) {
-        // Open regedit using execFile
-        execFile('regedit')
-      }
+    // Get full path to regedit via SystemRoot environment variable
+    const regeditPath = process.env.SystemRoot
+      ? `${process.env.SystemRoot}\\regedit.exe`
+      : 'C:\\Windows\\regedit.exe'
+
+    return new Promise((resolve) => {
+      // Use execFile instead of exec to prevent command injection
+      // Pass arguments as array, not interpolated string
+      execFile('reg', [
+        'add',
+        'HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Applets\\Regedit',
+        '/v', 'LastKey',
+        '/t', 'REG_SZ',
+        '/d', fullPath,
+        '/f'
+      ], (regErr) => {
+        if (regErr) {
+          logger.warn('Failed to set registry LastKey', { error: regErr.message })
+          // Still try to open regedit even if setting LastKey failed
+        }
+
+        // Open regedit using full path
+        execFile(regeditPath, (regeditErr) => {
+          if (regeditErr) {
+            logger.error('Failed to open regedit', { error: regeditErr.message, path: regeditPath })
+            resolve({ success: false, error: `Failed to open regedit: ${regeditErr.message}` })
+          } else {
+            resolve({ success: true })
+          }
+        })
+      })
     })
   })
 

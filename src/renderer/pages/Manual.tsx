@@ -95,8 +95,11 @@ export function Manual() {
     window.electronAPI.openExternal(url)
   }
 
-  const handleOpenRegistry = (path: string) => {
-    window.electronAPI.openRegistry(path)
+  const handleOpenRegistry = async (path: string) => {
+    const result = await window.electronAPI.openRegistry(path)
+    if (!result.success && result.error) {
+      console.error('Failed to open registry:', result.error)
+    }
   }
 
   const folderIcon = (

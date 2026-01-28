@@ -3,6 +3,7 @@ import { join } from 'path'
 import { BaseScanner, ScannerEventEmitter } from './base-scanner'
 import { ScanResult } from '../../shared/types'
 import { AppConfig } from '../services/config-service'
+import { getAvailableDrives } from '../utils/drive-utils'
 
 export class GameFolderScanner extends BaseScanner {
   readonly name = 'Game Folder Scanner'
@@ -22,10 +23,14 @@ export class GameFolderScanner extends BaseScanner {
   /**
    * Parse Steam's libraryfolders.vdf to get all Steam library paths
    */
-  private getSteamLibraryPaths(): string[] {
+  private async getSteamLibraryPaths(): Promise<string[]> {
     const libraryPaths: string[] = []
     const { steam } = this.config.paths
-    const drives = ['C:', ...steam.additionalDrives]
+
+    // Get all available system drives dynamically
+    const systemDrives = await getAvailableDrives()
+    // Merge with configured additional drives, removing duplicates
+    const drives = [...new Set([...systemDrives, ...steam.additionalDrives])]
 
     // Common Steam installation paths
     const steamInstallPaths = [
@@ -82,7 +87,7 @@ export class GameFolderScanner extends BaseScanner {
 
     try {
       // Get Steam library paths dynamically from libraryfolders.vdf
-      const gameFolders = this.getSteamLibraryPaths()
+      const gameFolders = await this.getSteamLibraryPaths()
 
       const results: string[] = []
       let processedCount = 0
