@@ -1,6 +1,7 @@
 import { BaseScanner, ScannerEventEmitter } from './base-scanner'
 import { ScanResult } from '../../shared/types'
 import { asyncExec } from '../utils/async-exec'
+import { isBAMAvailable } from '../utils/os-utils'
 
 export class BamScanner extends BaseScanner {
   readonly name = 'BAM/DAM Scanner'
@@ -104,6 +105,15 @@ export class BamScanner extends BaseScanner {
     this.reset()
 
     try {
+      // Check if BAM is available on this Windows version (requires build 16299+)
+      const bamAvailable = await isBAMAvailable()
+      if (!bamAvailable) {
+        return this.createSuccessResult(
+          ['[BAM/DAM] Not available on this Windows version (requires Windows 10 build 16299 or later)'],
+          startTime
+        )
+      }
+
       const results: string[] = []
 
       // Get all user SIDs to scan BAM/DAM for each user

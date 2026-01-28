@@ -2,6 +2,7 @@ import { BaseScanner, ScannerEventEmitter } from './base-scanner'
 import { ScanResult } from '../../shared/types'
 import { RegistrySettings } from '../services/config-service'
 import { asyncExec } from '../utils/async-exec'
+import { logger } from '../services/logger'
 
 export class RegistryScanner extends BaseScanner {
   readonly name = 'Registry Scanner'
@@ -107,8 +108,20 @@ export class RegistryScanner extends BaseScanner {
           }
         }
       }
-    } catch {
-      // Registry key doesn't exist or access denied
+    } catch (error) {
+      // Log specific error for debugging
+      const errorMsg = error instanceof Error ? error.message : 'Unknown error'
+
+      // Check for common error conditions
+      if (errorMsg.includes('Access is denied') || errorMsg.includes('access denied')) {
+        logger.debug('Registry access denied', { path, name, error: errorMsg })
+        results.push(`[${name}] Access denied - run as administrator for full access`)
+      } else if (errorMsg.includes('not found') || errorMsg.includes('not exist')) {
+        // Key doesn't exist - this is normal, don't report
+        logger.debug('Registry key not found', { path, name })
+      } else {
+        logger.debug('Registry scan error', { path, name, error: errorMsg })
+      }
     }
 
     return results
