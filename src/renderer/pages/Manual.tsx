@@ -1,3 +1,4 @@
+import { useState, useRef, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Card, CardHeader, CardTitle, CardContent } from '../components/ui/Card'
 
@@ -39,6 +40,17 @@ function ShimmerButton({ onClick, children }: { onClick: () => void; children: R
 
 export function Manual() {
   const { t } = useTranslation()
+  const [registryError, setRegistryError] = useState<string | null>(null)
+  const errorTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  // Cleanup timeout on unmount to prevent memory leaks
+  useEffect(() => {
+    return () => {
+      if (errorTimeoutRef.current) {
+        clearTimeout(errorTimeoutRef.current)
+      }
+    }
+  }, [])
 
   // System Tools - matching original ManualView.xaml
   const systemTools: QuickAccessItem[] = [
@@ -96,9 +108,21 @@ export function Manual() {
   }
 
   const handleOpenRegistry = async (path: string) => {
+    // Clear any existing timeout
+    if (errorTimeoutRef.current) {
+      clearTimeout(errorTimeoutRef.current)
+      errorTimeoutRef.current = null
+    }
+
+    setRegistryError(null)
     const result = await window.electronAPI.openRegistry(path)
     if (!result.success && result.error) {
-      console.error('Failed to open registry:', result.error)
+      setRegistryError(result.error)
+      // Auto-dismiss after 5 seconds
+      errorTimeoutRef.current = setTimeout(() => {
+        setRegistryError(null)
+        errorTimeoutRef.current = null
+      }, 5000)
     }
   }
 
@@ -146,6 +170,13 @@ export function Manual() {
           <h1 className="text-2xl font-bold text-text-primary">{t('manual.title')}</h1>
           <p className="text-text-secondary mt-1">{t('manual.subtitle')}</p>
         </div>
+
+        {/* Registry Error Notification */}
+        {registryError && (
+          <div className="mb-4 p-3 bg-red-500/10 border border-red-500/20 rounded-lg text-red-400 text-sm">
+            {registryError}
+          </div>
+        )}
 
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
           {/* System Tools */}

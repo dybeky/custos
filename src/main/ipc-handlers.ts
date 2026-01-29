@@ -573,13 +573,31 @@ del "%~f0"
       return { success: false, error: 'Invalid registry key path' }
     }
 
-    // Expand HKCU to full form and add Computer\ prefix for Windows 10+ regedit navigation
-    const fullPath = 'Computer\\' + keyPath
+    // Expand HKCU to full form for reg query (reg command requires full names, not abbreviations)
+    const expandedKeyPath = keyPath
       .replace(/^HKCU\\/i, 'HKEY_CURRENT_USER\\')
       .replace(/^HKLM\\/i, 'HKEY_LOCAL_MACHINE\\')
       .replace(/^HKU\\/i, 'HKEY_USERS\\')
       .replace(/^HKCR\\/i, 'HKEY_CLASSES_ROOT\\')
       .replace(/^HKCC\\/i, 'HKEY_CURRENT_CONFIG\\')
+
+    // Check if registry key exists before opening regedit
+    const keyExists = await new Promise<boolean>((resolve) => {
+      execFile('reg', ['query', expandedKeyPath], (error) => {
+        resolve(!error)
+      })
+    })
+
+    if (!keyExists) {
+      logger.info('Registry key does not exist', { keyPath })
+      return {
+        success: false,
+        error: `Registry key does not exist: ${keyPath}`
+      }
+    }
+
+    // Add Computer\ prefix for Windows 10+ regedit navigation
+    const fullPath = 'Computer\\' + expandedKeyPath
 
     // Get full path to regedit via SystemRoot environment variable
     const regeditPath = process.env.SystemRoot
