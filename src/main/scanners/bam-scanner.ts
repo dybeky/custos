@@ -106,7 +106,7 @@ export class BamScanner extends BaseScanner {
 
     try {
       // Check if BAM is available on this Windows version (requires build 16299+)
-      const bamAvailable = await isBAMAvailable()
+      const bamAvailable = isBAMAvailable()
       if (!bamAvailable) {
         return this.createSuccessResult(
           ['[BAM/DAM] Not available on this Windows version (requires Windows 10 build 16299 or later)'],

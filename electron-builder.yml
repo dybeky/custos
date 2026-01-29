@@ -27,6 +27,7 @@ nsis:
 
 portable:
   artifactName: custos.exe
+  requestExecutionLevel: admin
 
 extraResources:
   - from: resources

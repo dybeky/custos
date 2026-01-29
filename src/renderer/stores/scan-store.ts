@@ -1,5 +1,4 @@
 import { create } from 'zustand'
-import { shallow } from 'zustand/shallow'
 import { ScanResult, ScanProgress, ScannerInfo } from '../../shared/types'
 
 export type ScanStatus = 'idle' | 'scanning' | 'completed' | 'error'
@@ -79,33 +78,3 @@ export const useScanStore = create<ScanState>((set) => ({
     _failedScans: 0
   })
 }))
-
-// Memoized selectors using shallow comparison
-export const useTotalFindings = () => useScanStore((state) => state._totalFindings)
-
-export const useHasFindings = () => useScanStore((state) => state._hasFindings)
-
-export const useScanStats = () => useScanStore(
-  (state) => ({
-    totalFindings: state._totalFindings,
-    hasFindings: state._hasFindings,
-    successfulScans: state._successfulScans,
-    failedScans: state._failedScans,
-    totalScans: state.results.length
-  }),
-  shallow
-)
-
-export const useScanProgress = () => useScanStore(
-  (state) => ({
-    status: state.status,
-    progress: state.progress,
-    error: state.error
-  }),
-  shallow
-)
-
-// Selector for results with findings only
-export const useResultsWithFindings = () => useScanStore(
-  (state) => state.results.filter((result) => result.hasFindings)
-)

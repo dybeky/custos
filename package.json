@@ -12,6 +12,7 @@
     "debug": "electron-vite build && electron-builder --win --dir",
     "package": "electron-vite build && electron-builder",
     "package:win": "electron-vite build && electron-builder --win",
+    "package:win:admin": "npm run package:win && node scripts/build-with-manifest.js",
     "lint": "eslint . --ext .ts,.tsx",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
@@ -30,7 +31,6 @@
     "react-dom": "^18.2.0",
     "react-i18next": "^14.0.0",
     "react-router-dom": "^6.21.0",
-    "regedit": "^5.1.2",
     "tailwind-merge": "^2.2.0",
     "zustand": "^4.4.7"
   },
@@ -64,8 +64,13 @@
     },
     "files": [
       "out/**/*",
-      "resources/**/*"
+      "resources/**/*",
+      "!node_modules/**/*.md",
+      "!node_modules/**/*.txt",
+      "!node_modules/**/test/**",
+      "!node_modules/**/docs/**"
     ],
+    "electronLanguages": ["en", "ru"],
     "win": {
       "target": [
         {
@@ -74,7 +79,7 @@
         }
       ],
       "icon": "resources/icon.ico",
-      "signAndEditExecutable": false
+      "requestedExecutionLevel": "requireAdministrator"
     },
     "nsis": {
       "oneClick": false,
@@ -82,7 +87,8 @@
       "deleteAppDataOnUninstall": true
     },
     "portable": {
-      "artifactName": "custos.exe"
+      "artifactName": "custos.exe",
+      "requestExecutionLevel": "admin"
     },
     "extraResources": [
       {
