@@ -14,6 +14,7 @@ import { SteamScanner } from './steam-scanner'
 import { AmcacheScanner } from './amcache-scanner'
 import { BamScanner } from './bam-scanner'
 import { ShellbagsScanner } from './shellbags-scanner'
+import { VMScanner } from './vm-scanner'
 
 export { BaseScanner } from './base-scanner'
 
@@ -29,6 +30,7 @@ export type ScannerName =
   | 'amcache'
   | 'bam'
   | 'shellbags'
+  | 'vm'
 
 export class ScannerFactory {
   private keywordMatcher: KeywordMatcher
@@ -60,6 +62,7 @@ export class ScannerFactory {
     this.scanners.set('amcache', new AmcacheScanner(this.keywordMatcher, this.scanSettings))
     this.scanners.set('bam', new BamScanner(this.keywordMatcher, this.scanSettings))
     this.scanners.set('shellbags', new ShellbagsScanner(this.keywordMatcher, this.scanSettings))
+    this.scanners.set('vm', new VMScanner(this.keywordMatcher, this.scanSettings))
   }
 
   getScanner(name: ScannerName): BaseScanner | undefined {
