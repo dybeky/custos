@@ -1,7 +1,26 @@
+import { useEffect } from 'react'
 import { useSettingsStore } from '../../stores/settings-store'
+import { useAppHealthStore } from '../../stores/app-health-store'
 
 export function Header() {
   const { effectsEnabled, toggleEffects } = useSettingsStore()
+  const { status, windowsVersion, isLoaded, initialize } = useAppHealthStore()
+
+  useEffect(() => {
+    initialize()
+  }, [initialize])
+
+  const statusColors = {
+    healthy: '#00BFA5',
+    warning: '#FFB300',
+    error: '#FF5252'
+  }
+
+  const statusTitles = {
+    healthy: 'All systems OK',
+    warning: 'Warning detected',
+    error: 'Error detected'
+  }
 
   const handleMinimize = () => window.electronAPI.minimize()
   const handleMaximize = () => window.electronAPI.maximize()
@@ -28,6 +47,35 @@ export function Header() {
 
       {/* Window controls */}
       <div className="flex items-center gap-1" style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}>
+        {/* Status + Version indicator */}
+        <div className="flex items-center gap-1.5 mr-2" style={{ lineHeight: 1 }}>
+          {/* Status dot with pulsation and glow */}
+          <div
+            className="w-2 h-2 rounded-full animate-pulse-slow flex-shrink-0"
+            style={{
+              backgroundColor: statusColors[status],
+              boxShadow: `0 0 8px ${statusColors[status]}80`
+            }}
+            title={statusTitles[status]}
+          />
+
+          {/* Windows version with animated gradient */}
+          {isLoaded && windowsVersion && (
+            <span
+              className="text-[11px] font-extrabold tracking-wide animate-gradient-text"
+              style={{
+                background: 'linear-gradient(90deg, #c6a2e8, #515ef5, #c6a2e8)',
+                backgroundSize: '200% auto',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+                backgroundClip: 'text',
+              }}
+            >
+              {windowsVersion.displayName}
+            </span>
+          )}
+        </div>
+
         {/* Effects toggle button */}
         <button
           onClick={toggleEffects}

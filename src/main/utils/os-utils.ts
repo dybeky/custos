@@ -1,4 +1,4 @@
-import { asyncExec } from './async-exec'
+import { release } from 'os'
 import { logger } from '../services/logger'
 
 interface WindowsVersion {
@@ -11,58 +11,63 @@ let cachedVersion: WindowsVersion | null = null
 
 /**
  * Get Windows version info (major, minor, build)
+ * Uses Node.js os.release() which returns version like "10.0.26200"
  * Caches result for performance
  */
-export async function getWindowsVersion(): Promise<WindowsVersion> {
+export function getWindowsVersion(): WindowsVersion {
   if (cachedVersion) {
     return cachedVersion
   }
 
-  try {
-    // Use wmic to get OS version
-    const output = await asyncExec(
-      'wmic os get Version /format:csv',
-      { timeout: 5000 }
-    )
+  // os.release() returns "10.0.26200" format
+  const osRelease = release()
+  const parts = osRelease.split('.')
 
-    // Parse CSV output: Node,Version
-    // Version format: "10.0.19045" or "10.0.22631"
-    const lines = output.split('\n')
-    for (const line of lines) {
-      const trimmed = line.trim()
-      if (!trimmed || trimmed.startsWith('Node')) continue
-
-      const parts = trimmed.split(',')
-      if (parts.length >= 2) {
-        const version = parts[1]?.trim()
-        const versionParts = version?.split('.')
-        if (versionParts && versionParts.length >= 3) {
-          cachedVersion = {
-            major: parseInt(versionParts[0]) || 10,
-            minor: parseInt(versionParts[1]) || 0,
-            build: parseInt(versionParts[2]) || 0
-          }
-          return cachedVersion
-        }
-      }
-    }
-  } catch (error) {
-    logger.debug('Failed to get Windows version via wmic', {
-      error: error instanceof Error ? error.message : 'Unknown error'
-    })
+  cachedVersion = {
+    major: parseInt(parts[0]) || 10,
+    minor: parseInt(parts[1]) || 0,
+    build: parseInt(parts[2]) || 0
   }
 
-  // Fallback: assume Windows 10 with recent build
-  cachedVersion = { major: 10, minor: 0, build: 19045 }
   return cachedVersion
+}
+
+/**
+ * Check if current Windows is Windows 11
+ * Windows 11 has build >= 22000
+ */
+export function isWindows11(): boolean {
+  const version = getWindowsVersion()
+  return version.major === 10 && version.build >= 22000
+}
+
+/**
+ * Get Windows version codename (e.g., "23H2", "22H2")
+ * Based on build number
+ */
+export function getWindowsVersionName(build: number): string {
+  // Windows 11 versions
+  if (build >= 26100) return '24H2'
+  if (build >= 22631) return '23H2'
+  if (build >= 22621) return '22H2'
+  if (build >= 22000) return '21H2'
+
+  // Windows 10 versions
+  if (build >= 19045) return '22H2'
+  if (build >= 19044) return '21H2'
+  if (build >= 19043) return '21H1'
+  if (build >= 19042) return '20H2'
+  if (build >= 19041) return '2004'
+
+  return ''
 }
 
 /**
  * Check if BAM (Background Activity Moderator) is available
  * BAM requires Windows 10 build 16299 (Fall Creators Update) or later
  */
-export async function isBAMAvailable(): Promise<boolean> {
-  const version = await getWindowsVersion()
+export function isBAMAvailable(): boolean {
+  const version = getWindowsVersion()
 
   // BAM was introduced in Windows 10 version 1709 (build 16299)
   // It's available on Windows 10 build 16299+ and all Windows 11

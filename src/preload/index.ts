@@ -1,5 +1,5 @@
 import { contextBridge, ipcRenderer } from 'electron'
-import { IPC_CHANNELS, ScanResult, ScanProgress, UserSettings, VersionInfo, ScannerInfo, DownloadProgress } from '../shared/types'
+import { IPC_CHANNELS, ScanResult, ScanProgress, UserSettings, VersionInfo, ScannerInfo, DownloadProgress, WindowsVersionInfo } from '../shared/types'
 import { ScannerName } from '../main/scanners'
 
 export type ScanProgressCallback = (progress: ScanProgress) => void
@@ -61,6 +61,11 @@ const api = {
 
   setSettings: (settings: Partial<UserSettings>): Promise<UserSettings> => {
     return ipcRenderer.invoke(IPC_CHANNELS.SETTINGS_SET, settings)
+  },
+
+  // System info
+  getWindowsVersion: (): Promise<WindowsVersionInfo> => {
+    return ipcRenderer.invoke(IPC_CHANNELS.SYSTEM_GET_WINDOWS_VERSION)
   },
 
   // App operations

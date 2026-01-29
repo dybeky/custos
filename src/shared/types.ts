@@ -45,6 +45,15 @@ export interface VersionInfo {
   fileSize?: number
 }
 
+// Windows version info for renderer
+export interface WindowsVersionInfo {
+  major: number
+  minor: number
+  build: number
+  displayName: string  // "Windows 10" or "Windows 11"
+  isWindows11: boolean
+}
+
 export interface DownloadProgress {
   percent: number
   transferred: number
@@ -68,6 +77,9 @@ export const IPC_CHANNELS = {
   // Settings
   SETTINGS_GET: 'settings:get',
   SETTINGS_SET: 'settings:set',
+
+  // System info
+  SYSTEM_GET_WINDOWS_VERSION: 'system:get-windows-version',
 
   // App operations
   APP_VERSION: 'app:version',

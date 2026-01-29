@@ -1,11 +1,12 @@
 import { ipcMain, shell, app, BrowserWindow } from 'electron'
-import { IPC_CHANNELS, ScanResult, ScanProgress, UserSettings, VersionInfo, ScannerInfo, DownloadProgress } from '../shared/types'
+import { IPC_CHANNELS, ScanResult, ScanProgress, UserSettings, VersionInfo, ScannerInfo, DownloadProgress, WindowsVersionInfo } from '../shared/types'
 import { logger } from './services/logger'
 import { createWriteStream, unlinkSync, existsSync } from 'fs'
 import { join } from 'path'
 import https from 'https'
 import http from 'http'
 import { getScannerFactory, ScannerName, BaseScanner } from './scanners'
+import { getWindowsVersion, getWindowsVersionName } from './utils/os-utils'
 import { ThrottledProgress } from './utils/progress-throttle'
 import Store from 'electron-store'
 
@@ -23,6 +24,18 @@ const store = new Store<{ settings: UserSettings }>({
 
 let isScanning = false
 let scanAbortController: AbortController | null = null
+
+// Escape paths for batch files - escape all special characters
+const escapeBatchPath = (path: string): string => {
+  return path
+    .replace(/\^/g, '^^')
+    .replace(/&/g, '^&')
+    .replace(/\|/g, '^|')
+    .replace(/</g, '^<')
+    .replace(/>/g, '^>')
+    .replace(/"/g, '""')
+    .replace(/%/g, '%%')
+}
 
 // Semver comparison: returns true if latest > current
 function isNewerVersion(latest: string, current: string): boolean {
@@ -268,6 +281,22 @@ export function setupIpcHandlers(mainWindow: BrowserWindow): void {
     return updated
   })
 
+  // Get Windows version info
+  ipcMain.handle(IPC_CHANNELS.SYSTEM_GET_WINDOWS_VERSION, async (): Promise<WindowsVersionInfo> => {
+    const version = getWindowsVersion()
+    const isWin11 = version.major === 10 && version.build >= 22000
+    const versionName = getWindowsVersionName(version.build)
+    const baseName = isWin11 ? 'Windows 11' : 'Windows 10'
+
+    return {
+      major: version.major,
+      minor: version.minor,
+      build: version.build,
+      displayName: versionName ? `${baseName} ${versionName}` : baseName,
+      isWindows11: isWin11
+    }
+  })
+
   // Get app version
   ipcMain.handle(IPC_CHANNELS.APP_VERSION, (): string => {
     return app.getVersion()
@@ -475,19 +504,6 @@ export function setupIpcHandlers(mainWindow: BrowserWindow): void {
     })
 
     // Create batch file to replace exe and restart
-    // Escape paths for batch file - escape all special characters
-    const escapeBatchPath = (path: string): string => {
-      // First escape caret (^) as it's the escape character itself
-      // Then escape other special characters: & | < > " %
-      return path
-        .replace(/\^/g, '^^')
-        .replace(/&/g, '^&')
-        .replace(/\|/g, '^|')
-        .replace(/</g, '^<')
-        .replace(/>/g, '^>')
-        .replace(/"/g, '""')
-        .replace(/%/g, '%%')
-    }
     const escapedNewPath = escapeBatchPath(newExePath)
     const escapedExePath = escapeBatchPath(exePath)
 
@@ -566,14 +582,12 @@ del "%~f0"
     const { execFile } = await import('child_process')
 
     // Validate and sanitize keyPath to prevent command injection
-    // Allow valid registry key characters: alphanumeric, backslash, underscore, hyphen, spaces, dots, parentheses
-    // Dots are needed for paths like "Microsoft.Windows" and parentheses for "(x86)"
     if (!keyPath || !/^[A-Za-z0-9\\_\-\s.()]+$/.test(keyPath)) {
       logger.warn('Invalid registry key path', { keyPath })
       return { success: false, error: 'Invalid registry key path' }
     }
 
-    // Expand HKCU to full form for reg query (reg command requires full names, not abbreviations)
+    // Expand HKCU to full form
     const expandedKeyPath = keyPath
       .replace(/^HKCU\\/i, 'HKEY_CURRENT_USER\\')
       .replace(/^HKLM\\/i, 'HKEY_LOCAL_MACHINE\\')
@@ -581,7 +595,7 @@ del "%~f0"
       .replace(/^HKCR\\/i, 'HKEY_CLASSES_ROOT\\')
       .replace(/^HKCC\\/i, 'HKEY_CURRENT_CONFIG\\')
 
-    // Check if registry key exists before opening regedit
+    // Check if registry key exists
     const keyExists = await new Promise<boolean>((resolve) => {
       execFile('reg', ['query', expandedKeyPath], (error) => {
         resolve(!error)
@@ -590,63 +604,58 @@ del "%~f0"
 
     if (!keyExists) {
       logger.info('Registry key does not exist', { keyPath })
-      return {
-        success: false,
-        error: `Registry key does not exist: ${keyPath}`
-      }
+      return { success: false, error: `Registry key does not exist: ${keyPath}` }
     }
 
-    // Add Computer\ prefix for Windows 10+ regedit navigation
-    const fullPath = 'Computer\\' + expandedKeyPath
+    // Do NOT add "Computer\" prefix - it only works on English Windows
+    // On localized Windows (Russian, German, etc.), "Computer" is translated
+    // Regedit accepts paths without the prefix on all localizations
+    const fullPath = expandedKeyPath
 
-    // Get full path to regedit via SystemRoot environment variable
-    const regeditPath = process.env.SystemRoot
-      ? `${process.env.SystemRoot}\\regedit.exe`
-      : 'C:\\Windows\\regedit.exe'
+    try {
+      const { promisify } = await import('util')
+      const execFileAsync = promisify(execFile)
 
-    return new Promise((resolve) => {
-      // Use execFile instead of exec to prevent command injection
-      // Pass arguments as array, not interpolated string
-      execFile('reg', [
+      // Step 1: Kill existing regedit
+      try {
+        await execFileAsync('taskkill', ['/F', '/IM', 'regedit.exe'])
+      } catch {
+        // Ignore - regedit might not be running
+      }
+
+      // Step 2: Write LastKey using reg.exe (execFile - no shell, no escaping issues)
+      logger.debug('Writing LastKey to registry', { fullPath })
+      await execFileAsync('reg', [
         'add',
         'HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Applets\\Regedit',
         '/v', 'LastKey',
         '/t', 'REG_SZ',
         '/d', fullPath,
         '/f'
-      ], (regErr) => {
-        if (regErr) {
-          logger.warn('Failed to set registry LastKey', { error: regErr.message })
-          // Still try to open regedit even if setting LastKey failed
-        }
+      ])
 
-        // Open regedit using full path
-        execFile(regeditPath, (regeditErr) => {
-          if (regeditErr) {
-            logger.error('Failed to open regedit', { error: regeditErr.message, path: regeditPath })
-            resolve({ success: false, error: `Failed to open regedit: ${regeditErr.message}` })
-          } else {
-            resolve({ success: true })
-          }
-        })
+      // Step 3: Small delay to ensure registry write is complete
+      await new Promise(resolve => setTimeout(resolve, 300))
+
+      // Step 4: Start regedit
+      logger.debug('Starting regedit.exe')
+      execFile('regedit.exe', (err) => {
+        if (err) {
+          logger.error('Failed to start regedit', { error: err.message })
+        }
       })
-    })
+
+      return { success: true }
+    } catch (error) {
+      const errMsg = error instanceof Error ? error.message : String(error)
+      logger.error('Failed to open registry', { error: errMsg, keyPath })
+      return { success: false, error: `Failed to open registry: ${errMsg}` }
+    }
   })
 
   // Delete self (for "delete after use" feature)
   ipcMain.handle(IPC_CHANNELS.APP_DELETE_SELF, async (): Promise<void> => {
     const exePath = app.getPath('exe')
-    // Escape paths for batch file - escape all special characters
-    const escapeBatchPath = (path: string): string => {
-      return path
-        .replace(/\^/g, '^^')
-        .replace(/&/g, '^&')
-        .replace(/\|/g, '^|')
-        .replace(/</g, '^<')
-        .replace(/>/g, '^>')
-        .replace(/"/g, '""')
-        .replace(/%/g, '%%')
-    }
     const escapedPath = escapeBatchPath(exePath)
 
     // Create a batch file to delete the app after it closes
