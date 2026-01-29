@@ -72,7 +72,8 @@
     "additionalResourcesDesc": "Websites where cheats are commonly sold",
     "dataUsage": "Data Usage",
     "videos": "Videos",
-    "downloads": "Downloads"
+    "downloads": "Downloads",
+    "registryKeyNotFound": "Registry key does not exist on this system"
   },
   "utilities": {
     "title": "Utilities",
