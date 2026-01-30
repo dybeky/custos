@@ -89,16 +89,17 @@ const api = {
     return () => ipcRenderer.removeListener(IPC_CHANNELS.APP_DOWNLOAD_PROGRESS, listener)
   },
 
-  openExternal: (url: string): Promise<void> => {
-    return ipcRenderer.invoke(IPC_CHANNELS.APP_OPEN_EXTERNAL, url)
+  openExternal: (url: string): void => {
+    ipcRenderer.invoke(IPC_CHANNELS.APP_OPEN_EXTERNAL, url)
   },
 
-  openPath: (path: string): Promise<void> => {
-    return ipcRenderer.invoke(IPC_CHANNELS.APP_OPEN_PATH, path)
+  openPath: (path: string): void => {
+    ipcRenderer.invoke(IPC_CHANNELS.APP_OPEN_PATH, path)
   },
 
-  openRegistry: (keyPath: string): Promise<{ success: boolean; error?: string }> => {
-    return ipcRenderer.invoke(IPC_CHANNELS.APP_OPEN_REGISTRY, keyPath)
+  openRegistry: (keyPath: string): { success: boolean; error?: string } => {
+    ipcRenderer.invoke(IPC_CHANNELS.APP_OPEN_REGISTRY, keyPath)
+    return { success: true }
   },
 
   deleteSelf: (): Promise<void> => {

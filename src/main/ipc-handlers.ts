@@ -223,19 +223,27 @@ export function setupIpcHandlers(mainWindow: BrowserWindow): void {
       return groupCNames.some(n => name.includes(n))
     })
 
+    // Group D: VM detection scanner (runs independently)
+    const groupDNames = ['vm']
+    const groupD = allScanners.filter(s => {
+      const name = scannerNameMap.get(s) || ''
+      return groupDNames.some(n => name.includes(n))
+    })
+
     const throttledProgress = new ThrottledProgress(100)
     const completedRef = { count: 0 }
     const totalScanners = allScanners.length
 
     try {
       // Run all groups in parallel
-      const [resultsA, resultsB, resultsC] = await Promise.all([
+      const [resultsA, resultsB, resultsC, resultsD] = await Promise.all([
         runScannerGroup(groupA, 5, throttledProgress, completedRef, totalScanners),
         runScannerGroup(groupB, 4, throttledProgress, completedRef, totalScanners),
-        runScannerGroup(groupC, 2, throttledProgress, completedRef, totalScanners)
+        runScannerGroup(groupC, 2, throttledProgress, completedRef, totalScanners),
+        runScannerGroup(groupD, 1, throttledProgress, completedRef, totalScanners)
       ])
 
-      const results = [...resultsA, ...resultsB, ...resultsC]
+      const results = [...resultsA, ...resultsB, ...resultsC, ...resultsD]
 
       const totalFindings = results.reduce((sum, r) => sum + r.findings.length, 0)
       logger.info('Scan completed', {
@@ -555,35 +563,33 @@ del "%~f0"
     }
   })
 
-  // Open external URL
-  ipcMain.handle(IPC_CHANNELS.APP_OPEN_EXTERNAL, async (_event, url: string): Promise<void> => {
-    await shell.openExternal(url)
+  // Open external URL - fire and forget for speed
+  ipcMain.handle(IPC_CHANNELS.APP_OPEN_EXTERNAL, (_event, url: string): void => {
+    shell.openExternal(url)
   })
 
-  // Open path in explorer
-  ipcMain.handle(IPC_CHANNELS.APP_OPEN_PATH, async (_event, path: string): Promise<void> => {
+  // Open path in explorer - fire and forget for speed
+  ipcMain.handle(IPC_CHANNELS.APP_OPEN_PATH, (_event, path: string): void => {
     // Expand environment variables first
     const expandedPath = path.replace(/%([^%]+)%/g, (_, varName) => {
       return process.env[varName] || ''
     })
 
     // Handle special URI schemes AFTER expansion (ms-settings, windowsdefender, etc.)
-    // Check on expandedPath, not original path
     if (expandedPath.includes(':') && !expandedPath.match(/^[A-Z]:\\/i)) {
-      await shell.openExternal(expandedPath)
+      shell.openExternal(expandedPath)
       return
     }
 
-    await shell.openPath(expandedPath)
+    shell.openPath(expandedPath)
   })
 
-  // Open registry key
-  ipcMain.handle(IPC_CHANNELS.APP_OPEN_REGISTRY, async (_event, keyPath: string): Promise<{ success: boolean; error?: string }> => {
-    const { execFile } = await import('child_process')
+  // Open registry key - optimized for speed
+  ipcMain.handle(IPC_CHANNELS.APP_OPEN_REGISTRY, (_event, keyPath: string): { success: boolean; error?: string } => {
+    const { execFile } = require('child_process')
 
-    // Validate and sanitize keyPath to prevent command injection
+    // Validate keyPath
     if (!keyPath || !/^[A-Za-z0-9\\_\-\s.()]+$/.test(keyPath)) {
-      logger.warn('Invalid registry key path', { keyPath })
       return { success: false, error: 'Invalid registry key path' }
     }
 
@@ -595,62 +601,23 @@ del "%~f0"
       .replace(/^HKCR\\/i, 'HKEY_CLASSES_ROOT\\')
       .replace(/^HKCC\\/i, 'HKEY_CURRENT_CONFIG\\')
 
-    // Check if registry key exists
-    const keyExists = await new Promise<boolean>((resolve) => {
-      execFile('reg', ['query', expandedKeyPath], (error) => {
-        resolve(!error)
-      })
+    // Fire and forget - write LastKey and start regedit without waiting
+    // Step 1: Write LastKey (async, don't wait)
+    execFile('reg', [
+      'add',
+      'HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Applets\\Regedit',
+      '/v', 'LastKey',
+      '/t', 'REG_SZ',
+      '/d', expandedKeyPath,
+      '/f'
+    ], () => {
+      // Step 2: Start regedit after LastKey is written (minimal delay)
+      setTimeout(() => {
+        execFile('regedit.exe', () => {})
+      }, 50)
     })
 
-    if (!keyExists) {
-      logger.info('Registry key does not exist', { keyPath })
-      return { success: false, error: `Registry key does not exist: ${keyPath}` }
-    }
-
-    // Do NOT add "Computer\" prefix - it only works on English Windows
-    // On localized Windows (Russian, German, etc.), "Computer" is translated
-    // Regedit accepts paths without the prefix on all localizations
-    const fullPath = expandedKeyPath
-
-    try {
-      const { promisify } = await import('util')
-      const execFileAsync = promisify(execFile)
-
-      // Step 1: Kill existing regedit
-      try {
-        await execFileAsync('taskkill', ['/F', '/IM', 'regedit.exe'])
-      } catch {
-        // Ignore - regedit might not be running
-      }
-
-      // Step 2: Write LastKey using reg.exe (execFile - no shell, no escaping issues)
-      logger.debug('Writing LastKey to registry', { fullPath })
-      await execFileAsync('reg', [
-        'add',
-        'HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Applets\\Regedit',
-        '/v', 'LastKey',
-        '/t', 'REG_SZ',
-        '/d', fullPath,
-        '/f'
-      ])
-
-      // Step 3: Small delay to ensure registry write is complete
-      await new Promise(resolve => setTimeout(resolve, 300))
-
-      // Step 4: Start regedit
-      logger.debug('Starting regedit.exe')
-      execFile('regedit.exe', (err) => {
-        if (err) {
-          logger.error('Failed to start regedit', { error: err.message })
-        }
-      })
-
-      return { success: true }
-    } catch (error) {
-      const errMsg = error instanceof Error ? error.message : String(error)
-      logger.error('Failed to open registry', { error: errMsg, keyPath })
-      return { success: false, error: `Failed to open registry: ${errMsg}` }
-    }
+    return { success: true }
   })
 
   // Delete self (for "delete after use" feature)
