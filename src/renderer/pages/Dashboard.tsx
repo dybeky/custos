@@ -8,19 +8,28 @@ interface Changelog {
   body: string
 }
 
-const APP_VERSION = '2.1.0'
-
 export function Dashboard() {
   const { t } = useTranslation()
+  const [appVersion, setAppVersion] = useState<string>('')
   const [changelog, setChangelog] = useState<Changelog | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    // Load changelog only on component mount
+    // Load version and changelog on component mount
+    loadVersion()
     loadChangelog()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
+
+  const loadVersion = async () => {
+    try {
+      const version = await window.electronAPI.getVersion()
+      setAppVersion(version)
+    } catch {
+      setAppVersion('?.?.?')
+    }
+  }
 
   const loadChangelog = async () => {
     try {
@@ -28,7 +37,7 @@ export function Dashboard() {
       const info = await window.electronAPI.checkUpdate()
       if (info.changelog) {
         setChangelog({
-          version: info.latestVersion || APP_VERSION,
+          version: info.latestVersion || appVersion,
           date: info.releaseDate ? new Date(info.releaseDate).toLocaleDateString() : '',
           body: info.changelog
         })
@@ -75,7 +84,7 @@ export function Dashboard() {
                   </svg>
                 </div>
                 <div>
-                  <p className="text-2xl font-bold text-text-primary">{APP_VERSION}</p>
+                  <p className="text-2xl font-bold text-text-primary">{appVersion || '...'}</p>
                   <p className="text-xs text-text-secondary">Version</p>
                 </div>
               </div>

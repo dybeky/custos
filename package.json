@@ -1,6 +1,6 @@
 {
   "name": "custos",
-  "version": "2.2.0",
+  "version": "2.1.1",
   "description": "Anti-cheat scanner for COBRA servers",
   "main": "./out/main/index.js",
   "author": "COBRA",

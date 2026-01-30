@@ -3,6 +3,92 @@ import { ScanResult } from '../../shared/types'
 import { asyncExec } from '../utils/async-exec'
 import { existsSync } from 'fs'
 
+// VM Guest Tools processes (only run INSIDE VM)
+const VM_GUEST_PROCESSES: Record<string, string[]> = {
+  VMware: ['vmtoolsd.exe', 'vmwaretray.exe', 'vmacthlp.exe'],
+  VirtualBox: ['VBoxService.exe', 'VBoxTray.exe', 'VBoxClient.exe'],
+  'QEMU/KVM': ['qemu-ga.exe'],
+  Parallels: ['prl_tools_service.exe', 'prl_cc.exe', 'prl_tools.exe'],
+  Sandboxie: ['SbieSvc.exe', 'SbieCtrl.exe', 'SandboxieDcomLaunch.exe'],
+  Wine: ['winedevice.exe']
+}
+
+// VM Guest drivers (only present INSIDE VM)
+const VM_GUEST_DRIVERS: Record<string, string[]> = {
+  VMware: [
+    'C:\\Windows\\System32\\drivers\\vmci.sys',
+    'C:\\Windows\\System32\\drivers\\vmmouse.sys',
+    'C:\\Windows\\System32\\drivers\\vmhgfs.sys',
+    'C:\\Windows\\System32\\drivers\\vmusbmouse.sys',
+    'C:\\Windows\\System32\\drivers\\vmx_svga.sys',
+    'C:\\Windows\\System32\\drivers\\vmxnet.sys'
+  ],
+  VirtualBox: [
+    'C:\\Windows\\System32\\drivers\\VBoxGuest.sys',
+    'C:\\Windows\\System32\\drivers\\VBoxMouse.sys',
+    'C:\\Windows\\System32\\drivers\\VBoxSF.sys',
+    'C:\\Windows\\System32\\drivers\\VBoxVideo.sys',
+    'C:\\Windows\\System32\\VBoxControl.exe',
+    'C:\\Windows\\System32\\VBoxTray.exe'
+  ],
+  'Hyper-V': [
+    'C:\\Windows\\System32\\drivers\\vmbus.sys',
+    'C:\\Windows\\System32\\drivers\\VMBusHID.sys',
+    'C:\\Windows\\System32\\drivers\\storvsc.sys'
+  ],
+  'QEMU/KVM': [
+    'C:\\Windows\\System32\\drivers\\vioscsi.sys',
+    'C:\\Windows\\System32\\drivers\\viostor.sys',
+    'C:\\Windows\\System32\\drivers\\vioinput.sys',
+    'C:\\Windows\\System32\\drivers\\vioser.sys',
+    'C:\\Windows\\System32\\drivers\\balloon.sys'
+  ],
+  Parallels: [
+    'C:\\Windows\\System32\\drivers\\prl_fs.sys',
+    'C:\\Windows\\System32\\drivers\\prl_pv32.sys',
+    'C:\\Windows\\System32\\drivers\\prl_boot.sys'
+  ],
+  Xen: [
+    'C:\\Windows\\System32\\drivers\\xenbus.sys',
+    'C:\\Windows\\System32\\drivers\\xenvbd.sys',
+    'C:\\Windows\\System32\\drivers\\xenvif.sys'
+  ],
+  Sandboxie: [
+    'C:\\Windows\\System32\\drivers\\SbieDrv.sys'
+  ]
+}
+
+// VM Guest registry keys (only present INSIDE VM)
+const VM_GUEST_REGISTRY: Record<string, string[]> = {
+  VMware: [
+    'HKLM\\SOFTWARE\\VMware, Inc.\\VMware Tools',
+    'HKLM\\SYSTEM\\CurrentControlSet\\Services\\VMTools'
+  ],
+  VirtualBox: [
+    'HKLM\\SOFTWARE\\Oracle\\VirtualBox Guest Additions',
+    'HKLM\\HARDWARE\\ACPI\\DSDT\\VBOX__',
+    'HKLM\\HARDWARE\\ACPI\\FADT\\VBOX__',
+    'HKLM\\SYSTEM\\CurrentControlSet\\Services\\VBoxGuest'
+  ],
+  'Hyper-V': [
+    'HKLM\\SOFTWARE\\Microsoft\\Virtual Machine\\Guest\\Parameters'
+  ],
+  Sandboxie: [
+    'HKLM\\SYSTEM\\CurrentControlSet\\Services\\SbieDrv'
+  ]
+}
+
+// VM Guest services (only run INSIDE VM)
+const VM_GUEST_SERVICES: Record<string, string[]> = {
+  VMware: ['VMTools'],
+  VirtualBox: ['VBoxService', 'VBoxGuest'],
+  'Hyper-V': ['vmicheartbeat', 'vmicvss', 'vmicshutdown'],
+  'QEMU/KVM': ['QEMU-GA', 'qemu-guest-agent'],
+  Parallels: ['prl_tools_service'],
+  Sandboxie: ['SbieSvc'],
+  'Windows Sandbox': ['CExecSvc']
+}
+
 // VM-specific MAC address prefixes
 const VM_MAC_PREFIXES: Record<string, string[]> = {
   VMware: ['00:0C:29', '00:50:56', '00:05:69', '00-0C-29', '00-50-56', '00-05-69'],
@@ -13,125 +99,7 @@ const VM_MAC_PREFIXES: Record<string, string[]> = {
   Xen: ['00:16:3E', '00-16-3E']
 }
 
-// VM-specific processes
-const VM_PROCESSES: Record<string, string[]> = {
-  VMware: ['vmtoolsd.exe', 'vmwaretray.exe', 'vmacthlp.exe', 'vmware.exe', 'vmware-vmx.exe'],
-  VirtualBox: ['VBoxService.exe', 'VBoxTray.exe', 'VBoxClient.exe'],
-  'Hyper-V': ['vmms.exe', 'vmwp.exe', 'vmcompute.exe'],
-  'QEMU/KVM': ['qemu-ga.exe', 'qemu.exe', 'qemu-system-x86_64.exe'],
-  Parallels: ['prl_tools_service.exe', 'prl_cc.exe', 'prl_tools.exe'],
-  Sandboxie: ['SbieSvc.exe', 'SbieCtrl.exe', 'SandboxieDcomLaunch.exe'],
-  Wine: ['wine.exe', 'wineserver.exe', 'wine64.exe', 'winedevice.exe']
-}
-
-// VM-specific services
-const VM_SERVICES: Record<string, string[]> = {
-  VMware: ['VMTools', 'vmci', 'vmhgfs', 'vmvss', 'vmware-vmx'],
-  VirtualBox: ['VBoxService', 'VBoxGuest', 'VBoxMouse', 'VBoxSF', 'VBoxVideo'],
-  'Hyper-V': ['vmicheartbeat', 'vmicvss', 'vmicshutdown', 'vmicexchange', 'vmms', 'vmcompute'],
-  'QEMU/KVM': ['QEMU-GA', 'qemu-guest-agent'],
-  Parallels: ['prl_tools_service', 'prltoolsd'],
-  Sandboxie: ['SbieSvc', 'SandboxieRpc'],
-  'Windows Sandbox': ['CExecSvc']
-}
-
-// VM-specific driver files
-const VM_FILES: Record<string, string[]> = {
-  VMware: [
-    'C:\\Windows\\System32\\drivers\\vmci.sys',
-    'C:\\Windows\\System32\\drivers\\vmmouse.sys',
-    'C:\\Windows\\System32\\drivers\\vmhgfs.sys',
-    'C:\\Windows\\System32\\drivers\\vmusbmouse.sys',
-    'C:\\Windows\\System32\\drivers\\vmx_svga.sys',
-    'C:\\Windows\\System32\\drivers\\vmxnet.sys',
-    'C:\\Program Files\\VMware\\VMware Tools\\vmtoolsd.exe'
-  ],
-  VirtualBox: [
-    'C:\\Windows\\System32\\drivers\\VBoxGuest.sys',
-    'C:\\Windows\\System32\\drivers\\VBoxMouse.sys',
-    'C:\\Windows\\System32\\drivers\\VBoxSF.sys',
-    'C:\\Windows\\System32\\drivers\\VBoxVideo.sys',
-    'C:\\Windows\\System32\\VBoxControl.exe',
-    'C:\\Windows\\System32\\VBoxTray.exe',
-    'C:\\Program Files\\Oracle\\VirtualBox Guest Additions\\VBoxTray.exe'
-  ],
-  'Hyper-V': [
-    'C:\\Windows\\System32\\drivers\\vmbus.sys',
-    'C:\\Windows\\System32\\drivers\\VMBusHID.sys',
-    'C:\\Windows\\System32\\drivers\\storvsc.sys',
-    'C:\\Windows\\System32\\drivers\\netvsc.sys'
-  ],
-  'QEMU/KVM': [
-    'C:\\Windows\\System32\\drivers\\vioscsi.sys',
-    'C:\\Windows\\System32\\drivers\\viostor.sys',
-    'C:\\Windows\\System32\\drivers\\vioinput.sys',
-    'C:\\Windows\\System32\\drivers\\vioser.sys',
-    'C:\\Windows\\System32\\drivers\\balloon.sys',
-    'C:\\Program Files\\Qemu-ga\\qemu-ga.exe'
-  ],
-  Parallels: [
-    'C:\\Windows\\System32\\drivers\\prl_fs.sys',
-    'C:\\Windows\\System32\\drivers\\prl_pv32.sys',
-    'C:\\Windows\\System32\\drivers\\prl_boot.sys',
-    'C:\\Windows\\System32\\drivers\\prl_dd.sys'
-  ],
-  Xen: [
-    'C:\\Windows\\System32\\drivers\\xenbus.sys',
-    'C:\\Windows\\System32\\drivers\\xenvbd.sys',
-    'C:\\Windows\\System32\\drivers\\xenvif.sys'
-  ],
-  Sandboxie: [
-    'C:\\Windows\\System32\\drivers\\SbieDrv.sys',
-    'C:\\Program Files\\Sandboxie\\SbieSvc.exe',
-    'C:\\Program Files\\Sandboxie-Plus\\SbieSvc.exe'
-  ]
-}
-
-// VM-specific registry keys
-const VM_REGISTRY_KEYS: Record<string, { path: string; name?: string }[]> = {
-  VMware: [
-    { path: 'HKLM\\SOFTWARE\\VMware, Inc.\\VMware Tools' },
-    { path: 'HKLM\\SOFTWARE\\VMware, Inc.\\VMware VGAuth' },
-    { path: 'HKLM\\HARDWARE\\DEVICEMAP\\Scsi\\Scsi Port 0\\Scsi Bus 0\\Target Id 0\\Logical Unit Id 0', name: 'Identifier' },
-    { path: 'HKLM\\SYSTEM\\CurrentControlSet\\Services\\VMTools' },
-    { path: 'HKLM\\SYSTEM\\CurrentControlSet\\Services\\vmci' }
-  ],
-  VirtualBox: [
-    { path: 'HKLM\\SOFTWARE\\Oracle\\VirtualBox Guest Additions' },
-    { path: 'HKLM\\HARDWARE\\ACPI\\DSDT\\VBOX__' },
-    { path: 'HKLM\\HARDWARE\\ACPI\\FADT\\VBOX__' },
-    { path: 'HKLM\\HARDWARE\\ACPI\\RSDT\\VBOX__' },
-    { path: 'HKLM\\SYSTEM\\CurrentControlSet\\Services\\VBoxGuest' },
-    { path: 'HKLM\\SYSTEM\\CurrentControlSet\\Services\\VBoxMouse' },
-    { path: 'HKLM\\SYSTEM\\CurrentControlSet\\Services\\VBoxService' }
-  ],
-  'Hyper-V': [
-    { path: 'HKLM\\SOFTWARE\\Microsoft\\Virtual Machine\\Guest\\Parameters' },
-    { path: 'HKLM\\SYSTEM\\CurrentControlSet\\Services\\vmbus' },
-    { path: 'HKLM\\SYSTEM\\CurrentControlSet\\Services\\VMBusHID' },
-    { path: 'HKLM\\SYSTEM\\CurrentControlSet\\Services\\storvsc' }
-  ],
-  'QEMU/KVM': [
-    { path: 'HKLM\\HARDWARE\\DEVICEMAP\\Scsi\\Scsi Port 0\\Scsi Bus 0\\Target Id 0\\Logical Unit Id 0', name: 'Identifier' },
-    { path: 'HKLM\\SYSTEM\\CurrentControlSet\\Services\\vioscsi' },
-    { path: 'HKLM\\SYSTEM\\CurrentControlSet\\Services\\viostor' }
-  ],
-  Parallels: [
-    { path: 'HKLM\\SYSTEM\\CurrentControlSet\\Services\\prl_fs' },
-    { path: 'HKLM\\SYSTEM\\CurrentControlSet\\Services\\prl_pv32' }
-  ],
-  Xen: [
-    { path: 'HKLM\\SYSTEM\\CurrentControlSet\\Services\\xenbus' },
-    { path: 'HKLM\\SYSTEM\\CurrentControlSet\\Services\\xenvbd' }
-  ],
-  Sandboxie: [
-    { path: 'HKLM\\SYSTEM\\CurrentControlSet\\Services\\SbieDrv' },
-    { path: 'HKLM\\SOFTWARE\\Sandboxie' },
-    { path: 'HKLM\\SOFTWARE\\Sandboxie-Plus' }
-  ]
-}
-
-// PCI Vendor IDs for hardware detection
+// PCI Vendor IDs for hardware detection (only visible INSIDE VM)
 const VM_PCI_VENDORS: Record<string, string[]> = {
   VMware: ['VEN_15AD'],
   VirtualBox: ['VEN_80EE'],
@@ -139,35 +107,29 @@ const VM_PCI_VENDORS: Record<string, string[]> = {
   'QEMU/KVM': ['VEN_1AF4', 'VEN_1B36']
 }
 
-// Environment variables indicating VM
-const VM_ENV_VARS: Record<string, string[]> = {
-  Wine: ['WINEPREFIX', 'WINEDIR', 'WINELOADER'],
-  VirtualBox: ['VBOX_HWVIRTEX_IGNORE_SVM_IN_USE'],
-  VMware: ['VMWARE_USE_SHIPPED_GTK']
-}
-
-// WMI indicators
+// WMI indicators (most reliable - hardware level)
 const WMI_VM_INDICATORS: Record<string, string[]> = {
-  VMware: ['VMware', 'vmware'],
+  VMware: ['VMware'],
   VirtualBox: ['VirtualBox', 'VBOX'],
-  'Hyper-V': ['Microsoft Corporation', 'Virtual Machine'],
+  'Hyper-V': ['Virtual Machine', 'Microsoft Virtual'],
   'QEMU/KVM': ['QEMU', 'KVM', 'Standard PC'],
   Parallels: ['Parallels'],
-  Xen: ['Xen']
+  Xen: ['Xen', 'HVM domU']
 }
 
 interface VMFinding {
   type: string
   vmName: string
   detail: string
+  critical: boolean // true = running inside VM, false = VM software on host
 }
 
 export class VMScanner extends BaseScanner {
   readonly name = 'VM Scanner'
   readonly description = 'Detection of virtual machines and sandbox environments'
 
-  private static readonly EXEC_TIMEOUT = 15000 // 15 sec per command
-  private static readonly BUFFER_SIZE = 10 * 1024 * 1024 // 10MB
+  private static readonly EXEC_TIMEOUT = 15000
+  private static readonly BUFFER_SIZE = 10 * 1024 * 1024
 
   async scan(events?: ScannerEventEmitter): Promise<ScanResult> {
     const startTime = new Date()
@@ -176,13 +138,13 @@ export class VMScanner extends BaseScanner {
     try {
       const allFindings: VMFinding[] = []
       const checkMethods = [
-        { name: 'Registry', fn: () => this.checkRegistry() },
+        { name: 'WMI Hardware', fn: () => this.checkWMI() },
         { name: 'MAC Addresses', fn: () => this.checkMacAddresses() },
-        { name: 'Processes', fn: () => this.checkProcesses() },
-        { name: 'Services', fn: () => this.checkServices() },
-        { name: 'Files', fn: () => this.checkFiles() },
-        { name: 'WMI', fn: () => this.checkWMI() },
-        { name: 'Hardware', fn: () => this.checkHardware() },
+        { name: 'Guest Drivers', fn: () => this.checkGuestDrivers() },
+        { name: 'Guest Processes', fn: () => this.checkGuestProcesses() },
+        { name: 'Guest Services', fn: () => this.checkGuestServices() },
+        { name: 'Guest Registry', fn: () => this.checkGuestRegistry() },
+        { name: 'Hardware IDs', fn: () => this.checkHardware() },
         { name: 'Environment', fn: () => this.checkEnvironment() }
       ]
 
@@ -209,10 +171,33 @@ export class VMScanner extends BaseScanner {
         }
       }
 
-      // Format findings for output
-      const formattedFindings = allFindings.map(f =>
-        `[${f.type}] ${f.vmName}: ${f.detail}`
-      )
+      // Only report if we have CRITICAL findings (actually running in VM)
+      const criticalFindings = allFindings.filter(f => f.critical)
+
+      if (criticalFindings.length === 0) {
+        // No VM detected
+        return this.createSuccessResult([], startTime)
+      }
+
+      // Group by VM type and count evidence
+      const vmEvidence = new Map<string, { count: number; details: string[] }>()
+      for (const finding of criticalFindings) {
+        const existing = vmEvidence.get(finding.vmName) || { count: 0, details: [] }
+        existing.count++
+        existing.details.push(`${finding.type}: ${finding.detail}`)
+        vmEvidence.set(finding.vmName, existing)
+      }
+
+      // Only report VMs with strong evidence (2+ indicators)
+      const formattedFindings: string[] = []
+      for (const [vmName, evidence] of vmEvidence) {
+        if (evidence.count >= 2) {
+          formattedFindings.push(`[VM DETECTED] ${vmName} - ${evidence.count} indicators found:`)
+          for (const detail of evidence.details) {
+            formattedFindings.push(`  • ${detail}`)
+          }
+        }
+      }
 
       return this.createSuccessResult(formattedFindings, startTime)
     } catch (error) {
@@ -226,32 +211,89 @@ export class VMScanner extends BaseScanner {
     }
   }
 
-  private async checkRegistry(): Promise<VMFinding[]> {
+  private async checkWMI(): Promise<VMFinding[]> {
     const findings: VMFinding[] = []
+    const detectedVMs = new Set<string>()
 
-    for (const [vmName, keys] of Object.entries(VM_REGISTRY_KEYS)) {
-      if (this.cancelled) break
+    // Check computer system manufacturer and model - MOST RELIABLE
+    try {
+      const csOutput = await asyncExec(
+        'wmic computersystem get Manufacturer,Model /FORMAT:LIST 2>nul',
+        { timeout: VMScanner.EXEC_TIMEOUT }
+      )
 
-      for (const key of keys) {
-        try {
-          // Use reg query to check for key existence
-          const output = await asyncExec(
-            `reg query "${key.path}" 2>nul`,
-            { timeout: VMScanner.EXEC_TIMEOUT }
-          )
+      for (const [vmName, indicators] of Object.entries(WMI_VM_INDICATORS)) {
+        for (const indicator of indicators) {
+          if (csOutput.toLowerCase().includes(indicator.toLowerCase()) && !detectedVMs.has(vmName)) {
+            const manufacturerMatch = csOutput.match(/Manufacturer=(.+)/i)
+            const modelMatch = csOutput.match(/Model=(.+)/i)
+            const value = manufacturerMatch?.[1]?.trim() || modelMatch?.[1]?.trim() || indicator
 
-          if (output && output.trim()) {
             findings.push({
-              type: 'Registry',
+              type: 'Hardware',
               vmName,
-              detail: `Key found: ${key.path}`
+              detail: value,
+              critical: true
             })
-            break // Found one key for this VM, move to next VM
+            detectedVMs.add(vmName)
+            break
           }
-        } catch {
-          // Key not found, continue
         }
       }
+    } catch {
+      // WMI check failed
+    }
+
+    // Check BIOS
+    try {
+      const biosOutput = await asyncExec(
+        'wmic bios get Manufacturer,SerialNumber /FORMAT:LIST 2>nul',
+        { timeout: VMScanner.EXEC_TIMEOUT }
+      )
+
+      for (const [vmName, indicators] of Object.entries(WMI_VM_INDICATORS)) {
+        if (detectedVMs.has(vmName)) continue
+        for (const indicator of indicators) {
+          if (biosOutput.toLowerCase().includes(indicator.toLowerCase())) {
+            findings.push({
+              type: 'BIOS',
+              vmName,
+              detail: `VM BIOS detected`,
+              critical: true
+            })
+            detectedVMs.add(vmName)
+            break
+          }
+        }
+      }
+    } catch {
+      // BIOS check failed
+    }
+
+    // Check disk drive model
+    try {
+      const diskOutput = await asyncExec(
+        'wmic diskdrive get Model /FORMAT:LIST 2>nul',
+        { timeout: VMScanner.EXEC_TIMEOUT }
+      )
+
+      for (const [vmName, indicators] of Object.entries(WMI_VM_INDICATORS)) {
+        if (detectedVMs.has(vmName)) continue
+        for (const indicator of indicators) {
+          if (diskOutput.toLowerCase().includes(indicator.toLowerCase())) {
+            findings.push({
+              type: 'Disk',
+              vmName,
+              detail: `Virtual disk detected`,
+              critical: true
+            })
+            detectedVMs.add(vmName)
+            break
+          }
+        }
+      }
+    } catch {
+      // Disk check failed
     }
 
     return findings
@@ -261,14 +303,12 @@ export class VMScanner extends BaseScanner {
     const findings: VMFinding[] = []
 
     try {
-      // Try getmac first
       let output = await asyncExec(
         'getmac /FO CSV /NH 2>nul',
         { timeout: VMScanner.EXEC_TIMEOUT }
       )
 
       if (!output.trim()) {
-        // Fallback to wmic
         output = await asyncExec(
           'wmic nic get MACAddress /FORMAT:CSV 2>nul',
           { timeout: VMScanner.EXEC_TIMEOUT }
@@ -284,9 +324,10 @@ export class VMScanner extends BaseScanner {
           for (const prefix of prefixes) {
             if (normalizedMac.startsWith(prefix.toUpperCase())) {
               findings.push({
-                type: 'MAC',
+                type: 'Network',
                 vmName,
-                detail: `Virtual adapter detected: ${mac}`
+                detail: `Virtual MAC: ${mac}`,
+                critical: true
               })
               break
             }
@@ -302,16 +343,15 @@ export class VMScanner extends BaseScanner {
 
   private extractMacAddresses(output: string): string[] {
     const macs: string[] = []
-    // Match MAC addresses in various formats: XX:XX:XX:XX:XX:XX or XX-XX-XX-XX-XX-XX
     const macRegex = /([0-9A-Fa-f]{2}[:-]){5}[0-9A-Fa-f]{2}/g
     const matches = output.match(macRegex)
     if (matches) {
       macs.push(...matches)
     }
-    return [...new Set(macs)] // Remove duplicates
+    return [...new Set(macs)]
   }
 
-  private async checkProcesses(): Promise<VMFinding[]> {
+  private async checkGuestProcesses(): Promise<VMFinding[]> {
     const findings: VMFinding[] = []
 
     try {
@@ -321,27 +361,22 @@ export class VMScanner extends BaseScanner {
       )
 
       const runningProcesses = new Set<string>()
-      const pidMap = new Map<string, number>()
-
       const lines = output.split('\n')
       for (const line of lines) {
-        const match = line.match(/"([^"]+)","(\d+)"/)
+        const match = line.match(/"([^"]+)"/)
         if (match) {
-          const processName = match[1].toLowerCase()
-          runningProcesses.add(processName)
-          pidMap.set(processName, parseInt(match[2], 10))
+          runningProcesses.add(match[1].toLowerCase())
         }
       }
 
-      for (const [vmName, processes] of Object.entries(VM_PROCESSES)) {
+      for (const [vmName, processes] of Object.entries(VM_GUEST_PROCESSES)) {
         for (const proc of processes) {
-          const procLower = proc.toLowerCase()
-          if (runningProcesses.has(procLower)) {
-            const pid = pidMap.get(procLower) || 0
+          if (runningProcesses.has(proc.toLowerCase())) {
             findings.push({
               type: 'Process',
               vmName,
-              detail: `${proc} running (PID: ${pid})`
+              detail: `Guest tools: ${proc}`,
+              critical: true
             })
           }
         }
@@ -353,7 +388,7 @@ export class VMScanner extends BaseScanner {
     return findings
   }
 
-  private async checkServices(): Promise<VMFinding[]> {
+  private async checkGuestServices(): Promise<VMFinding[]> {
     const findings: VMFinding[] = []
 
     try {
@@ -362,16 +397,24 @@ export class VMScanner extends BaseScanner {
         { timeout: VMScanner.EXEC_TIMEOUT, maxBuffer: VMScanner.BUFFER_SIZE }
       )
 
-      const services = this.parseServiceOutput(output)
+      const runningServices = new Set<string>()
+      const blocks = output.split(/SERVICE_NAME:/)
+      for (const block of blocks) {
+        const lines = block.split('\n')
+        const serviceName = lines[0]?.trim().toLowerCase()
+        if (serviceName && block.includes('RUNNING')) {
+          runningServices.add(serviceName)
+        }
+      }
 
-      for (const [vmName, vmServices] of Object.entries(VM_SERVICES)) {
-        for (const serviceName of vmServices) {
-          const serviceInfo = services.get(serviceName.toLowerCase())
-          if (serviceInfo) {
+      for (const [vmName, services] of Object.entries(VM_GUEST_SERVICES)) {
+        for (const service of services) {
+          if (runningServices.has(service.toLowerCase())) {
             findings.push({
               type: 'Service',
               vmName,
-              detail: `Service "${serviceName}" ${serviceInfo.state}`
+              detail: `Guest service: ${service}`,
+              critical: true
             })
           }
         }
@@ -383,47 +426,22 @@ export class VMScanner extends BaseScanner {
     return findings
   }
 
-  private parseServiceOutput(output: string): Map<string, { name: string; state: string }> {
-    const services = new Map<string, { name: string; state: string }>()
-
-    const blocks = output.split(/SERVICE_NAME:/)
-    for (const block of blocks) {
-      if (!block.trim()) continue
-
-      const lines = block.split('\n')
-      const serviceName = lines[0]?.trim()
-      if (!serviceName) continue
-
-      let state = 'UNKNOWN'
-      for (const line of lines) {
-        const stateMatch = line.match(/STATE\s+:\s+\d+\s+(\w+)/)
-        if (stateMatch) {
-          state = stateMatch[1]
-          break
-        }
-      }
-
-      services.set(serviceName.toLowerCase(), { name: serviceName, state })
-    }
-
-    return services
-  }
-
-  private async checkFiles(): Promise<VMFinding[]> {
+  private async checkGuestDrivers(): Promise<VMFinding[]> {
     const findings: VMFinding[] = []
 
-    for (const [vmName, files] of Object.entries(VM_FILES)) {
+    for (const [vmName, drivers] of Object.entries(VM_GUEST_DRIVERS)) {
       if (this.cancelled) break
 
-      for (const filePath of files) {
+      for (const driverPath of drivers) {
         try {
-          if (existsSync(filePath)) {
+          if (existsSync(driverPath)) {
             findings.push({
-              type: 'File',
+              type: 'Driver',
               vmName,
-              detail: `Found: ${filePath}`
+              detail: `Guest driver: ${driverPath.split('\\').pop()}`,
+              critical: true
             })
-            break // Found one file for this VM, move to next
+            break // One driver is enough
           }
         } catch {
           // File check failed
@@ -434,109 +452,32 @@ export class VMScanner extends BaseScanner {
     return findings
   }
 
-  private async checkWMI(): Promise<VMFinding[]> {
+  private async checkGuestRegistry(): Promise<VMFinding[]> {
     const findings: VMFinding[] = []
-    const detectedVMs = new Set<string>()
 
-    // Check computer system manufacturer and model
-    try {
-      const csOutput = await asyncExec(
-        'wmic computersystem get Manufacturer,Model /FORMAT:LIST 2>nul',
-        { timeout: VMScanner.EXEC_TIMEOUT }
-      )
+    for (const [vmName, keys] of Object.entries(VM_GUEST_REGISTRY)) {
+      if (this.cancelled) break
 
-      for (const [vmName, indicators] of Object.entries(WMI_VM_INDICATORS)) {
-        for (const indicator of indicators) {
-          if (csOutput.toLowerCase().includes(indicator.toLowerCase()) && !detectedVMs.has(vmName)) {
-            // Extract the actual value
-            const manufacturerMatch = csOutput.match(/Manufacturer=(.+)/i)
-            const modelMatch = csOutput.match(/Model=(.+)/i)
-            const value = manufacturerMatch?.[1]?.trim() || modelMatch?.[1]?.trim() || indicator
+      for (const keyPath of keys) {
+        try {
+          const output = await asyncExec(
+            `reg query "${keyPath}" 2>nul`,
+            { timeout: VMScanner.EXEC_TIMEOUT }
+          )
 
+          if (output && output.trim()) {
             findings.push({
-              type: 'WMI',
+              type: 'Registry',
               vmName,
-              detail: `Win32_ComputerSystem: ${value}`
+              detail: `Guest additions installed`,
+              critical: true
             })
-            detectedVMs.add(vmName)
             break
           }
+        } catch {
+          // Key not found
         }
       }
-    } catch {
-      // WMI computer system check failed
-    }
-
-    // Check BIOS serial number
-    try {
-      const biosOutput = await asyncExec(
-        'wmic bios get SerialNumber /FORMAT:LIST 2>nul',
-        { timeout: VMScanner.EXEC_TIMEOUT }
-      )
-
-      // VMware BIOS often has "VMware" in serial
-      if (biosOutput.toLowerCase().includes('vmware') && !detectedVMs.has('VMware')) {
-        findings.push({
-          type: 'WMI',
-          vmName: 'VMware',
-          detail: 'Win32_BIOS: VMware serial detected'
-        })
-        detectedVMs.add('VMware')
-      }
-    } catch {
-      // BIOS check failed
-    }
-
-    // Check disk drive model
-    try {
-      const diskOutput = await asyncExec(
-        'wmic diskdrive get Model /FORMAT:LIST 2>nul',
-        { timeout: VMScanner.EXEC_TIMEOUT }
-      )
-
-      for (const [vmName, indicators] of Object.entries(WMI_VM_INDICATORS)) {
-        if (detectedVMs.has(vmName)) continue
-
-        for (const indicator of indicators) {
-          if (diskOutput.toLowerCase().includes(indicator.toLowerCase())) {
-            findings.push({
-              type: 'WMI',
-              vmName,
-              detail: `Win32_DiskDrive: ${indicator} disk detected`
-            })
-            detectedVMs.add(vmName)
-            break
-          }
-        }
-      }
-    } catch {
-      // Disk check failed
-    }
-
-    // Check baseboard
-    try {
-      const baseboardOutput = await asyncExec(
-        'wmic baseboard get Manufacturer,Product /FORMAT:LIST 2>nul',
-        { timeout: VMScanner.EXEC_TIMEOUT }
-      )
-
-      for (const [vmName, indicators] of Object.entries(WMI_VM_INDICATORS)) {
-        if (detectedVMs.has(vmName)) continue
-
-        for (const indicator of indicators) {
-          if (baseboardOutput.toLowerCase().includes(indicator.toLowerCase())) {
-            findings.push({
-              type: 'WMI',
-              vmName,
-              detail: `Win32_BaseBoard: ${indicator} baseboard detected`
-            })
-            detectedVMs.add(vmName)
-            break
-          }
-        }
-      }
-    } catch {
-      // Baseboard check failed
     }
 
     return findings
@@ -546,7 +487,6 @@ export class VMScanner extends BaseScanner {
     const findings: VMFinding[] = []
 
     try {
-      // Use wmic to get PCI device information
       const output = await asyncExec(
         'wmic path Win32_PnPEntity get DeviceID /FORMAT:CSV 2>nul',
         { timeout: VMScanner.EXEC_TIMEOUT, maxBuffer: VMScanner.BUFFER_SIZE }
@@ -558,11 +498,12 @@ export class VMScanner extends BaseScanner {
         for (const vendorId of vendorIds) {
           if (outputUpper.includes(vendorId)) {
             findings.push({
-              type: 'Hardware',
+              type: 'PCI',
               vmName,
-              detail: `PCI Vendor ID ${vendorId} detected`
+              detail: `Virtual hardware: ${vendorId}`,
+              critical: true
             })
-            break // Found one for this VM
+            break
           }
         }
       }
@@ -576,24 +517,23 @@ export class VMScanner extends BaseScanner {
   private async checkEnvironment(): Promise<VMFinding[]> {
     const findings: VMFinding[] = []
 
-    for (const [vmName, envVars] of Object.entries(VM_ENV_VARS)) {
-      for (const envVar of envVars) {
-        if (process.env[envVar]) {
-          findings.push({
-            type: 'Environment',
-            vmName,
-            detail: `Environment variable: ${envVar}`
-          })
-        }
-      }
-    }
-
-    // Additional check for Windows Sandbox
+    // Windows Sandbox detection
     if (process.env.COMPUTERNAME?.toLowerCase().includes('wdagutility')) {
       findings.push({
         type: 'Environment',
         vmName: 'Windows Sandbox',
-        detail: 'Windows Defender Application Guard environment detected'
+        detail: 'Windows Sandbox detected',
+        critical: true
+      })
+    }
+
+    // Wine detection
+    if (process.env['WINEPREFIX'] || process.env['WINEDIR']) {
+      findings.push({
+        type: 'Environment',
+        vmName: 'Wine',
+        detail: 'Wine environment detected',
+        critical: true
       })
     }
 

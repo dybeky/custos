@@ -1,4 +1,3 @@
-import { useState, useRef, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Card, CardHeader, CardTitle, CardContent } from '../components/ui/Card'
 
@@ -16,41 +15,20 @@ interface TelegramBot {
   username: string
 }
 
-// Shimmering button component
-function ShimmerButton({ onClick, children }: { onClick: () => void; children: React.ReactNode }) {
+// Fast button component - no animations that could cause lag
+function FastButton({ onClick, children }: { onClick: () => void; children: React.ReactNode }) {
   return (
-    <div className="relative group">
-      {/* Animated gradient border */}
-      <div
-        className="absolute -inset-[1px] rounded-lg opacity-50 group-hover:opacity-100 transition-opacity animate-gradient-border"
-        style={{
-          background: 'linear-gradient(90deg, #c6a2e8, #515ef5, #c6a2e8)',
-          backgroundSize: '200% auto',
-        }}
-      />
-      <button
-        onClick={onClick}
-        className="relative w-full flex items-center gap-2 p-2 rounded-lg bg-background-surface hover:bg-background-elevated transition-colors text-left text-sm text-text-primary"
-      >
-        {children}
-      </button>
-    </div>
+    <button
+      onClick={onClick}
+      className="w-full flex items-center gap-2 p-2 rounded-lg bg-background-surface hover:bg-background-elevated border border-border-subtle hover:border-aurora-purple/50 transition-colors text-left text-sm text-text-primary"
+    >
+      {children}
+    </button>
   )
 }
 
 export function Manual() {
   const { t } = useTranslation()
-  const [registryError, setRegistryError] = useState<string | null>(null)
-  const errorTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-
-  // Cleanup timeout on unmount to prevent memory leaks
-  useEffect(() => {
-    return () => {
-      if (errorTimeoutRef.current) {
-        clearTimeout(errorTimeoutRef.current)
-      }
-    }
-  }, [])
 
   // System Tools - matching original ManualView.xaml
   const systemTools: QuickAccessItem[] = [
@@ -99,32 +77,9 @@ export function Manual() {
     { name: 'FunPay.com', url: 'https://funpay.com' }
   ]
 
-  const handleOpenPath = (path: string) => {
-    window.electronAPI.openPath(path)
-  }
-
-  const handleOpenExternal = (url: string) => {
-    window.electronAPI.openExternal(url)
-  }
-
-  const handleOpenRegistry = async (path: string) => {
-    // Clear any existing timeout
-    if (errorTimeoutRef.current) {
-      clearTimeout(errorTimeoutRef.current)
-      errorTimeoutRef.current = null
-    }
-
-    setRegistryError(null)
-    const result = await window.electronAPI.openRegistry(path)
-    if (!result.success && result.error) {
-      setRegistryError(result.error)
-      // Auto-dismiss after 5 seconds
-      errorTimeoutRef.current = setTimeout(() => {
-        setRegistryError(null)
-        errorTimeoutRef.current = null
-      }, 5000)
-    }
-  }
+  const handleOpenPath = (path: string) => window.electronAPI.openPath(path)
+  const handleOpenExternal = (url: string) => window.electronAPI.openExternal(url)
+  const handleOpenRegistry = (path: string) => window.electronAPI.openRegistry(path)
 
   const folderIcon = (
     <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -171,13 +126,6 @@ export function Manual() {
           <p className="text-text-secondary mt-1">{t('manual.subtitle')}</p>
         </div>
 
-        {/* Registry Error Notification */}
-        {registryError && (
-          <div className="mb-4 p-3 bg-red-500/10 border border-red-500/20 rounded-lg text-red-400 text-sm">
-            {registryError}
-          </div>
-        )}
-
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
           {/* System Tools */}
           <Card>
@@ -190,9 +138,9 @@ export function Manual() {
             <CardContent className="pt-0">
               <div className="space-y-2">
                 {systemTools.map((item) => (
-                  <ShimmerButton key={item.path} onClick={() => handleOpenPath(item.path)}>
+                  <FastButton key={item.path} onClick={() => handleOpenPath(item.path)}>
                     {item.label}
-                  </ShimmerButton>
+                  </FastButton>
                 ))}
               </div>
             </CardContent>
@@ -209,9 +157,9 @@ export function Manual() {
             <CardContent className="pt-0">
               <div className="space-y-2">
                 {folders.map((item) => (
-                  <ShimmerButton key={item.path} onClick={() => handleOpenPath(item.path)}>
+                  <FastButton key={item.path} onClick={() => handleOpenPath(item.path)}>
                     {item.label}
-                  </ShimmerButton>
+                  </FastButton>
                 ))}
               </div>
             </CardContent>
@@ -228,9 +176,9 @@ export function Manual() {
             <CardContent className="pt-0">
               <div className="space-y-2">
                 {games.map((item) => (
-                  <ShimmerButton key={item.path} onClick={() => handleOpenPath(item.path)}>
+                  <FastButton key={item.path} onClick={() => handleOpenPath(item.path)}>
                     {item.label}
-                  </ShimmerButton>
+                  </FastButton>
                 ))}
               </div>
             </CardContent>
@@ -247,9 +195,9 @@ export function Manual() {
             <CardContent className="pt-0">
               <div className="grid grid-cols-2 gap-2">
                 {registryKeys.map((item) => (
-                  <ShimmerButton key={item.path} onClick={() => handleOpenRegistry(item.path)}>
+                  <FastButton key={item.path} onClick={() => handleOpenRegistry(item.path)}>
                     {item.label}
-                  </ShimmerButton>
+                  </FastButton>
                 ))}
               </div>
             </CardContent>
@@ -266,9 +214,9 @@ export function Manual() {
             <CardContent className="pt-0">
               <div className="space-y-2">
                 {telegramBots.map((bot) => (
-                  <ShimmerButton key={bot.username} onClick={() => handleOpenExternal(`https://t.me/${bot.username.replace('@', '')}`)}>
+                  <FastButton key={bot.username} onClick={() => handleOpenExternal(`https://t.me/${bot.username.replace('@', '')}`)}>
                     {bot.username}
-                  </ShimmerButton>
+                  </FastButton>
                 ))}
               </div>
             </CardContent>
@@ -285,9 +233,9 @@ export function Manual() {
             <CardContent className="pt-0">
               <div className="space-y-2">
                 {additionalResources.map((resource) => (
-                  <ShimmerButton key={resource.url} onClick={() => handleOpenExternal(resource.url)}>
+                  <FastButton key={resource.url} onClick={() => handleOpenExternal(resource.url)}>
                     {resource.name}
-                  </ShimmerButton>
+                  </FastButton>
                 ))}
               </div>
             </CardContent>
