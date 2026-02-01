@@ -79,7 +79,8 @@
         }
       ],
       "icon": "resources/icon.ico",
-      "requestedExecutionLevel": "requireAdministrator"
+      "requestedExecutionLevel": "requireAdministrator",
+      "signAndEditExecutable": false
     },
     "nsis": {
       "oneClick": false,
