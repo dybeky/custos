@@ -10,14 +10,20 @@ const themes: { id: ThemeName; name: string; colors: string[]; description: stri
   {
     id: 'aurora',
     name: 'Aurora',
-    colors: ['#c6a2e8', '#515ef5', '#FF6B00'],
-    description: 'Purple & blue northern lights'
+    colors: ['#ffa1c3', '#d770ff', '#320d40'],
+    description: 'Pink & purple glow'
   },
   {
     id: 'mono',
     name: 'Monochrome',
-    colors: ['#ffffff', '#888888', '#ffffff'],
-    description: 'Clean black & white'
+    colors: ['#ffffff', '#242424', '#d64f66'],
+    description: 'Dark with red accent'
+  },
+  {
+    id: 'tropical',
+    name: 'Tropical',
+    colors: ['#76a6f5', '#c0ed85', '#fad098'],
+    description: 'Fresh tropical vibes'
   }
 ]
 

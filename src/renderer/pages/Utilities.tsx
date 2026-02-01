@@ -34,6 +34,12 @@ const utilities: Utility[] = [
     descKey: 'utilities.systemInformerDesc',
     url: 'https://systeminformer.sourceforge.io/',
     icon: '⚙️'
+  },
+  {
+    name: 'ShellBag Analyzer',
+    descKey: 'utilities.shellbagAnalyzerDesc',
+    url: 'https://privazer.com/en/download-shellbag-analyzer-shellbag-cleaner.php',
+    icon: '🗂️'
   }
 ]
 

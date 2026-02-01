@@ -20,7 +20,7 @@ function FastButton({ onClick, children }: { onClick: () => void; children: Reac
   return (
     <button
       onClick={onClick}
-      className="w-full flex items-center gap-2 p-2 rounded-lg bg-background-surface hover:bg-background-elevated border border-border-subtle hover:border-aurora-purple/50 transition-colors text-left text-sm text-text-primary"
+      className="w-full flex items-center gap-2 p-2 rounded-lg bg-background-surface hover:bg-background-elevated border border-border-subtle hover:border-[var(--theme-primary)]/50 transition-colors text-left text-sm text-text-primary"
     >
       {children}
     </button>
@@ -131,7 +131,7 @@ export function Manual() {
           <Card>
             <CardHeader className="pb-2">
               <CardTitle className="text-sm flex items-center gap-2">
-                <span className="text-aurora-purple">{toolIcon}</span>
+                <span className="theme-text-primary">{toolIcon}</span>
                 {t('manual.systemTools')}
               </CardTitle>
             </CardHeader>
@@ -150,7 +150,7 @@ export function Manual() {
           <Card>
             <CardHeader className="pb-2">
               <CardTitle className="text-sm flex items-center gap-2">
-                <span className="text-aurora-blue">{folderIcon}</span>
+                <span className="theme-text-primary">{folderIcon}</span>
                 {t('manual.folders')}
               </CardTitle>
             </CardHeader>
@@ -188,7 +188,7 @@ export function Manual() {
           <Card className="md:col-span-2">
             <CardHeader className="pb-2">
               <CardTitle className="text-sm flex items-center gap-2">
-                <span className="text-aurora-purple">{registryIcon}</span>
+                <span className="theme-text-primary">{registryIcon}</span>
                 {t('manual.registry')}
               </CardTitle>
             </CardHeader>

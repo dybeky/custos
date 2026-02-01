@@ -22,6 +22,13 @@ const themeConfigs: Record<ThemeName, {
     blob2: '#666666',
     particle1: '#ffffff',
     particle2: '#888888'
+  },
+  tropical: {
+    gradient: 'linear-gradient(45deg, #c0ed85, #fad098, #76a6f5, #c0ed85)',
+    blob1: '#c0ed85',
+    blob2: '#fad098',
+    particle1: '#c0ed85',
+    particle2: '#76a6f5'
   }
 }
 

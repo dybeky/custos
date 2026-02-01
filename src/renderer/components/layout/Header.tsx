@@ -34,7 +34,7 @@ export function Header() {
         <span
           className="text-sm font-bold tracking-wide animate-gradient-text"
           style={{
-            background: 'linear-gradient(90deg, #c6a2e8, #515ef5, #c6a2e8)',
+            background: 'linear-gradient(90deg, var(--theme-accent-1), var(--theme-accent-2), var(--theme-accent-1))',
             backgroundSize: '200% auto',
             WebkitBackgroundClip: 'text',
             WebkitTextFillColor: 'transparent',
@@ -64,7 +64,7 @@ export function Header() {
             <span
               className="text-[11px] font-extrabold tracking-wide animate-gradient-text"
               style={{
-                background: 'linear-gradient(90deg, #c6a2e8, #515ef5, #c6a2e8)',
+                background: 'linear-gradient(90deg, var(--theme-accent-1), var(--theme-accent-2), var(--theme-accent-1))',
                 backgroundSize: '200% auto',
                 WebkitBackgroundClip: 'text',
                 WebkitTextFillColor: 'transparent',

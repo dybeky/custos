@@ -82,7 +82,8 @@
     "lastActivityViewDesc": "Shows computer activity log including program executions, file operations and more",
     "usbDeviewDesc": "Lists all USB devices ever connected to the computer with dates and details",
     "everythingDesc": "Instant file search tool that indexes all files on your drives",
-    "systemInformerDesc": "Advanced system monitor and process viewer (formerly Process Hacker)"
+    "systemInformerDesc": "Advanced system monitor and process viewer (formerly Process Hacker)",
+    "shellbagAnalyzerDesc": "Analyzes and cleans Windows ShellBag entries that store folder access history"
   },
   "general": {
     "home": "Home",

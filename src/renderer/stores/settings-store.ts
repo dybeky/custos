@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 
-export type ThemeName = 'aurora' | 'mono'
+export type ThemeName = 'aurora' | 'mono' | 'tropical'
 
 interface SettingsState {
   language: 'en' | 'ru'
@@ -34,7 +34,7 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   isLoading: true,
   version: '2.1.0',
   effectsEnabled: true,
-  theme: 'mono' as ThemeName,
+  theme: 'tropical' as ThemeName,
   saveDebounceTimer: null,
 
   setLanguage: (value) => {
@@ -78,7 +78,7 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
 
       // Load theme from localStorage
       const savedTheme = localStorage.getItem('custos-theme') as ThemeName | null
-      const theme = savedTheme && ['aurora', 'mono'].includes(savedTheme) ? savedTheme : 'mono'
+      const theme = savedTheme && ['aurora', 'mono', 'tropical'].includes(savedTheme) ? savedTheme : 'tropical'
       document.documentElement.setAttribute('data-theme', theme)
 
       set({

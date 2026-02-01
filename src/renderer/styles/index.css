@@ -8,33 +8,48 @@
 
 :root,
 [data-theme="aurora"] {
-  --theme-primary: #FF6B00;
-  --theme-primary-hover: #FF8533;
-  --theme-primary-muted: rgba(255, 107, 0, 0.1);
-  --theme-accent-1: #c6a2e8;
-  --theme-accent-2: #515ef5;
-  --theme-glow: rgba(255, 107, 0, 0.3);
-  --theme-bg: #0a0a0f;
-  --theme-surface: #12121a;
-  --theme-elevated: #1a1a24;
+  --theme-primary: #d770ff;
+  --theme-primary-hover: #e090ff;
+  --theme-primary-muted: rgba(215, 112, 255, 0.1);
+  --theme-accent-1: #ffa1c3;
+  --theme-accent-2: #d770ff;
+  --theme-glow: rgba(215, 112, 255, 0.3);
+  --theme-bg: #320d40;
+  --theme-surface: #3d1150;
+  --theme-elevated: #4a1760;
   --theme-text-btn: #ffffff;
-  --theme-border: rgba(255, 255, 255, 0.08);
-  --theme-border-hover: rgba(255, 255, 255, 0.15);
+  --theme-border: rgba(255, 255, 255, 0.1);
+  --theme-border-hover: rgba(255, 255, 255, 0.18);
 }
 
 [data-theme="mono"] {
-  --theme-primary: #ffffff;
-  --theme-primary-hover: #e0e0e0;
-  --theme-primary-muted: rgba(255, 255, 255, 0.1);
+  --theme-primary: #d64f66;
+  --theme-primary-hover: #e06578;
+  --theme-primary-muted: rgba(214, 79, 102, 0.1);
   --theme-accent-1: #ffffff;
-  --theme-accent-2: #888888;
-  --theme-glow: rgba(255, 255, 255, 0.25);
-  --theme-bg: #000000;
-  --theme-surface: #0a0a0a;
-  --theme-elevated: #141414;
-  --theme-text-btn: #000000;
+  --theme-accent-2: #d64f66;
+  --theme-glow: rgba(214, 79, 102, 0.3);
+  --theme-bg: #1a1a1a;
+  --theme-surface: #242424;
+  --theme-elevated: #2e2e2e;
+  --theme-text-btn: #ffffff;
   --theme-border: rgba(255, 255, 255, 0.1);
   --theme-border-hover: rgba(255, 255, 255, 0.2);
+}
+
+[data-theme="tropical"] {
+  --theme-primary: #76a6f5;
+  --theme-primary-hover: #92b8f7;
+  --theme-primary-muted: rgba(118, 166, 245, 0.1);
+  --theme-accent-1: #c0ed85;
+  --theme-accent-2: #fad098;
+  --theme-glow: rgba(118, 166, 245, 0.3);
+  --theme-bg: #0a0a0f;
+  --theme-surface: #12121a;
+  --theme-elevated: #1a1a24;
+  --theme-text-btn: #1a1a24;
+  --theme-border: rgba(255, 255, 255, 0.08);
+  --theme-border-hover: rgba(255, 255, 255, 0.15);
 }
 
 /* ============================================
