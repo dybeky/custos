@@ -15,6 +15,8 @@ import { AmcacheScanner } from './amcache-scanner'
 import { BamScanner } from './bam-scanner'
 import { ShellbagsScanner } from './shellbags-scanner'
 import { VMScanner } from './vm-scanner'
+import { DnsCacheScanner } from './dns-cache-scanner'
+import { ScheduledTasksScanner } from './scheduled-tasks-scanner'
 
 export { BaseScanner } from './base-scanner'
 
@@ -31,6 +33,8 @@ export type ScannerName =
   | 'bam'
   | 'shellbags'
   | 'vm'
+  | 'dnscache'
+  | 'scheduledtasks'
 
 export class ScannerFactory {
   private keywordMatcher: KeywordMatcher
@@ -63,6 +67,8 @@ export class ScannerFactory {
     this.scanners.set('bam', new BamScanner(this.keywordMatcher, this.scanSettings))
     this.scanners.set('shellbags', new ShellbagsScanner(this.keywordMatcher, this.scanSettings))
     this.scanners.set('vm', new VMScanner(this.keywordMatcher, this.scanSettings))
+    this.scanners.set('dnscache', new DnsCacheScanner(this.keywordMatcher, this.scanSettings))
+    this.scanners.set('scheduledtasks', new ScheduledTasksScanner(this.keywordMatcher, this.scanSettings))
   }
 
   getScanner(name: ScannerName): BaseScanner | undefined {

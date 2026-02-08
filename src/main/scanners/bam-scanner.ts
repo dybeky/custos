@@ -2,6 +2,7 @@ import { BaseScanner, ScannerEventEmitter } from './base-scanner'
 import { ScanResult } from '../../shared/types'
 import { asyncExec } from '../utils/async-exec'
 import { isBAMAvailable } from '../utils/os-utils'
+import { logger } from '../services/logger'
 
 export class BamScanner extends BaseScanner {
   readonly name = 'BAM/DAM Scanner'
@@ -49,15 +50,33 @@ export class BamScanner extends BaseScanner {
         }
       }
     } catch {
-      // wmic failed - use defaults
+      // wmic failed - try mountvol fallback
     }
 
-    // If empty, set common defaults
+    // Secondary fallback: mountvol to determine real drive mappings
     if (this.driveMapping.size === 0) {
-      this.driveMapping.set(1, 'C:')
-      this.driveMapping.set(2, 'C:')
-      this.driveMapping.set(3, 'C:')
-      this.driveMapping.set(4, 'D:')
+      try {
+        const mountvolOutput = await asyncExec('mountvol', { timeout: 5000 })
+        // mountvol output pairs: \\?\Volume{GUID}\ followed by drive letter line (e.g. "    C:\")
+        const lines = mountvolOutput.split('\n')
+        for (let i = 0; i < lines.length; i++) {
+          const driveLine = lines[i].trim()
+          // Drive letter lines look like "C:\" or "D:\"
+          if (/^[A-Z]:\\$/i.test(driveLine) && i > 0) {
+            // Look backward for the volume GUID line
+            const volLine = lines[i - 1].trim()
+            const volMatch = volLine.match(/HarddiskVolume(\d+)/)
+            if (volMatch && volMatch[1]) {
+              const volNum = parseInt(volMatch[1], 10)
+              if (!isNaN(volNum)) {
+                this.driveMapping.set(volNum, driveLine.slice(0, 2))
+              }
+            }
+          }
+        }
+      } catch {
+        logger.warn('Both wmic and mountvol failed for drive mapping — device paths will not be resolved')
+      }
     }
 
     return this.driveMapping
@@ -303,10 +322,21 @@ export class BamScanner extends BaseScanner {
     // Try to convert device paths using actual drive mapping
     const deviceMatch = normalized.match(/Device\\HarddiskVolume(\d+)\\(.*)/)
     if (deviceMatch) {
-      const volumeNum = parseInt(deviceMatch[1])
-      const mapping = await this.getDriveMapping()
-      const driveLetter = mapping.get(volumeNum) || 'C:'
-      normalized = `${driveLetter}\\${deviceMatch[2]}`
+      const volumeNumStr = deviceMatch[1]
+      const restPath = deviceMatch[2]
+
+      // Guard against undefined capture groups
+      if (volumeNumStr && restPath !== undefined) {
+        const volumeNum = parseInt(volumeNumStr, 10)
+        if (!isNaN(volumeNum)) {
+          const mapping = await this.getDriveMapping()
+          const driveLetter = mapping.get(volumeNum)
+          if (driveLetter) {
+            normalized = `${driveLetter}\\${restPath}`
+          }
+          // If no mapping found, leave device path as-is (keyword matcher will still work on filename)
+        }
+      }
     }
 
     return normalized

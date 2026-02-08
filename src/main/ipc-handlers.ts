@@ -9,6 +9,15 @@ import { getScannerFactory, ScannerName, BaseScanner } from './scanners'
 import { getWindowsVersion, getWindowsVersionName } from './utils/os-utils'
 import { ThrottledProgress } from './utils/progress-throttle'
 import Store from 'electron-store'
+import { z } from 'zod'
+
+// Strict schema for partial user settings — rejects unknown properties
+const UserSettingsPartialSchema = z.object({
+  language: z.enum(['en', 'ru']).optional(),
+  checkUpdatesOnStartup: z.boolean().optional(),
+  autoDownloadUpdates: z.boolean().optional(),
+  deleteAfterUse: z.boolean().optional()
+}).strict()
 
 // Settings store
 const store = new Store<{ settings: UserSettings }>({
@@ -25,8 +34,23 @@ const store = new Store<{ settings: UserSettings }>({
 let isScanning = false
 let scanAbortController: AbortController | null = null
 
-// Escape paths for batch files - escape all special characters
+// Validate and escape paths for batch files
+const validateBatchPath = (path: string): void => {
+  // Reject control characters that could inject commands (\r\n, \x00, etc.)
+  for (let i = 0; i < path.length; i++) {
+    const code = path.charCodeAt(i)
+    if ((code >= 0 && code <= 0x1f) || code === 0x7f) {
+      throw new Error('Path contains invalid control characters')
+    }
+  }
+  // Ensure path is an absolute Windows path
+  if (!/^[A-Z]:\\/i.test(path)) {
+    throw new Error('Path must be an absolute Windows path')
+  }
+}
+
 const escapeBatchPath = (path: string): string => {
+  validateBatchPath(path)
   return path
     .replace(/\^/g, '^^')
     .replace(/&/g, '^&')
@@ -139,13 +163,16 @@ export function setupIpcHandlers(mainWindow: BrowserWindow): void {
       if (scanAbortController?.signal.aborted) break
 
       const scanPromise = (async () => {
+        // Capture index before await to avoid race condition with concurrent scanners
+        const localIndex = ++completedRef.count
+
         // Send progress update for starting scanner
         safeSend(IPC_CHANNELS.SCAN_PROGRESS, {
           scannerName: scanner.name,
-          currentItem: completedRef.count + 1,
+          currentItem: localIndex,
           totalItems: totalScanners,
           currentPath: `Starting ${scanner.name}...`,
-          percentage: (completedRef.count / totalScanners) * 100
+          percentage: ((localIndex - 1) / totalScanners) * 100
         } as ScanProgress)
 
         const result = await runScannerWithTimeout(scanner, {
@@ -155,7 +182,6 @@ export function setupIpcHandlers(mainWindow: BrowserWindow): void {
         })
 
         results.push(result)
-        completedRef.count++
 
         // Send individual result
         safeSend(IPC_CHANNELS.SCAN_RESULT, result)
@@ -209,15 +235,15 @@ export function setupIpcHandlers(mainWindow: BrowserWindow): void {
       return groupANames.some(n => name.includes(n))
     })
 
-    // Group B: Registry/PowerShell scanners (run in parallel with limit)
-    const groupBNames = ['registry', 'bam', 'shellbag', 'amcache']
+    // Group B: Registry/PowerShell/system command scanners (run in parallel with limit)
+    const groupBNames = ['registry', 'bam', 'shellbag', 'amcache', 'scheduled task']
     const groupB = allScanners.filter(s => {
       const name = scannerNameMap.get(s) || ''
       return groupBNames.some(n => name.includes(n))
     })
 
-    // Group C: Independent scanners (process, browser)
-    const groupCNames = ['process', 'browser']
+    // Group C: Independent scanners (process, browser, dns cache)
+    const groupCNames = ['process', 'browser', 'dns cache']
     const groupC = allScanners.filter(s => {
       const name = scannerNameMap.get(s) || ''
       return groupCNames.some(n => name.includes(n))
@@ -281,10 +307,14 @@ export function setupIpcHandlers(mainWindow: BrowserWindow): void {
     return store.get('settings')
   })
 
-  // Set settings
+  // Set settings (validated with Zod to reject unknown properties)
   ipcMain.handle(IPC_CHANNELS.SETTINGS_SET, (_event, settings: Partial<UserSettings>): UserSettings => {
+    const parsed = UserSettingsPartialSchema.safeParse(settings)
+    if (!parsed.success) {
+      throw new Error(`Invalid settings: ${parsed.error.message}`)
+    }
     const current = store.get('settings')
-    const updated = { ...current, ...settings }
+    const updated = { ...current, ...parsed.data }
     store.set('settings', updated)
     return updated
   })
@@ -362,9 +392,18 @@ export function setupIpcHandlers(mainWindow: BrowserWindow): void {
 
   // Download and install update
   ipcMain.handle(IPC_CHANNELS.APP_DOWNLOAD_UPDATE, async (_event, downloadUrl: string): Promise<void> => {
-    // Validate URL
-    if (!downloadUrl || (!downloadUrl.startsWith('https://github.com/') &&
-        !downloadUrl.startsWith('https://objects.githubusercontent.com/'))) {
+    // Validate URL using URL API to prevent hostname spoofing (e.g. github.com.evil.com)
+    if (!downloadUrl) {
+      throw new Error('Invalid download URL')
+    }
+    let parsedUrl: URL
+    try {
+      parsedUrl = new URL(downloadUrl)
+    } catch {
+      throw new Error('Invalid download URL')
+    }
+    const allowedHosts = ['github.com', 'objects.githubusercontent.com']
+    if (parsedUrl.protocol !== 'https:' || !allowedHosts.includes(parsedUrl.hostname)) {
       throw new Error('Invalid download URL')
     }
 
