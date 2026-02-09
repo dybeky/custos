@@ -57,7 +57,7 @@
 
 ### Что проверяется автоматически
 
-Custos запускает **12 сканеров** последовательно:
+Custos запускает **14 сканеров** параллельно:
 
 | # | Сканер | Что делает |
 |---|--------|------------|
@@ -72,7 +72,9 @@ Custos запускает **12 сканеров** последовательно
 | 9 | **Amcache Scanner** | Сканирует Amcache — системный журнал истории запуска программ |
 | 10 | **BAM/DAM Scanner** | Проверяет Background Activity Moderator — ещё один источник истории запусков |
 | 11 | **Shellbags Scanner** | Анализирует Shellbags — записи Windows о доступе к папкам |
-| 12 | **VM Scanner** | Обнаружение виртуальных машин и sandbox-окружений |
+| 12 | **DNS Cache Scanner** | Сканирует DNS-кеш Windows на предмет подозрительных доменов (поддержка 12+ локалей) |
+| 13 | **Scheduled Tasks Scanner** | Проверяет запланированные задачи Windows — читы могут использовать их для автозапуска |
+| 14 | **VM Scanner** | Обнаружение виртуальных машин и sandbox-окружений |
 
 ### Как читать результаты (вкладка Results)
 
@@ -266,7 +268,7 @@ VM Scanner автоматически определяет запуск внут
 
 ### What Gets Scanned Automatically
 
-Custos runs **12 scanners** sequentially:
+Custos runs **14 scanners** in parallel:
 
 | # | Scanner | What It Does |
 |---|---------|-------------|
@@ -281,7 +283,9 @@ Custos runs **12 scanners** sequentially:
 | 9 | **Amcache Scanner** | Scans Amcache — a system log of program execution history |
 | 10 | **BAM/DAM Scanner** | Checks Background Activity Moderator — another source of execution history |
 | 11 | **Shellbags Scanner** | Analyzes Shellbags — Windows records of folder access |
-| 12 | **VM Scanner** | Detection of virtual machines and sandbox environments |
+| 12 | **DNS Cache Scanner** | Scans Windows DNS cache for suspicious domain resolutions (12+ locale support) |
+| 13 | **Scheduled Tasks Scanner** | Checks Windows scheduled tasks — cheats may use them for auto-start |
+| 14 | **VM Scanner** | Detection of virtual machines and sandbox environments |
 
 ### Reading Results (Results Tab)
 

@@ -15,7 +15,7 @@
     "programFilesScanDepth": 2,
     "userFoldersScanDepth": 3,
     "recentFilesDays": 7,
-    "executableExtensions": [".exe", ".bat", ".cmd", ".ps1"],
+    "executableExtensions": [".exe", ".dll", ".bat", ".cmd", ".ps1"],
     "excludedDirectories": [
       "windows.old",
       "$recycle.bin",

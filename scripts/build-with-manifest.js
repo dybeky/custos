@@ -20,6 +20,12 @@ if (!fs.existsSync(manifest)) {
   process.exit(1);
 }
 
+// Check if icon exists
+if (!fs.existsSync(icon)) {
+  console.error(`Error: ${icon} not found.`);
+  process.exit(1);
+}
+
 // Find rcedit
 let rcedit;
 const globalRcedit = path.join(process.env.APPDATA || '', 'npm/node_modules/rcedit/bin/rcedit-x64.exe');
