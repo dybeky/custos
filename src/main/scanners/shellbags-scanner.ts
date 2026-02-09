@@ -156,10 +156,23 @@ export class ShellbagsScanner extends BaseScanner {
     }
 
     // Folder names that might be stored without full path
-    // Look for common cheat-related folder patterns
+    // Strict filtering to avoid false positives from common Windows folder names
+    const COMMON_FOLDER_NAMES = new Set([
+      'reg_binary', 'reg_sz', 'reg_dword', 'reg_expand_sz', 'reg_multi_sz', 'reg_qword',
+      'hkey_current_user', 'hkey_local_machine', 'hkey_users', 'hkey_classes_root',
+      'software', 'microsoft', 'windows', 'shell', 'bags', 'bag', 'mru', 'bagmru',
+      'desktop', 'documents', 'downloads', 'pictures', 'music', 'videos',
+      'program', 'program files', 'program files (x86)', 'programdata',
+      'users', 'user', 'public', 'default', 'appdata', 'local', 'roaming',
+      'temp', 'system32', 'syswow64', 'system', 'common', 'start menu',
+      'programs', 'startup', 'templates', 'recent', 'sendto', 'favorites',
+      'settings', 'classes', 'local settings', 'wow6432node', 'currentversion',
+      'explorer', 'internet explorer', 'node', 'version'
+    ])
     const folderNames = text.split(/[\\/\s]+/).filter(part =>
       part.length > 3 &&
-      !part.match(/^(REG_|HKEY_|Software|Microsoft|Windows|Shell|Bags?|MRU)$/i)
+      !COMMON_FOLDER_NAMES.has(part.toLowerCase()) &&
+      !part.match(/^(REG_|HKEY_)/i)
     )
     paths.push(...folderNames)
 

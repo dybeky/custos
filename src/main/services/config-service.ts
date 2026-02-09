@@ -2,6 +2,7 @@ import { readFileSync, existsSync } from 'fs'
 import { join } from 'path'
 import { app } from 'electron'
 import { z } from 'zod'
+import { logger } from './logger'
 
 // Zod schemas for validation
 const AppTimeoutsSchema = z.object({
@@ -125,11 +126,11 @@ class ConfigService {
         this.config = result.data
         return this.config
       } else {
-        console.error('Config validation failed:', result.error.format())
+        logger.error('Config validation failed:', result.error.format())
         return this.getDefaultConfig()
       }
     } catch (error) {
-      console.error('Failed to load config:', error)
+      logger.error('Failed to load config:', error)
       return this.getDefaultConfig()
     }
   }
@@ -148,11 +149,11 @@ class ConfigService {
         this.keywords = result.data
         return this.keywords
       } else {
-        console.error('Keywords validation failed:', result.error.format())
+        logger.error('Keywords validation failed:', result.error.format())
         return { patterns: [], exactMatch: [] }
       }
     } catch (error) {
-      console.error('Failed to load keywords:', error)
+      logger.error('Failed to load keywords:', error)
       return { patterns: [], exactMatch: [] }
     }
   }

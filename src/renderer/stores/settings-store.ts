@@ -2,6 +2,9 @@ import { create } from 'zustand'
 
 export type ThemeName = 'aurora' | 'mono' | 'tropical'
 
+// Module-level debounce timer — avoids storing timers in React state
+let saveDebounceTimer: ReturnType<typeof setTimeout> | null = null
+
 interface SettingsState {
   language: 'en' | 'ru'
   checkUpdatesOnStartup: boolean
@@ -11,7 +14,6 @@ interface SettingsState {
   version: string
   effectsEnabled: boolean
   theme: ThemeName
-  saveDebounceTimer: ReturnType<typeof setTimeout> | null
 
   // Actions
   setLanguage: (value: 'en' | 'ru') => void
@@ -35,7 +37,6 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   version: '2.1.0',
   effectsEnabled: true,
   theme: 'tropical' as ThemeName,
-  saveDebounceTimer: null,
 
   setLanguage: (value) => {
     set({ language: value })
@@ -97,14 +98,13 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   },
 
   saveSettings: async () => {
-    const currentState = get()
-
     // Debounce save to prevent race conditions with rapid toggles
-    if (currentState.saveDebounceTimer) {
-      clearTimeout(currentState.saveDebounceTimer)
+    if (saveDebounceTimer) {
+      clearTimeout(saveDebounceTimer)
     }
 
-    const timer = setTimeout(async () => {
+    saveDebounceTimer = setTimeout(async () => {
+      saveDebounceTimer = null
       try {
         // Get fresh state inside setTimeout to capture latest changes
         const freshState = get()
@@ -118,7 +118,5 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
         console.error('Failed to save settings:', error)
       }
     }, 100) // 100ms debounce
-
-    set({ saveDebounceTimer: timer })
   }
 }))

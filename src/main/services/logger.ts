@@ -26,6 +26,8 @@ class Logger {
   private logFilePath: string | null = null
   private hasWrittenHeader = false
   private logBuffer: string[] = []
+  private isWriting = false
+  private writeQueue: string[] = []
 
   constructor() {
     this.setupGlobalHandlers()
@@ -143,25 +145,45 @@ LOG ENTRIES:
   /**
    * Write to log file (only for critical events)
    */
-  private writeToFile(entry: string, forceWrite = false): void {
+  private writeToFile(entry: string, _forceWrite = false): void {
     if (!this.logFilePath) return
+
+    this.writeQueue.push(entry)
+    this.flushWriteQueue()
+  }
+
+  /**
+   * Flush write queue sequentially to prevent interleaved writes
+   */
+  private flushWriteQueue(): void {
+    if (this.isWriting || this.writeQueue.length === 0) return
+    this.isWriting = true
 
     try {
       // Write header on first write
       if (!this.hasWrittenHeader) {
-        writeFileSync(this.logFilePath, this.formatSystemInfo(), 'utf-8')
+        writeFileSync(this.logFilePath!, this.formatSystemInfo(), 'utf-8')
         this.hasWrittenHeader = true
 
         // Write any buffered entries
         for (const bufferedEntry of this.logBuffer) {
-          appendFileSync(this.logFilePath, bufferedEntry, 'utf-8')
+          appendFileSync(this.logFilePath!, bufferedEntry, 'utf-8')
         }
         this.logBuffer = []
       }
 
-      appendFileSync(this.logFilePath, entry, 'utf-8')
+      // Batch all queued entries into a single write
+      const batch = this.writeQueue.join('')
+      this.writeQueue = []
+      appendFileSync(this.logFilePath!, batch, 'utf-8')
     } catch (err) {
       console.error('Failed to write to log file:', err)
+    } finally {
+      this.isWriting = false
+      // If new entries were added during write, flush again
+      if (this.writeQueue.length > 0) {
+        this.flushWriteQueue()
+      }
     }
   }
 

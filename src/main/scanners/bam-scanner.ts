@@ -107,11 +107,15 @@ export class BamScanner extends BaseScanner {
       // Difference: 11644473600 seconds = 116444736000000000 * 100ns
       const FILETIME_UNIX_DIFF = BigInt(116444736000000000)
 
-      // Convert to milliseconds
-      const unixMs = Number((filetime - FILETIME_UNIX_DIFF) / BigInt(10000))
+      // Convert to milliseconds (BigInt)
+      const unixMsBig = (filetime - FILETIME_UNIX_DIFF) / BigInt(10000)
 
-      // Sanity check: must be a reasonable date (after 2000, before 2100)
-      if (unixMs < 946684800000 || unixMs > 4102444800000) return null
+      // Sanity check in BigInt domain before converting to Number (prevents Infinity/NaN)
+      const MIN_MS = BigInt(946684800000)   // 2000-01-01
+      const MAX_MS = BigInt(4102444800000)  // 2100-01-01
+      if (unixMsBig < MIN_MS || unixMsBig > MAX_MS) return null
+
+      const unixMs = Number(unixMsBig)
 
       return new Date(unixMs)
     } catch {
@@ -325,8 +329,8 @@ export class BamScanner extends BaseScanner {
       const volumeNumStr = deviceMatch[1]
       const restPath = deviceMatch[2]
 
-      // Guard against undefined capture groups
-      if (volumeNumStr && restPath !== undefined) {
+      // Guard against undefined/empty capture groups
+      if (volumeNumStr && restPath) {
         const volumeNum = parseInt(volumeNumStr, 10)
         if (!isNaN(volumeNum)) {
           const mapping = await this.getDriveMapping()

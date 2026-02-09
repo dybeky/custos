@@ -62,7 +62,7 @@ export function Scan() {
   }
 
   const totalFindings = results.reduce((sum, r) => sum + r.findings.length, 0)
-  const overallProgress = progress
+  const overallProgress = progress && scanners.length > 0
     ? (results.length / scanners.length) * 100
     : 0
 

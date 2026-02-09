@@ -1,10 +1,11 @@
 import { ipcMain, shell, app, BrowserWindow } from 'electron'
 import { IPC_CHANNELS, ScanResult, ScanProgress, UserSettings, VersionInfo, ScannerInfo, DownloadProgress, WindowsVersionInfo } from '../shared/types'
 import { logger } from './services/logger'
-import { createWriteStream, unlinkSync, existsSync } from 'fs'
+import { createWriteStream, unlinkSync, existsSync, writeFileSync } from 'fs'
 import { join } from 'path'
 import https from 'https'
 import http from 'http'
+import { exec, execFile } from 'child_process'
 import { getScannerFactory, ScannerName, BaseScanner } from './scanners'
 import { getWindowsVersion, getWindowsVersionName } from './utils/os-utils'
 import { ThrottledProgress } from './utils/progress-throttle'
@@ -157,7 +158,7 @@ export function setupIpcHandlers(mainWindow: BrowserWindow): void {
     totalScanners: number
   ): Promise<ScanResult[]> {
     const results: ScanResult[] = []
-    const executing: Promise<void>[] = []
+    const executing = new Set<Promise<void>>()
 
     for (const scanner of scanners) {
       if (scanAbortController?.signal.aborted) break
@@ -187,20 +188,16 @@ export function setupIpcHandlers(mainWindow: BrowserWindow): void {
         safeSend(IPC_CHANNELS.SCAN_RESULT, result)
       })()
 
-      executing.push(scanPromise)
+      // Self-removing: promise removes itself from the set when it settles
+      const tracked = scanPromise.then(
+        () => { executing.delete(tracked) },
+        () => { executing.delete(tracked) }
+      )
+      executing.add(tracked)
 
-      // Limit concurrency - use proper promise tracking with wrapper objects
-      if (executing.length >= concurrency) {
-        // Create wrapper promises that resolve to their original promise reference
-        const wrappers = executing.map(p =>
-          p.then(() => ({ promise: p })).catch(() => ({ promise: p }))
-        )
-        // Wait for any promise to settle and remove it by reference (not index)
-        const { promise: completedPromise } = await Promise.race(wrappers)
-        const idx = executing.indexOf(completedPromise)
-        if (idx !== -1) {
-          executing.splice(idx, 1)
-        }
+      // Limit concurrency — wait for any promise to settle before adding more
+      if (executing.size >= concurrency) {
+        await Promise.race(executing)
       }
     }
 
@@ -578,14 +575,11 @@ del "%~f0"
     const batchPath = join(tempDir, 'custos_update.bat')
 
     try {
-      const { writeFileSync } = await import('fs')
       writeFileSync(batchPath, batchContent, 'utf8')
-
-      const { exec } = await import('child_process')
 
       exec(`start "" "${batchPath}"`, { windowsHide: true }, (err) => {
         if (err) {
-          console.error('Failed to start update batch:', err)
+          logger.error('Failed to start update batch:', err)
           // Don't quit if batch failed to start
           return
         }
@@ -625,7 +619,6 @@ del "%~f0"
 
   // Open registry key - optimized for speed
   ipcMain.handle(IPC_CHANNELS.APP_OPEN_REGISTRY, (_event, keyPath: string): { success: boolean; error?: string } => {
-    const { execFile } = require('child_process')
 
     // Validate keyPath
     if (!keyPath || !/^[A-Za-z0-9\\_\-\s.()]+$/.test(keyPath)) {
@@ -675,11 +668,9 @@ if %errorlevel%==0 (
 del "${escapedPath}"
 del "%~f0"
 `
-    const { writeFileSync } = await import('fs')
     const batchPath = join(app.getPath('temp'), 'custos_cleanup.bat')
     writeFileSync(batchPath, batchContent, 'utf8')
 
-    const { exec } = await import('child_process')
     exec(`start "" "${batchPath}"`, { windowsHide: true })
 
     app.quit()

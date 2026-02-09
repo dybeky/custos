@@ -26,7 +26,8 @@ export function Dashboard() {
     try {
       const version = await window.electronAPI.getVersion()
       setAppVersion(version)
-    } catch {
+    } catch (error) {
+      console.error('Failed to load version:', error)
       setAppVersion('?.?.?')
     }
   }

@@ -90,16 +90,15 @@ const api = {
   },
 
   openExternal: (url: string): void => {
-    ipcRenderer.invoke(IPC_CHANNELS.APP_OPEN_EXTERNAL, url)
+    ipcRenderer.invoke(IPC_CHANNELS.APP_OPEN_EXTERNAL, url).catch(() => {})
   },
 
   openPath: (path: string): void => {
-    ipcRenderer.invoke(IPC_CHANNELS.APP_OPEN_PATH, path)
+    ipcRenderer.invoke(IPC_CHANNELS.APP_OPEN_PATH, path).catch(() => {})
   },
 
-  openRegistry: (keyPath: string): { success: boolean; error?: string } => {
-    ipcRenderer.invoke(IPC_CHANNELS.APP_OPEN_REGISTRY, keyPath)
-    return { success: true }
+  openRegistry: (keyPath: string): Promise<{ success: boolean; error?: string }> => {
+    return ipcRenderer.invoke(IPC_CHANNELS.APP_OPEN_REGISTRY, keyPath)
   },
 
   deleteSelf: (): Promise<void> => {
