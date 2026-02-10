@@ -119,7 +119,21 @@
     "noThreatsFound": "No threats found",
     "threatsFound": "threats found",
     "scanResults": "Scan Results",
-    "exportResults": "EXPORT RESULTS"
+    "exportResults": "EXPORT RESULTS",
+    "runScanToSee": "Run a scan to see results",
+    "noResultsYet": "No results yet"
+  },
+  "header": {
+    "allSystemsOk": "All systems OK",
+    "warningDetected": "Warning detected",
+    "errorDetected": "Error detected",
+    "disableEffects": "Disable effects",
+    "enableEffects": "Enable effects"
+  },
+  "errorBoundary": {
+    "title": "Something went wrong",
+    "message": "An unexpected error occurred. Please try reloading the application.",
+    "reload": "Reload Application"
   },
   "nav": {
     "dashboard": "Dashboard",

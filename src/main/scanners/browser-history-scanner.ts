@@ -6,6 +6,7 @@ import { randomUUID } from 'crypto'
 import initSqlJs from 'sql.js'
 import { BaseScanner, ScannerEventEmitter } from './base-scanner'
 import { ScanResult } from '../../shared/types'
+import { logger } from '../services/logger'
 
 interface BrowserProfile {
   browser: string
@@ -82,7 +83,7 @@ export class BrowserHistoryScanner extends BaseScanner {
       const code = (error as NodeJS.ErrnoException).code
       if (code !== 'ENOENT') {
         // File exists but couldn't be deleted - will be cleaned up by OS later
-        console.warn(`Failed to delete temp file ${path}: ${code}`)
+        logger.warn(`Failed to delete temp file ${path}: ${code}`)
       }
     }
   }
@@ -247,7 +248,7 @@ export class BrowserHistoryScanner extends BaseScanner {
         }
       } catch (error) {
         // Can't read directory - log for debugging
-        console.debug(`Failed to read browser profiles at ${basePath}:`, (error as Error).message)
+        logger.debug(`Failed to read browser profiles at ${basePath}:`, (error as Error).message)
       }
 
       // For Opera - it doesn't have User Data structure
@@ -321,7 +322,8 @@ export class BrowserHistoryScanner extends BaseScanner {
 
               // Add timestamp if available
               if (config.timeColumn !== undefined && row[config.timeColumn]) {
-                const time = row[config.timeColumn] as number
+                const time = row[config.timeColumn]
+                if (typeof time !== 'number' || isNaN(time)) continue
                 const date = this.convertChromeTimestamp(time)
                 if (date.getTime() > 0) {
                   entry += ` | ${this.formatDate(date)}`
@@ -334,13 +336,13 @@ export class BrowserHistoryScanner extends BaseScanner {
         }
       } catch (error) {
         // Query failed (table doesn't exist, etc.) - log for debugging
-        console.debug(`Database query failed for ${browserName}/${config.name}:`, (error as Error).message)
+        logger.debug(`Database query failed for ${browserName}/${config.name}:`, (error as Error).message)
       } finally {
         db.close()
       }
     } catch (error) {
       // Database locked or corrupted after retries - log for debugging
-      console.debug(`Failed to scan database ${dbPath}:`, (error as Error).message)
+      logger.debug(`Failed to scan database ${dbPath}:`, (error as Error).message)
     } finally {
       if (tempPath) {
         await this.safeDelete(tempPath)
@@ -393,7 +395,7 @@ export class BrowserHistoryScanner extends BaseScanner {
       }
     } catch (error) {
       // Can't read profiles directory - log for debugging
-      console.debug(`Failed to read Firefox profiles at ${profilesPath}:`, (error as Error).message)
+      logger.debug(`Failed to read Firefox profiles at ${profilesPath}:`, (error as Error).message)
     }
 
     return results
@@ -506,7 +508,7 @@ export class BrowserHistoryScanner extends BaseScanner {
       }
     } catch (error) {
       // Database locked or corrupted after retries - log for debugging
-      console.debug(`Failed to scan Firefox places at ${profilePath}:`, (error as Error).message)
+      logger.debug(`Failed to scan Firefox places at ${profilePath}:`, (error as Error).message)
     } finally {
       if (tempPath) {
         await this.safeDelete(tempPath)
@@ -568,7 +570,7 @@ export class BrowserHistoryScanner extends BaseScanner {
       }
     } catch (error) {
       // Database locked or corrupted after retries - log for debugging
-      console.debug(`Failed to scan Firefox form history at ${profilePath}:`, (error as Error).message)
+      logger.debug(`Failed to scan Firefox form history at ${profilePath}:`, (error as Error).message)
     } finally {
       if (tempPath) {
         await this.safeDelete(tempPath)

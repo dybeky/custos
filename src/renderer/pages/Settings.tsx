@@ -69,19 +69,19 @@ export function Settings() {
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-2 gap-3">
-              {themes.map((t) => (
+              {themes.map((themeItem) => (
                 <button
-                  key={t.id}
-                  onClick={() => setTheme(t.id)}
+                  key={themeItem.id}
+                  onClick={() => setTheme(themeItem.id)}
                   className={`relative p-4 rounded-xl border-2 transition-all duration-300 ${
-                    theme === t.id
+                    theme === themeItem.id
                       ? 'theme-active scale-[1.02]'
                       : 'border-border hover:border-border-hover bg-background-surface/50 hover:bg-background-elevated/50'
                   }`}
                 >
                   {/* Color preview */}
                   <div className="flex gap-1.5 mb-3 justify-center">
-                    {t.colors.map((color, i) => (
+                    {themeItem.colors.map((color, i) => (
                       <div
                         key={i}
                         className="w-5 h-5 rounded-full"
@@ -94,11 +94,11 @@ export function Settings() {
                   </div>
 
                   {/* Theme name */}
-                  <div className="text-sm font-medium text-text-primary">{t.name}</div>
-                  <div className="text-xs text-text-muted mt-0.5">{t.description}</div>
+                  <div className="text-sm font-medium text-text-primary">{themeItem.name}</div>
+                  <div className="text-xs text-text-muted mt-0.5">{themeItem.description}</div>
 
                   {/* Active indicator */}
-                  {theme === t.id && (
+                  {theme === themeItem.id && (
                     <div className="absolute top-2 right-2">
                       <svg className="w-5 h-5 theme-text-primary" fill="currentColor" viewBox="0 0 20 20">
                         <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />

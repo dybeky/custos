@@ -449,6 +449,7 @@ export function setupIpcHandlers(mainWindow: BrowserWindow): void {
           if (response.statusCode === 302 || response.statusCode === 301) {
             // Consume response data to free up memory
             response.resume()
+            request.destroy()
 
             const redirectUrl = response.headers.location
             if (redirectUrl) {
@@ -627,7 +628,7 @@ del "%~f0"
   ipcMain.handle(IPC_CHANNELS.APP_OPEN_REGISTRY, (_event, keyPath: string): { success: boolean; error?: string } => {
 
     // Validate keyPath
-    if (!keyPath || !/^[A-Za-z0-9\\_\-\s.()]+$/.test(keyPath)) {
+    if (!keyPath || !/^[A-Za-z0-9\\_\-\s.(){}]+$/.test(keyPath)) {
       return { success: false, error: 'Invalid registry key path' }
     }
 

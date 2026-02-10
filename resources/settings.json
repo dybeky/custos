@@ -137,9 +137,14 @@
     ]
   },
   "externalResources": {
+    "websitesToCheck": [
+      { "url": "https://oplata.info", "name": "Oplata.info" },
+      { "url": "https://funpay.com", "name": "FunPay.com" }
+    ],
     "telegramBots": [
       { "username": "@MelonySolutionBot", "name": "Melony Solution Bot" },
       { "username": "@UndeadSellerBot", "name": "Undead Seller Bot" }
-    ]
+    ],
+    "networkServices": ["netprofm", "NlaSvc", "Dhcp", "Dnscache"]
   }
 }

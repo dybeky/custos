@@ -1,8 +1,10 @@
 import { useEffect } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useSettingsStore } from '../../stores/settings-store'
 import { useAppHealthStore } from '../../stores/app-health-store'
 
 export function Header() {
+  const { t } = useTranslation()
   const { effectsEnabled, toggleEffects } = useSettingsStore()
   const { status, windowsVersion, isLoaded, initialize } = useAppHealthStore()
 
@@ -17,9 +19,9 @@ export function Header() {
   }
 
   const statusTitles = {
-    healthy: 'All systems OK',
-    warning: 'Warning detected',
-    error: 'Error detected'
+    healthy: t('header.allSystemsOk'),
+    warning: t('header.warningDetected'),
+    error: t('header.errorDetected')
   }
 
   const handleMinimize = () => window.electronAPI.minimize()
@@ -80,7 +82,7 @@ export function Header() {
         <button
           onClick={toggleEffects}
           className="w-8 h-8 flex items-center justify-center rounded hover:bg-white/10 active:bg-white/5 transition-colors"
-          title={effectsEnabled ? 'Disable effects' : 'Enable effects'}
+          title={effectsEnabled ? t('header.disableEffects') : t('header.enableEffects')}
         >
           {effectsEnabled ? (
             <svg className="w-4 h-4 text-text-secondary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
