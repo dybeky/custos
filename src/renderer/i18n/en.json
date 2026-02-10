@@ -17,6 +17,7 @@
     "deleteAfterUse": "Delete program after use",
     "deleteAfterUseDesc": "Automatically delete custos when you close it",
     "deleteProgramNow": "DELETE PROGRAM NOW",
+    "deleteError": "Failed to delete program",
     "back": "BACK",
     "language": "Language",
     "languageDesc": "Select interface language"

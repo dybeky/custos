@@ -41,40 +41,6 @@ export function App() {
     loadSettings()
   }, [loadSettings])
 
-  // Check for updates on startup
-  useEffect(() => {
-    if (isLoading) return
-
-    const checkForUpdates = async () => {
-      try {
-        setUpdateState('checking')
-        const info = await window.electronAPI.checkUpdate()
-        setUpdateInfo(info)
-
-        if (info.isUpdateAvailable) {
-          setUpdateState('update-required')
-        } else {
-          setUpdateState('ready')
-        }
-      } catch (err) {
-        console.error('Failed to check for updates:', err)
-        // If we can't check updates, let the user in
-        setUpdateState('ready')
-      }
-    }
-
-    checkForUpdates()
-  }, [isLoading])
-
-  // Listen for download progress
-  useEffect(() => {
-    const unsubscribe = window.electronAPI.onDownloadProgress((progress) => {
-      setDownloadProgress(progress)
-    })
-
-    return () => unsubscribe()
-  }, [])
-
   const handleUpdate = useCallback(async () => {
     if (!updateInfo?.downloadUrl) {
       setError('Download URL not available')
@@ -96,6 +62,52 @@ export function App() {
 
   const handleExit = useCallback(() => {
     window.electronAPI.quit()
+  }, [])
+
+  // Check for updates on startup
+  useEffect(() => {
+    if (isLoading) return
+
+    const { checkUpdatesOnStartup } = useSettingsStore.getState()
+
+    if (!checkUpdatesOnStartup) {
+      setUpdateState('ready')
+      return
+    }
+
+    const checkForUpdates = async () => {
+      try {
+        setUpdateState('checking')
+        const info = await window.electronAPI.checkUpdate()
+        setUpdateInfo(info)
+
+        if (info.isUpdateAvailable) {
+          setUpdateState('update-required')
+
+          const { autoDownloadUpdates } = useSettingsStore.getState()
+          if (autoDownloadUpdates && info.downloadUrl) {
+            setTimeout(() => handleUpdate(), 500)
+          }
+        } else {
+          setUpdateState('ready')
+        }
+      } catch (err) {
+        console.error('Failed to check for updates:', err)
+        // If we can't check updates, let the user in
+        setUpdateState('ready')
+      }
+    }
+
+    checkForUpdates()
+  }, [isLoading, handleUpdate])
+
+  // Listen for download progress
+  useEffect(() => {
+    const unsubscribe = window.electronAPI.onDownloadProgress((progress) => {
+      setDownloadProgress(progress)
+    })
+
+    return () => unsubscribe()
   }, [])
 
   // Loading state

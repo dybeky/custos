@@ -223,7 +223,12 @@ Get-CimInstance Win32_Process | Select-Object Name, ProcessId, ExecutablePath, C
       const char = line[i]
 
       if (char === '"') {
-        inQuotes = !inQuotes
+        if (inQuotes && i + 1 < line.length && line[i + 1] === '"') {
+          current += '"'
+          i++
+        } else {
+          inQuotes = !inQuotes
+        }
       } else if (char === ',' && !inQuotes) {
         parts.push(current.trim())
         current = ''

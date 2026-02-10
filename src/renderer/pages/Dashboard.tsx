@@ -38,7 +38,7 @@ export function Dashboard() {
       const info = await window.electronAPI.checkUpdate()
       if (info.changelog) {
         setChangelog({
-          version: info.latestVersion || appVersion,
+          version: info.latestVersion || info.currentVersion || '',
           date: info.releaseDate ? new Date(info.releaseDate).toLocaleDateString() : '',
           body: info.changelog
         })

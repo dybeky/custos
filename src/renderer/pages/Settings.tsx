@@ -41,12 +41,15 @@ export function Settings() {
   } = useSettingsStore()
 
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [deleteError, setDeleteError] = useState<string | null>(null)
 
   const handleDeleteNow = async () => {
     try {
+      setDeleteError(null)
       await window.electronAPI.deleteSelf()
     } catch (error) {
       console.error('Failed to delete:', error)
+      setDeleteError(error instanceof Error ? error.message : t('settings.deleteError'))
     }
   }
 
@@ -158,15 +161,20 @@ export function Settings() {
       {/* Delete Confirmation Modal */}
       <Modal
         isOpen={showDeleteConfirm}
-        onClose={() => setShowDeleteConfirm(false)}
+        onClose={() => { setShowDeleteConfirm(false); setDeleteError(null) }}
         title={t('confirm.confirmDeleteTitle')}
         size="sm"
       >
         <p className="text-text-secondary mb-6 whitespace-pre-line">
           {t('confirm.confirmDelete')}
         </p>
+        {deleteError && (
+          <div className="mb-4 p-3 bg-error/10 border border-error/20 rounded-xl">
+            <p className="text-error text-sm text-center">{deleteError}</p>
+          </div>
+        )}
         <div className="flex gap-3 justify-end">
-          <Button variant="secondary" onClick={() => setShowDeleteConfirm(false)}>
+          <Button variant="secondary" onClick={() => { setShowDeleteConfirm(false); setDeleteError(null) }}>
             {t('settings.back')}
           </Button>
           <Button variant="danger" onClick={handleDeleteNow}>

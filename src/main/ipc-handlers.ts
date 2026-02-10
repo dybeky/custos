@@ -598,7 +598,9 @@ del "%~f0"
 
   // Open external URL - fire and forget for speed
   ipcMain.handle(IPC_CHANNELS.APP_OPEN_EXTERNAL, (_event, url: string): void => {
-    shell.openExternal(url)
+    shell.openExternal(url).catch(err =>
+      logger.warn('Failed to open external URL', { url, error: err instanceof Error ? err.message : String(err) })
+    )
   })
 
   // Open path in explorer - fire and forget for speed
@@ -610,11 +612,15 @@ del "%~f0"
 
     // Handle special URI schemes AFTER expansion (ms-settings, windowsdefender, etc.)
     if (expandedPath.includes(':') && !expandedPath.match(/^[A-Z]:\\/i)) {
-      shell.openExternal(expandedPath)
+      shell.openExternal(expandedPath).catch(err =>
+        logger.warn('Failed to open external path', { path: expandedPath, error: err instanceof Error ? err.message : String(err) })
+      )
       return
     }
 
-    shell.openPath(expandedPath)
+    shell.openPath(expandedPath).catch(err =>
+      logger.warn('Failed to open path', { path: expandedPath, error: err instanceof Error ? err.message : String(err) })
+    )
   })
 
   // Open registry key - optimized for speed
@@ -671,9 +677,13 @@ del "%~f0"
     const batchPath = join(app.getPath('temp'), 'custos_cleanup.bat')
     writeFileSync(batchPath, batchContent, 'utf8')
 
-    exec(`start "" "${batchPath}"`, { windowsHide: true })
-
-    app.quit()
+    exec(`start "" "${batchPath}"`, { windowsHide: true }, (err) => {
+      if (err) {
+        logger.error('Failed to start cleanup batch:', err)
+        return
+      }
+      app.quit()
+    })
   })
 
   // Quit app
