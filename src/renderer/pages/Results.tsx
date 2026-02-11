@@ -1,16 +1,14 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { motion, AnimatePresence } from 'framer-motion'
+import { AnimatePresence, motion } from 'framer-motion'
 import { Card, CardContent } from '../components/ui/Card'
 import { Button } from '../components/ui/Button'
 import { useScanStore } from '../stores/scan-store'
 
 export function Results() {
   const { t } = useTranslation()
-  const { results, status } = useScanStore()
+  const { results, status, _totalFindings } = useScanStore()
   const [expandedScanner, setExpandedScanner] = useState<string | null>(null)
-
-  const totalFindings = results.reduce((sum, r) => sum + r.findings.length, 0)
   const hasResults = results.length > 0
 
   const handleExport = () => {
@@ -33,22 +31,39 @@ export function Results() {
     URL.revokeObjectURL(url)
   }
 
+  const handleExportJSON = () => {
+    const data = {
+      exportDate: new Date().toISOString(),
+      results: results.map(r => ({
+        scannerName: r.scannerName,
+        success: r.success,
+        findings: r.findings,
+        duration: r.duration,
+        hasFindings: r.hasFindings,
+        error: r.error
+      }))
+    }
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `custos-scan-${new Date().toISOString().split('T')[0]}.json`
+    a.click()
+    URL.revokeObjectURL(url)
+  }
+
   return (
     <div className="flex-1 p-6 overflow-y-auto">
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.3 }}
-      >
+      <div className="animate-fade-in">
         {/* Summary Card */}
         <Card className="mb-6">
           <CardContent>
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-4">
                 <div className={`w-16 h-16 rounded-2xl flex items-center justify-center ${
-                  totalFindings > 0 ? 'bg-error/10' : 'bg-success/10'
+                  _totalFindings > 0 ? 'bg-error/10' : 'bg-success/10'
                 }`}>
-                  {totalFindings > 0 ? (
+                  {_totalFindings > 0 ? (
                     <svg className="w-8 h-8 text-error" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                     </svg>
@@ -62,17 +77,22 @@ export function Results() {
                   <h2 className="text-xl font-bold text-text-primary">
                     {t('results.scanResults')}
                   </h2>
-                  <p className={`text-sm ${totalFindings > 0 ? 'text-error' : 'text-success'}`}>
-                    {totalFindings > 0
-                      ? `${totalFindings} ${t('results.threatsFound')}`
+                  <p className={`text-sm ${_totalFindings > 0 ? 'text-error' : 'text-success'}`}>
+                    {_totalFindings > 0
+                      ? `${_totalFindings} ${t('results.threatsFound')}`
                       : t('results.noThreatsFound')}
                   </p>
                 </div>
               </div>
               {hasResults && (
-                <Button variant="secondary" onClick={handleExport}>
-                  {t('results.exportResults')}
-                </Button>
+                <div className="flex gap-2">
+                  <Button variant="secondary" onClick={handleExport}>
+                    {t('results.exportResults')}
+                  </Button>
+                  <Button variant="secondary" onClick={handleExportJSON}>
+                    {t('results.exportJSON')}
+                  </Button>
+                </div>
               )}
             </div>
           </CardContent>
@@ -93,11 +113,10 @@ export function Results() {
         ) : (
           <div className="space-y-3">
             {results.map((result, index) => (
-              <motion.div
+              <div
                 key={result.scannerName}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.05 }}
+                className="animate-fade-in"
+                style={{ animationDelay: `${index * 50}ms` }}
               >
                 <Card
                   className="cursor-pointer hover:border-border-hover transition-colors"
@@ -160,11 +179,11 @@ export function Results() {
                     </AnimatePresence>
                   </CardContent>
                 </Card>
-              </motion.div>
+              </div>
             ))}
           </div>
         )}
-      </motion.div>
+      </div>
     </div>
   )
 }

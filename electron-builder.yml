@@ -11,23 +11,19 @@ electronLanguages:
 files:
   - out/**/*
   - resources/**/*
+  - "!node_modules/**/*.md"
+  - "!node_modules/**/*.txt"
+  - "!node_modules/**/test/**"
+  - "!node_modules/**/docs/**"
 
 win:
   target:
-    - target: nsis
-      arch:
-        - x64
     - target: portable
       arch:
         - x64
   icon: resources/icon.ico
-
-nsis:
-  oneClick: false
-  allowToChangeInstallationDirectory: true
-  deleteAppDataOnUninstall: true
-  createDesktopShortcut: true
-  createStartMenuShortcut: true
+  requestedExecutionLevel: requireAdministrator
+  signAndEditExecutable: false
 
 portable:
   artifactName: custos.exe
@@ -39,5 +35,5 @@ extraResources:
 
 publish:
   provider: github
-  owner: cobra
+  owner: dybeky
   repo: custos

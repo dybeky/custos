@@ -9,8 +9,6 @@ interface DnsCacheEntry {
   ttl: number
 }
 
-const MIN_CACHE_ENTRIES_THRESHOLD = 5
-
 export class DnsCacheScanner extends BaseScanner {
   readonly name = 'DNS Cache Scanner'
   readonly description = 'Scanning Windows DNS cache for suspicious domain resolutions'
@@ -52,13 +50,6 @@ export class DnsCacheScanner extends BaseScanner {
       }
 
       const entries = this.parseDnsOutput(output)
-
-      // Detect suspiciously empty cache (may indicate recent ipconfig /flushdns)
-      if (entries.length < MIN_CACHE_ENTRIES_THRESHOLD && output.trim().length > 0) {
-        results.push(
-          `[DNS Cache] Warning: Suspiciously empty DNS cache (${entries.length} entries) — possible recent flush`
-        )
-      }
 
       if (events?.onProgress) {
         events.onProgress({

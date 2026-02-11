@@ -32,6 +32,8 @@ export interface UserSettings {
   checkUpdatesOnStartup: boolean
   autoDownloadUpdates: boolean
   deleteAfterUse: boolean
+  theme: 'aurora' | 'mono' | 'tropical'
+  disableHardwareAcceleration: boolean
 }
 
 // Update types

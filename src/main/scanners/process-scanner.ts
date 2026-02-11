@@ -81,20 +81,14 @@ export class ProcessScanner extends BaseScanner {
   private static readonly BUFFER_SIZE = 30 * 1024 * 1024 // 30MB
 
   private async getProcessList(): Promise<ProcessInfo[]> {
-    // Try WMIC first (fast and reliable, doesn't hang like PowerShell)
-    const wmicProcesses = await this.getProcessListWmic()
-    if (wmicProcesses.length > 0) {
-      return wmicProcesses
+    // Primary: PowerShell (provides ExecutablePath + CommandLine for keyword matching)
+    const psProcesses = await this.getProcessListPowerShell()
+    if (psProcesses.length > 0) {
+      return psProcesses
     }
 
-    // Fallback to tasklist (basic but fast)
-    const tasklistProcesses = await this.getProcessListTasklist()
-    if (tasklistProcesses.length > 0) {
-      return tasklistProcesses
-    }
-
-    // Last resort: PowerShell (can hang on some systems)
-    return this.getProcessListPowerShell()
+    // Fallback: tasklist (fast, but only provides process name — no path/cmdline)
+    return this.getProcessListTasklist()
   }
 
   private async getProcessListPowerShell(): Promise<ProcessInfo[]> {
@@ -138,52 +132,6 @@ Get-CimInstance Win32_Process | Select-Object Name, ProcessId, ExecutablePath, C
     return processes
   }
 
-  private async getProcessListWmic(): Promise<ProcessInfo[]> {
-    const processes: ProcessInfo[] = []
-
-    try {
-      // WMIC is deprecated but still works
-      const output = await asyncExec(
-        'wmic process get Name,ProcessId,ExecutablePath,CommandLine /FORMAT:CSV 2>nul',
-        {
-          maxBuffer: ProcessScanner.BUFFER_SIZE,
-          timeout: 30000
-        }
-      )
-
-      const lines = output.split('\n')
-      let headerPassed = false
-
-      for (const line of lines) {
-        const trimmed = line.trim()
-        if (!trimmed) continue
-
-        if (!headerPassed) {
-          headerPassed = true
-          continue
-        }
-
-        const parts = this.parseWmicCsvLine(trimmed)
-        if (parts.length >= 5) {
-          const name = parts[3] || ''
-          const pid = parseInt(parts[4], 10)
-          if (name && !isNaN(pid)) {
-            processes.push({
-              name,
-              pid,
-              executablePath: parts[2] || '',
-              commandLine: parts[1] || ''
-            })
-          }
-        }
-      }
-    } catch {
-      // WMIC failed
-    }
-
-    return processes
-  }
-
   private async getProcessListTasklist(): Promise<ProcessInfo[]> {
     const processes: ProcessInfo[] = []
 
@@ -214,30 +162,4 @@ Get-CimInstance Win32_Process | Select-Object Name, ProcessId, ExecutablePath, C
     return processes
   }
 
-  private parseWmicCsvLine(line: string): string[] {
-    const parts: string[] = []
-    let current = ''
-    let inQuotes = false
-
-    for (let i = 0; i < line.length; i++) {
-      const char = line[i]
-
-      if (char === '"') {
-        if (inQuotes && i + 1 < line.length && line[i + 1] === '"') {
-          current += '"'
-          i++
-        } else {
-          inQuotes = !inQuotes
-        }
-      } else if (char === ',' && !inQuotes) {
-        parts.push(current.trim())
-        current = ''
-      } else {
-        current += char
-      }
-    }
-
-    parts.push(current.trim())
-    return parts
-  }
 }

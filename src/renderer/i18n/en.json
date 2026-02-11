@@ -20,7 +20,10 @@
     "deleteError": "Failed to delete program",
     "back": "BACK",
     "language": "Language",
-    "languageDesc": "Select interface language"
+    "languageDesc": "Select interface language",
+    "performance": "Performance",
+    "disableHardwareAcceleration": "Disable hardware acceleration",
+    "disableHardwareAccelerationDesc": "May fix rendering issues on some systems. Requires restart."
   },
   "update": {
     "available": "Update Available",
@@ -103,6 +106,7 @@
     "initializing": "Initializing...",
     "loadingVersion": "Loading version...",
     "skip": "SKIP",
+    "skipUpdate": "Skip update check",
     "downloading": "Downloading update...",
     "installing": "Installing update..."
   },
@@ -120,6 +124,7 @@
     "threatsFound": "threats found",
     "scanResults": "Scan Results",
     "exportResults": "EXPORT RESULTS",
+    "exportJSON": "EXPORT JSON",
     "runScanToSee": "Run a scan to see results",
     "noResultsYet": "No results yet"
   },
@@ -133,7 +138,8 @@
   "errorBoundary": {
     "title": "Something went wrong",
     "message": "An unexpected error occurred. Please try reloading the application.",
-    "reload": "Reload Application"
+    "reload": "Reload Application",
+    "continue": "Continue"
   },
   "nav": {
     "dashboard": "Dashboard",

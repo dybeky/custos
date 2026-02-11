@@ -4,6 +4,7 @@ import i18next from 'i18next'
 interface Props {
   children: ReactNode
   fallback?: ReactNode
+  onReset?: () => void
 }
 
 interface State {
@@ -27,6 +28,11 @@ export class ErrorBoundary extends Component<Props, State> {
 
   handleReload = (): void => {
     window.location.reload()
+  }
+
+  handleContinue = (): void => {
+    this.setState({ hasError: false, error: null })
+    this.props.onReset?.()
   }
 
   render(): ReactNode {
@@ -60,12 +66,22 @@ export class ErrorBoundary extends Component<Props, State> {
               </div>
             )}
 
-            <button
-              onClick={this.handleReload}
-              className="w-full py-3 px-4 theme-primary-btn font-medium rounded-xl transition-colors"
-            >
-              {i18next.t('errorBoundary.reload')}
-            </button>
+            <div className="flex gap-3">
+              {this.props.onReset && (
+                <button
+                  onClick={this.handleContinue}
+                  className="flex-1 py-3 px-4 bg-background-elevated hover:bg-white/10 text-text-secondary rounded-xl transition-colors font-medium"
+                >
+                  {i18next.t('errorBoundary.continue')}
+                </button>
+              )}
+              <button
+                onClick={this.handleReload}
+                className="flex-1 py-3 px-4 theme-primary-btn font-medium rounded-xl transition-colors"
+              >
+                {i18next.t('errorBoundary.reload')}
+              </button>
+            </div>
           </div>
         </div>
       )

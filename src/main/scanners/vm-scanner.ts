@@ -31,11 +31,6 @@ const VM_GUEST_DRIVERS: Record<string, string[]> = {
     'C:\\Windows\\System32\\VBoxControl.exe',
     'C:\\Windows\\System32\\VBoxTray.exe'
   ],
-  'Hyper-V': [
-    'C:\\Windows\\System32\\drivers\\vmbus.sys',
-    'C:\\Windows\\System32\\drivers\\VMBusHID.sys',
-    'C:\\Windows\\System32\\drivers\\storvsc.sys'
-  ],
   'QEMU/KVM': [
     'C:\\Windows\\System32\\drivers\\vioscsi.sys',
     'C:\\Windows\\System32\\drivers\\viostor.sys',
@@ -82,7 +77,6 @@ const VM_GUEST_REGISTRY: Record<string, string[]> = {
 const VM_GUEST_SERVICES: Record<string, string[]> = {
   VMware: ['VMTools'],
   VirtualBox: ['VBoxService', 'VBoxGuest'],
-  'Hyper-V': ['vmicheartbeat', 'vmicvss', 'vmicshutdown'],
   'QEMU/KVM': ['QEMU-GA', 'qemu-guest-agent'],
   Parallels: ['prl_tools_service'],
   Sandboxie: ['SbieSvc'],
@@ -218,15 +212,15 @@ export class VMScanner extends BaseScanner {
     // Check computer system manufacturer and model - MOST RELIABLE
     try {
       const csOutput = await asyncExec(
-        'wmic computersystem get Manufacturer,Model /FORMAT:LIST 2>nul',
+        'powershell -NoProfile -Command "Get-CimInstance Win32_ComputerSystem | Select-Object Manufacturer,Model | Format-List"',
         { timeout: VMScanner.EXEC_TIMEOUT }
       )
 
       for (const [vmName, indicators] of Object.entries(WMI_VM_INDICATORS)) {
         for (const indicator of indicators) {
           if (csOutput.toLowerCase().includes(indicator.toLowerCase()) && !detectedVMs.has(vmName)) {
-            const manufacturerMatch = csOutput.match(/Manufacturer=(.+)/i)
-            const modelMatch = csOutput.match(/Model=(.+)/i)
+            const manufacturerMatch = csOutput.match(/Manufacturer\s*[:=]\s*(.+)/i)
+            const modelMatch = csOutput.match(/Model\s*[:=]\s*(.+)/i)
             const value = manufacturerMatch?.[1]?.trim() || modelMatch?.[1]?.trim() || indicator
 
             findings.push({
@@ -247,7 +241,7 @@ export class VMScanner extends BaseScanner {
     // Check BIOS
     try {
       const biosOutput = await asyncExec(
-        'wmic bios get Manufacturer,SerialNumber /FORMAT:LIST 2>nul',
+        'powershell -NoProfile -Command "Get-CimInstance Win32_BIOS | Select-Object Manufacturer,SerialNumber | Format-List"',
         { timeout: VMScanner.EXEC_TIMEOUT }
       )
 
@@ -273,7 +267,7 @@ export class VMScanner extends BaseScanner {
     // Check disk drive model
     try {
       const diskOutput = await asyncExec(
-        'wmic diskdrive get Model /FORMAT:LIST 2>nul',
+        'powershell -NoProfile -Command "Get-CimInstance Win32_DiskDrive | Select-Object Model | Format-List"',
         { timeout: VMScanner.EXEC_TIMEOUT }
       )
 
@@ -310,7 +304,7 @@ export class VMScanner extends BaseScanner {
 
       if (!output.trim()) {
         output = await asyncExec(
-          'wmic nic get MACAddress /FORMAT:CSV 2>nul',
+          'powershell -NoProfile -Command "Get-CimInstance Win32_NetworkAdapter | Where-Object { $_.MACAddress } | Select-Object -ExpandProperty MACAddress"',
           { timeout: VMScanner.EXEC_TIMEOUT }
         )
       }
@@ -488,7 +482,7 @@ export class VMScanner extends BaseScanner {
 
     try {
       const output = await asyncExec(
-        'wmic path Win32_PnPEntity get DeviceID /FORMAT:CSV 2>nul',
+        'powershell -NoProfile -Command "Get-CimInstance Win32_PnPEntity | Select-Object -ExpandProperty DeviceID"',
         { timeout: VMScanner.EXEC_TIMEOUT, maxBuffer: VMScanner.BUFFER_SIZE }
       )
 

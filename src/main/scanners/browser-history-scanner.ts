@@ -43,8 +43,8 @@ export class BrowserHistoryScanner extends BaseScanner {
   readonly description = 'Deep search of browser history and caches by keywords'
 
   // Retry configuration for locked databases
-  private static readonly MAX_RETRIES = 3
-  private static readonly INITIAL_DELAY_MS = 100
+  private static readonly MAX_RETRIES = 4
+  private static readonly INITIAL_DELAY_MS = 200
 
   /**
    * Copy file with exponential backoff retry (for locked browser databases)

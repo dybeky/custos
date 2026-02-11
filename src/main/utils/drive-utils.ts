@@ -7,7 +7,7 @@ let cacheTimestamp = 0
 const CACHE_TTL_MS = 30000
 
 /**
- * Get all available drives on the system using wmic
+ * Get all available drives on the system using PowerShell (with fsutil fallback)
  * Returns array like ['C:', 'D:', 'E:']
  * Results are cached for 30 seconds for performance
  */
@@ -20,34 +20,28 @@ export async function getAvailableDrives(): Promise<string[]> {
   const drives: string[] = []
 
   try {
-    // Use wmic to get all logical disks (DriveType 3 = Local Disk, 2 = Removable)
+    // Use PowerShell Get-CimInstance (wmic is removed from Win11 24H2+ clean installs)
+    const psScript = `Get-CimInstance Win32_LogicalDisk -Filter "DriveType=2 or DriveType=3" | Select-Object -ExpandProperty DeviceID`
+    const encoded = Buffer.from(psScript, 'utf16le').toString('base64')
     const output = await asyncExec(
-      'wmic logicaldisk where "DriveType=2 or DriveType=3" get DeviceID /format:csv',
+      `powershell -NoProfile -ExecutionPolicy Bypass -EncodedCommand ${encoded}`,
       { timeout: 5000 }
     )
 
-    // Parse CSV output: Node,DeviceID
     const lines = output.split('\n')
     for (const line of lines) {
       const trimmed = line.trim()
-      if (!trimmed || trimmed.startsWith('Node')) continue
-
-      const parts = trimmed.split(',')
-      if (parts.length >= 2) {
-        const deviceId = parts[1]?.trim()
-        // Validate drive letter format (e.g., "C:")
-        if (deviceId && /^[A-Z]:$/i.test(deviceId)) {
-          drives.push(deviceId.toUpperCase())
-        }
+      if (trimmed && /^[A-Z]:$/i.test(trimmed)) {
+        drives.push(trimmed.toUpperCase())
       }
     }
   } catch (error) {
-    logger.debug('wmic drive detection failed, using fallback', {
+    logger.debug('PowerShell drive detection failed, using fallback', {
       error: error instanceof Error ? error.message : 'Unknown error'
     })
   }
 
-  // Fallback: if wmic failed, check common drive letters
+  // Fallback: if PowerShell failed, try fsutil
   if (drives.length === 0) {
     drives.push(...(await getFallbackDrives()))
   }
@@ -74,21 +68,18 @@ export async function getAvailableDrives(): Promise<string[]> {
 }
 
 /**
- * Fallback drive detection using fsutil (if wmic fails)
+ * Fallback drive detection using fsutil (if PowerShell fails)
  */
 async function getFallbackDrives(): Promise<string[]> {
   const drives: string[] = []
 
   try {
-    // Try fsutil as fallback
+    // Try fsutil as fallback — extract drive letters directly (locale-independent)
+    // Output varies by locale: "Drives: C:\ D:\" (EN), "Laufwerke: C:\ D:\" (DE), etc.
     const output = await asyncExec('fsutil fsinfo drives', { timeout: 5000 })
-    // Output format: "Drives: C:\ D:\ E:\"
-    const match = output.match(/Drives:\s*(.+)/i)
-    if (match) {
-      const driveLetters = match[1].match(/[A-Z]:/gi)
-      if (driveLetters) {
-        drives.push(...driveLetters.map(d => d.toUpperCase()))
-      }
+    const driveLetters = output.match(/[A-Z]:\\/gi)
+    if (driveLetters) {
+      drives.push(...driveLetters.map(d => d.slice(0, 2).toUpperCase()))
     }
   } catch {
     // fsutil also failed, return common defaults

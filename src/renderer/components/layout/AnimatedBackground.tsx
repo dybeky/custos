@@ -1,5 +1,6 @@
 import { motion } from 'framer-motion'
 import { useSettingsStore, ThemeName } from '../../stores/settings-store'
+import { useScanStore } from '../../stores/scan-store'
 
 // Theme configurations
 const themeConfigs: Record<ThemeName, {
@@ -45,13 +46,17 @@ const particles = Array.from({ length: 30 }, (_, i) => ({
 
 export function AnimatedBackground() {
   const { effectsEnabled, theme } = useSettingsStore()
+  const scanStatus = useScanStore(state => state.status)
   const config = themeConfigs[theme]
+
+  // During scanning, render only a static gradient to save CPU/GPU
+  const isScanning = scanStatus === 'scanning'
 
   return (
     <div className="fixed inset-0 overflow-hidden pointer-events-none z-0">
       {/* Animated gradient background */}
       <div
-        className="absolute inset-0 opacity-30 animate-gradient-bg"
+        className={`absolute inset-0 opacity-30 ${isScanning ? '' : 'animate-gradient-bg'}`}
         style={{
           background: config.gradient,
           backgroundSize: '400% 400%',
@@ -61,7 +66,7 @@ export function AnimatedBackground() {
       {/* Blob 1 */}
       <div
         className={`absolute w-[600px] h-[600px] rounded-full opacity-20 blur-[120px] ${
-          theme === 'mono' ? 'mono-fade' : 'animate-blob-1'
+          isScanning ? '' : theme === 'mono' ? 'mono-fade' : 'animate-blob-1'
         }`}
         style={{
           background: `radial-gradient(circle, ${config.blob1} 0%, transparent 70%)`,
@@ -73,7 +78,7 @@ export function AnimatedBackground() {
       {/* Blob 2 */}
       <div
         className={`absolute w-[500px] h-[500px] rounded-full opacity-20 blur-[100px] ${
-          theme === 'mono' ? 'mono-pulse' : 'animate-blob-2'
+          isScanning ? '' : theme === 'mono' ? 'mono-pulse' : 'animate-blob-2'
         }`}
         style={{
           background: `radial-gradient(circle, ${config.blob2} 0%, transparent 70%)`,
@@ -85,7 +90,7 @@ export function AnimatedBackground() {
       {/* Blob 3 */}
       <div
         className={`absolute w-[400px] h-[400px] rounded-full opacity-15 blur-[80px] ${
-          theme === 'mono' ? 'mono-fade' : 'animate-blob-3'
+          isScanning ? '' : theme === 'mono' ? 'mono-fade' : 'animate-blob-3'
         }`}
         style={{
           background: `radial-gradient(circle, ${config.blob1} 0%, transparent 70%)`,
@@ -98,7 +103,7 @@ export function AnimatedBackground() {
       {/* Blob 4 */}
       <div
         className={`absolute w-[350px] h-[350px] rounded-full opacity-15 blur-[90px] ${
-          theme === 'mono' ? 'mono-pulse' : 'animate-blob-4'
+          isScanning ? '' : theme === 'mono' ? 'mono-pulse' : 'animate-blob-4'
         }`}
         style={{
           background: `radial-gradient(circle, ${config.blob2} 0%, transparent 70%)`,
@@ -108,8 +113,8 @@ export function AnimatedBackground() {
         }}
       />
 
-      {/* Floating particles */}
-      {effectsEnabled && (
+      {/* Floating particles - disabled during scanning */}
+      {effectsEnabled && !isScanning && (
         <div className="absolute inset-0">
           {particles.map((particle) => (
             <motion.div

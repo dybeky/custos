@@ -1,6 +1,7 @@
 import { KeywordMatcher } from '../services/keyword-matcher'
 import { configService, AppConfig, ScanSettings, RegistrySettings } from '../services/config-service'
 import { ScannerInfo } from '../../shared/types'
+import initSqlJs from 'sql.js'
 
 import { BaseScanner } from './base-scanner'
 import { AppDataScanner } from './appdata-scanner'
@@ -52,6 +53,9 @@ export class ScannerFactory {
     this.registrySettings = this.config.registry
 
     this.initializeScanners()
+
+    // Pre-warm sql.js WASM module for browser scanner cold start
+    initSqlJs().catch(() => {})
   }
 
   private initializeScanners(): void {

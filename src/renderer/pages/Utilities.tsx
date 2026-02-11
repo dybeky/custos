@@ -1,5 +1,4 @@
 import { useTranslation } from 'react-i18next'
-import { motion } from 'framer-motion'
 import { Card, CardContent } from '../components/ui/Card'
 import { Button } from '../components/ui/Button'
 
@@ -52,11 +51,7 @@ export function Utilities() {
 
   return (
     <div className="flex-1 p-6 overflow-y-auto">
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.3 }}
-      >
+      <div className="animate-fade-in">
         {/* Header */}
         <div className="mb-6">
           <h1 className="text-2xl font-bold text-text-primary">{t('utilities.title')}</h1>
@@ -66,11 +61,10 @@ export function Utilities() {
         {/* Utilities Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {utilities.map((utility, index) => (
-            <motion.div
+            <div
               key={utility.name}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: index * 0.1 }}
+              className="animate-fade-in"
+              style={{ animationDelay: `${index * 100}ms` }}
             >
               <Card className="h-full">
                 <CardContent>
@@ -96,11 +90,11 @@ export function Utilities() {
                   </div>
                 </CardContent>
               </Card>
-            </motion.div>
+            </div>
           ))}
         </div>
 
-      </motion.div>
+      </div>
     </div>
   )
 }

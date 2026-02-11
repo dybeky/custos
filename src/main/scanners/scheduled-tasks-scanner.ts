@@ -143,8 +143,8 @@ export class ScheduledTasksScanner extends BaseScanner {
       const status = fields[3]
       const taskToRun = fields[8]
 
-      // Skip empty rows and header remnants
-      if (!taskName || taskName === 'TaskName') continue
+      // Skip empty rows and header remnants (locale-independent: all real task names start with '\')
+      if (!taskName || !taskName.startsWith('\\')) continue
 
       tasks.push({ taskName, taskToRun: taskToRun || '', status: status || '' })
     }

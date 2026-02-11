@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useRef } from 'react'
 import { HashRouter, Routes, Route } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { AnimatedBackground } from './components/layout/AnimatedBackground'
@@ -37,36 +37,48 @@ export function App() {
   const [downloadProgress, setDownloadProgress] = useState<DownloadProgress | null>(null)
   const [error, setError] = useState<string | null>(null)
 
+  // Refs to break dependency cycles
+  const hasCheckedRef = useRef(false)
+  const updateInfoRef = useRef<VersionInfo | null>(null)
+
   useEffect(() => {
     loadSettings()
   }, [loadSettings])
 
+  // Keep ref in sync with state
+  useEffect(() => {
+    updateInfoRef.current = updateInfo
+  }, [updateInfo])
+
   const handleUpdate = useCallback(async () => {
-    if (!updateInfo?.downloadUrl) {
+    const info = updateInfoRef.current
+    if (!info?.downloadUrl) {
       setError('Download URL not available')
       setUpdateState('error')
       return
     }
 
     try {
-      setError(null) // Clear previous error
+      setError(null)
       setUpdateState('downloading')
-      setDownloadProgress({ percent: 0, transferred: 0, total: updateInfo.fileSize || 0, speed: 0 })
-      await window.electronAPI.downloadUpdate(updateInfo.downloadUrl)
+      setDownloadProgress({ percent: 0, transferred: 0, total: info.fileSize || 0, speed: 0 })
+      await window.electronAPI.downloadUpdate(info.downloadUrl)
     } catch (err) {
       console.error('Download failed:', err)
       setError(err instanceof Error ? err.message : 'Download failed')
       setUpdateState('error')
     }
-  }, [updateInfo])
+  }, [])
 
   const handleExit = useCallback(() => {
     window.electronAPI.quit()
   }, [])
 
-  // Check for updates on startup
+  // Check for updates on startup (runs once)
   useEffect(() => {
     if (isLoading) return
+    if (hasCheckedRef.current) return
+    hasCheckedRef.current = true
 
     const { checkUpdatesOnStartup } = useSettingsStore.getState()
 
@@ -75,10 +87,14 @@ export function App() {
       return
     }
 
+    // Safety timeout: if update check takes >10s, let user in
+    const safetyTimeout = setTimeout(() => setUpdateState('ready'), 10000)
+
     const checkForUpdates = async () => {
       try {
         setUpdateState('checking')
         const info = await window.electronAPI.checkUpdate()
+        clearTimeout(safetyTimeout)
         setUpdateInfo(info)
 
         if (info.isUpdateAvailable) {
@@ -86,19 +102,23 @@ export function App() {
 
           const { autoDownloadUpdates } = useSettingsStore.getState()
           if (autoDownloadUpdates && info.downloadUrl) {
+            // Set ref immediately so handleUpdate can read it
+            updateInfoRef.current = info
             setTimeout(() => handleUpdate(), 500)
           }
         } else {
           setUpdateState('ready')
         }
       } catch (err) {
+        clearTimeout(safetyTimeout)
         console.error('Failed to check for updates:', err)
-        // If we can't check updates, let the user in
         setUpdateState('ready')
       }
     }
 
     checkForUpdates()
+
+    return () => clearTimeout(safetyTimeout)
   }, [isLoading, handleUpdate])
 
   // Listen for download progress
@@ -113,6 +133,7 @@ export function App() {
   // Loading state
   if (isLoading || updateState === 'checking') {
     return (
+      <ErrorBoundary onReset={() => setUpdateState('ready')}>
       <div className="h-screen w-screen bg-background flex items-center justify-center">
         <AnimatedBackground />
         <div className="text-center relative z-10">
@@ -131,14 +152,22 @@ export function App() {
           </span>
           <div className="w-8 h-8 border-2 border-aurora-purple border-t-transparent rounded-full animate-spin mx-auto mb-4" />
           <p className="text-text-secondary text-sm">{t('startup.checkingForUpdates')}</p>
+          <button
+            onClick={() => setUpdateState('ready')}
+            className="mt-4 text-xs text-text-muted hover:text-text-secondary transition-colors"
+          >
+            {t('startup.skip')}
+          </button>
         </div>
       </div>
+      </ErrorBoundary>
     )
   }
 
   // Update required modal (blocking)
   if (updateState === 'update-required' || updateState === 'downloading' || updateState === 'error') {
     return (
+      <ErrorBoundary onReset={() => setUpdateState('ready')}>
       <div className="h-screen w-screen bg-background flex items-center justify-center">
         <AnimatedBackground />
         <div className="bg-background-surface/90 backdrop-blur-xl border border-border rounded-2xl p-8 max-w-md w-full mx-4 shadow-2xl relative z-10">
@@ -213,8 +242,17 @@ export function App() {
               </button>
             )}
           </div>
+          {updateState !== 'downloading' && (
+            <button
+              onClick={() => setUpdateState('ready')}
+              className="w-full mt-3 text-xs text-text-muted hover:text-text-secondary transition-colors"
+            >
+              {t('startup.skipUpdate')}
+            </button>
+          )}
         </div>
       </div>
+      </ErrorBoundary>
     )
   }
 

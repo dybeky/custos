@@ -1,8 +1,30 @@
 import { app, shell, BrowserWindow } from 'electron'
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
-import { setupIpcHandlers } from './ipc-handlers'
+import { setupIpcHandlers, createCleanupBatch } from './ipc-handlers'
 import { logger } from './services/logger'
+import Store from 'electron-store'
+
+// Catch unhandled errors to prevent silent crashes
+process.on('uncaughtException', (err) => {
+  console.error('Uncaught exception:', err)
+})
+process.on('unhandledRejection', (err) => {
+  console.error('Unhandled rejection:', err)
+})
+
+// Read settings from electron-store before app is ready
+const themeColors = { aurora: '#320d40', mono: '#1a1a1a', tropical: '#0a0a0f' } as const
+const appStore = new Store<{ settings: { theme: string; disableHardwareAcceleration: boolean } }>({
+  defaults: { settings: { theme: 'tropical', disableHardwareAcceleration: false } }
+})
+const savedTheme = appStore.get('settings.theme') as keyof typeof themeColors
+const bgColor = themeColors[savedTheme] || themeColors.tropical
+
+// Disable GPU acceleration if user requested (must be called before app.whenReady)
+if (appStore.get('settings.disableHardwareAcceleration')) {
+  app.disableHardwareAcceleration()
+}
 
 let mainWindow: BrowserWindow | null = null
 
@@ -15,7 +37,7 @@ function createWindow(): void {
     show: false,
     frame: false,
     titleBarStyle: 'hidden',
-    backgroundColor: '#0a0a0f',
+    backgroundColor: bgColor,
     icon: join(__dirname, '../../resources/icon.ico'),
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
@@ -69,6 +91,13 @@ app.whenReady().then(() => {
 
 app.on('window-all-closed', () => {
   logger.logShutdown()
+
+  // If deleteAfterUse is enabled, schedule cleanup before quitting
+  const settings = appStore.get('settings') as { deleteAfterUse?: boolean } | undefined
+  if (settings?.deleteAfterUse) {
+    createCleanupBatch(app.getPath('exe'))
+  }
+
   app.quit()
 })
 

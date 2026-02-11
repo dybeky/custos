@@ -54,52 +54,5 @@
     "typescript": "^5.3.3",
     "vite": "^6.0.0",
     "vitest": "^3.0.0"
-  },
-  "build": {
-    "appId": "com.cobra.custos",
-    "productName": "Custos",
-    "directories": {
-      "output": "release"
-    },
-    "files": [
-      "out/**/*",
-      "resources/**/*",
-      "!node_modules/**/*.md",
-      "!node_modules/**/*.txt",
-      "!node_modules/**/test/**",
-      "!node_modules/**/docs/**"
-    ],
-    "electronLanguages": [
-      "en",
-      "ru"
-    ],
-    "win": {
-      "target": [
-        {
-          "target": "portable",
-          "arch": [
-            "x64"
-          ]
-        }
-      ],
-      "icon": "resources/icon.ico",
-      "requestedExecutionLevel": "requireAdministrator",
-      "signAndEditExecutable": false
-    },
-    "nsis": {
-      "oneClick": false,
-      "allowToChangeInstallationDirectory": true,
-      "deleteAppDataOnUninstall": true
-    },
-    "portable": {
-      "artifactName": "custos.exe",
-      "requestExecutionLevel": "admin"
-    },
-    "extraResources": [
-      {
-        "from": "resources",
-        "to": "resources"
-      }
-    ]
   }
 }

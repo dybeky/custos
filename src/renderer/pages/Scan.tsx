@@ -12,6 +12,7 @@ export function Scan() {
     progress,
     results,
     scanners,
+    _totalFindings,
     setStatus,
     setProgress,
     addResult,
@@ -61,7 +62,6 @@ export function Scan() {
     setStatus('idle')
   }
 
-  const totalFindings = results.reduce((sum, r) => sum + r.findings.length, 0)
   const overallProgress = progress && scanners.length > 0
     ? (results.length / scanners.length) * 100
     : 0
@@ -83,13 +83,13 @@ export function Scan() {
                 />
               ) : (
                 <div className={`w-full h-full rounded-full flex items-center justify-center ${
-                  status === 'completed' && totalFindings > 0
+                  status === 'completed' && _totalFindings > 0
                     ? 'bg-error/10'
                     : status === 'completed'
                     ? 'bg-success/10'
                     : 'theme-active'
                 }`}>
-                  {status === 'completed' && totalFindings > 0 ? (
+                  {status === 'completed' && _totalFindings > 0 ? (
                     <svg className="w-16 h-16 text-error" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                     </svg>
@@ -126,7 +126,7 @@ export function Scan() {
               {status === 'scanning' && progress
                 ? progress.currentPath
                 : status === 'completed'
-                ? `${totalFindings} ${t('scan.found')}`
+                ? `${_totalFindings} ${t('scan.found')}`
                 : `${scanners.length} ${t('scan.scannersReady')}`}
             </p>
 

@@ -7,7 +7,7 @@ import https from 'https'
 import http from 'http'
 import { exec, execFile } from 'child_process'
 import { getScannerFactory, ScannerName, BaseScanner } from './scanners'
-import { getWindowsVersion, getWindowsVersionName } from './utils/os-utils'
+import { getWindowsVersion, getWindowsVersionName, getTimeoutMultiplier } from './utils/os-utils'
 import { ThrottledProgress } from './utils/progress-throttle'
 import Store from 'electron-store'
 import { z } from 'zod'
@@ -17,7 +17,9 @@ const UserSettingsPartialSchema = z.object({
   language: z.enum(['en', 'ru']).optional(),
   checkUpdatesOnStartup: z.boolean().optional(),
   autoDownloadUpdates: z.boolean().optional(),
-  deleteAfterUse: z.boolean().optional()
+  deleteAfterUse: z.boolean().optional(),
+  theme: z.enum(['aurora', 'mono', 'tropical']).optional(),
+  disableHardwareAcceleration: z.boolean().optional()
 }).strict()
 
 // Settings store
@@ -27,10 +29,16 @@ const store = new Store<{ settings: UserSettings }>({
       language: 'en',
       checkUpdatesOnStartup: true,
       autoDownloadUpdates: false,
-      deleteAfterUse: false
+      deleteAfterUse: false,
+      theme: 'tropical',
+      disableHardwareAcceleration: false
     }
   }
 })
+
+// Update check cache to prevent duplicate GitHub API calls
+let updateCache: { data: VersionInfo; timestamp: number } | null = null
+const UPDATE_CACHE_TTL = 5 * 60 * 1000 // 5 minutes
 
 let isScanning = false
 let scanAbortController: AbortController | null = null
@@ -80,6 +88,33 @@ function isNewerVersion(latest: string, current: string): boolean {
   return false
 }
 
+/**
+ * Creates and launches a cleanup batch file that deletes the exe after app closes.
+ * Used by both "delete now" and "delete after use" features.
+ */
+export function createCleanupBatch(exePath: string): void {
+  const escapedPath = escapeBatchPath(exePath)
+
+  const batchContent = `@echo off
+:loop
+tasklist /FI "IMAGENAME eq Custos.exe" 2>NUL | find /i "Custos.exe" >nul
+if %errorlevel%==0 (
+  timeout /t 1 /nobreak >nul
+  goto loop
+)
+del "${escapedPath}"
+del "%~f0"
+`
+  const batchPath = join(app.getPath('temp'), 'custos_cleanup.bat')
+  writeFileSync(batchPath, batchContent, 'utf8')
+
+  exec(`start "" "${batchPath}"`, { windowsHide: true }, (err) => {
+    if (err) {
+      logger.error('Failed to start cleanup batch:', err)
+    }
+  })
+}
+
 export function setupIpcHandlers(mainWindow: BrowserWindow): void {
   const scannerFactory = getScannerFactory()
 
@@ -95,8 +130,8 @@ export function setupIpcHandlers(mainWindow: BrowserWindow): void {
     return scannerFactory.getScannerInfo()
   })
 
-  // Timeout wrapper for scanner - ensures no scanner hangs forever
-  const SCANNER_TIMEOUT_MS = 30000 // 30 seconds max per scanner
+  // Timeout wrapper for scanner - adaptive based on Windows version
+  const SCANNER_TIMEOUT_MS = Math.round(30000 * getTimeoutMultiplier())
 
   async function runScannerWithTimeout(
     scanner: BaseScanner,
@@ -337,8 +372,12 @@ export function setupIpcHandlers(mainWindow: BrowserWindow): void {
     return app.getVersion()
   })
 
-  // Check for updates
+  // Check for updates (with 5-min cache to avoid duplicate API calls)
   ipcMain.handle(IPC_CHANNELS.APP_CHECK_UPDATE, async (): Promise<VersionInfo> => {
+    if (updateCache && Date.now() - updateCache.timestamp < UPDATE_CACHE_TTL) {
+      return updateCache.data
+    }
+
     try {
       const controller = new AbortController()
       const timeoutId = setTimeout(() => controller.abort(), 15000) // 15s timeout
@@ -370,7 +409,7 @@ export function setupIpcHandlers(mainWindow: BrowserWindow): void {
       // Find the .exe asset
       const exeAsset = data.assets?.find(a => a.name.endsWith('.exe'))
 
-      return {
+      const result: VersionInfo = {
         currentVersion,
         latestVersion,
         releaseDate: data.published_at,
@@ -379,6 +418,8 @@ export function setupIpcHandlers(mainWindow: BrowserWindow): void {
         fileSize: exeAsset?.size,
         isUpdateAvailable: isNewerVersion(latestVersion, currentVersion)
       }
+      updateCache = { data: result, timestamp: Date.now() }
+      return result
     } catch {
       return {
         currentVersion: app.getVersion(),
@@ -591,8 +632,9 @@ del "%~f0"
         }, 500)
       })
     } catch (err) {
-      // Clean up downloaded file if batch creation failed
+      // Clean up downloaded file and batch if creation failed
       try { unlinkSync(newExePath) } catch { /* ignore */ }
+      try { unlinkSync(batchPath) } catch { /* ignore */ }
       throw new Error('Failed to create update script')
     }
   })
@@ -661,30 +703,8 @@ del "%~f0"
 
   // Delete self (for "delete after use" feature)
   ipcMain.handle(IPC_CHANNELS.APP_DELETE_SELF, async (): Promise<void> => {
-    const exePath = app.getPath('exe')
-    const escapedPath = escapeBatchPath(exePath)
-
-    // Create a batch file to delete the app after it closes
-    const batchContent = `@echo off
-:loop
-tasklist /FI "IMAGENAME eq Custos.exe" 2>NUL | find /i "Custos.exe" >nul
-if %errorlevel%==0 (
-  timeout /t 1 /nobreak >nul
-  goto loop
-)
-del "${escapedPath}"
-del "%~f0"
-`
-    const batchPath = join(app.getPath('temp'), 'custos_cleanup.bat')
-    writeFileSync(batchPath, batchContent, 'utf8')
-
-    exec(`start "" "${batchPath}"`, { windowsHide: true }, (err) => {
-      if (err) {
-        logger.error('Failed to start cleanup batch:', err)
-        return
-      }
-      app.quit()
-    })
+    createCleanupBatch(app.getPath('exe'))
+    app.quit()
   })
 
   // Quit app

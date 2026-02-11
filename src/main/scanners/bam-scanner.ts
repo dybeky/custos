@@ -24,58 +24,55 @@ export class BamScanner extends BaseScanner {
     if (this.driveMapping) return this.driveMapping
 
     this.driveMapping = new Map()
+
+    // Primary: mountvol (fast, no deprecation, always available)
     try {
-      // Use wmic instead of PowerShell - much faster
-      const output = await asyncExec(
-        'wmic volume get DeviceID,DriveLetter /format:csv 2>nul',
-        { timeout: 5000 }
-      )
-
-      // Parse CSV output: Node,DeviceID,DriveLetter
-      const lines = output.split('\n')
-      for (const line of lines) {
-        const trimmed = line.trim()
-        if (!trimmed || trimmed.startsWith('Node')) continue
-
-        const parts = trimmed.split(',')
-        if (parts.length >= 3) {
-          const deviceId = parts[1]
-          const driveLetter = parts[2]?.trim()
-          if (driveLetter && deviceId) {
-            const volMatch = deviceId.match(/HarddiskVolume(\d+)/)
-            if (volMatch) {
-              this.driveMapping.set(parseInt(volMatch[1]), driveLetter)
+      const mountvolOutput = await asyncExec('mountvol', { timeout: 5000 })
+      const lines = mountvolOutput.split('\n')
+      for (let i = 0; i < lines.length; i++) {
+        const driveLine = lines[i].trim()
+        if (/^[A-Z]:\\$/i.test(driveLine) && i > 0) {
+          const volLine = lines[i - 1].trim()
+          const volMatch = volLine.match(/HarddiskVolume(\d+)/)
+          if (volMatch && volMatch[1]) {
+            const volNum = parseInt(volMatch[1], 10)
+            if (!isNaN(volNum)) {
+              this.driveMapping.set(volNum, driveLine.slice(0, 2))
             }
           }
         }
       }
     } catch {
-      // wmic failed - try mountvol fallback
+      // mountvol failed - try PowerShell fallback
     }
 
-    // Secondary fallback: mountvol to determine real drive mappings
+    // Secondary: PowerShell Get-CimInstance (replaces deprecated WMIC)
     if (this.driveMapping.size === 0) {
       try {
-        const mountvolOutput = await asyncExec('mountvol', { timeout: 5000 })
-        // mountvol output pairs: \\?\Volume{GUID}\ followed by drive letter line (e.g. "    C:\")
-        const lines = mountvolOutput.split('\n')
-        for (let i = 0; i < lines.length; i++) {
-          const driveLine = lines[i].trim()
-          // Drive letter lines look like "C:\" or "D:\"
-          if (/^[A-Z]:\\$/i.test(driveLine) && i > 0) {
-            // Look backward for the volume GUID line
-            const volLine = lines[i - 1].trim()
-            const volMatch = volLine.match(/HarddiskVolume(\d+)/)
-            if (volMatch && volMatch[1]) {
-              const volNum = parseInt(volMatch[1], 10)
-              if (!isNaN(volNum)) {
-                this.driveMapping.set(volNum, driveLine.slice(0, 2))
+        const psScript = `Get-CimInstance Win32_Volume | Where-Object { $_.DriveLetter } | Select-Object DeviceID, DriveLetter | ConvertTo-Json -Compress`
+        const encoded = Buffer.from(psScript, 'utf16le').toString('base64')
+        const output = await asyncExec(
+          `powershell -NoProfile -ExecutionPolicy Bypass -EncodedCommand ${encoded}`,
+          { timeout: 5000 }
+        )
+
+        const trimmed = output.trim()
+        if (trimmed) {
+          const data = JSON.parse(trimmed)
+          const items = Array.isArray(data) ? data : [data]
+          for (const item of items) {
+            const deviceId = item.DeviceID as string
+            const driveLetter = item.DriveLetter as string
+            if (driveLetter && deviceId) {
+              const volMatch = deviceId.match(/HarddiskVolume(\d+)/)
+              if (volMatch) {
+                this.driveMapping.set(parseInt(volMatch[1]), driveLetter)
               }
             }
           }
         }
       } catch {
-        logger.warn('Both wmic and mountvol failed for drive mapping — device paths will not be resolved')
+        logger.warn('Both mountvol and PowerShell failed for drive mapping — device paths will not be resolved')
       }
     }
 
@@ -142,33 +139,45 @@ export class BamScanner extends BaseScanner {
       // Get all user SIDs to scan BAM/DAM for each user
       const userSids = await this.getUserSids()
 
-      // Collect all BAM and DAM paths to scan in parallel
+      // Collect all BAM and DAM paths to scan in parallel.
+      // Modern (Win10 1809+): bam\State\UserSettings\{SID}
+      // Legacy (Win10 1709-1803): bam\UserSettings\{SID}
+      // Non-existent paths return empty via `reg query ... 2>nul` — no performance penalty.
       const scanPaths: { path: string; source: string }[] = []
 
-      // BAM paths (Background Activity Moderator)
-      for (const sid of userSids) {
-        scanPaths.push({
-          path: `HKLM\\SYSTEM\\CurrentControlSet\\Services\\bam\\State\\UserSettings\\${sid}`,
-          source: 'BAM'
-        })
-      }
+      const bamSubPaths = ['bam\\State\\UserSettings', 'bam\\UserSettings']
+      const damSubPaths = ['dam\\State\\UserSettings', 'dam\\UserSettings']
 
-      // DAM paths (Desktop Activity Moderator)
-      for (const sid of userSids) {
-        scanPaths.push({
-          path: `HKLM\\SYSTEM\\CurrentControlSet\\Services\\dam\\State\\UserSettings\\${sid}`,
-          source: 'DAM'
-        })
-      }
-
-      // Backup control sets
-      const backupControlSets = ['ControlSet001', 'ControlSet002']
-      for (const controlSet of backupControlSets) {
+      // BAM paths (Background Activity Moderator) — both modern and legacy
+      for (const subPath of bamSubPaths) {
         for (const sid of userSids) {
           scanPaths.push({
-            path: `HKLM\\SYSTEM\\${controlSet}\\Services\\bam\\State\\UserSettings\\${sid}`,
-            source: `BAM/${controlSet}`
+            path: `HKLM\\SYSTEM\\CurrentControlSet\\Services\\${subPath}\\${sid}`,
+            source: 'BAM'
           })
+        }
+      }
+
+      // DAM paths (Desktop Activity Moderator) — both modern and legacy
+      for (const subPath of damSubPaths) {
+        for (const sid of userSids) {
+          scanPaths.push({
+            path: `HKLM\\SYSTEM\\CurrentControlSet\\Services\\${subPath}\\${sid}`,
+            source: 'DAM'
+          })
+        }
+      }
+
+      // Backup control sets — both modern and legacy
+      const backupControlSets = ['ControlSet001', 'ControlSet002']
+      for (const controlSet of backupControlSets) {
+        for (const subPath of bamSubPaths) {
+          for (const sid of userSids) {
+            scanPaths.push({
+              path: `HKLM\\SYSTEM\\${controlSet}\\Services\\${subPath}\\${sid}`,
+              source: `BAM/${controlSet}`
+            })
+          }
         }
       }
 
@@ -218,29 +227,37 @@ export class BamScanner extends BaseScanner {
   private async getUserSids(): Promise<string[]> {
     const sids: string[] = []
 
-    try {
-      // Get all user SIDs from the BAM registry
-      const output = await asyncExec(
-        'reg query "HKLM\\SYSTEM\\CurrentControlSet\\Services\\bam\\State\\UserSettings" 2>nul',
-        {
-          maxBuffer: 10 * 1024 * 1024,
-          timeout: 10000
-        }
-      )
+    // Try modern path first (Win10 1809+ / build 17763+): bam\State\UserSettings
+    // Then legacy path (Win10 1709-1803 / builds 16299-17134): bam\UserSettings
+    const sidPaths = [
+      'HKLM\\SYSTEM\\CurrentControlSet\\Services\\bam\\State\\UserSettings',
+      'HKLM\\SYSTEM\\CurrentControlSet\\Services\\bam\\UserSettings'
+    ]
 
-      const lines = output.split('\n')
-      for (const line of lines) {
-        const trimmed = line.trim()
-        // SID lines look like: HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\bam\State\UserSettings\S-1-5-21-...
-        if (trimmed.includes('S-1-5-21-')) {
-          const sidMatch = trimmed.match(/S-1-5-21-[\d-]+/)
-          if (sidMatch) {
-            sids.push(sidMatch[0])
+    for (const sidPath of sidPaths) {
+      if (sids.length > 0) break // Already found SIDs from modern path
+      try {
+        const output = await asyncExec(
+          `reg query "${sidPath}" 2>nul`,
+          {
+            maxBuffer: 10 * 1024 * 1024,
+            timeout: 10000
+          }
+        )
+
+        const lines = output.split('\n')
+        for (const line of lines) {
+          const trimmed = line.trim()
+          if (trimmed.includes('S-1-5-21-')) {
+            const sidMatch = trimmed.match(/S-1-5-21-[\d-]+/)
+            if (sidMatch) {
+              sids.push(sidMatch[0])
+            }
           }
         }
+      } catch {
+        // Path doesn't exist on this Windows version — try next
       }
-    } catch {
-      // BAM might not exist on older Windows versions
     }
 
     // If no SIDs found, try to get current user SID
@@ -352,7 +369,7 @@ export class BamScanner extends BaseScanner {
       if (parts.length >= 3 && parts[1] === 'REG_BINARY') {
         const date = this.parseFiletime(parts[2])
         if (date) {
-          return date.toLocaleString('ru-RU', {
+          return date.toLocaleString('en-GB', {
             day: '2-digit',
             month: '2-digit',
             year: 'numeric',

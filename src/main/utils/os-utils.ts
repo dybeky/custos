@@ -58,8 +58,24 @@ export function getWindowsVersionName(build: number): string {
   if (build >= 19043) return '21H1'
   if (build >= 19042) return '20H2'
   if (build >= 19041) return '2004'
+  if (build >= 18363) return '1909'
+  if (build >= 18362) return '1903'
+  if (build >= 17763) return '1809'
+  if (build >= 17134) return '1803'
+  if (build >= 16299) return '1709'
 
   return ''
+}
+
+/**
+ * Get timeout multiplier based on Windows version
+ * Older Windows 10 versions are slower, especially on HDD
+ */
+export function getTimeoutMultiplier(): number {
+  const version = getWindowsVersion()
+  if (version.build >= 22000) return 1.0   // Win11
+  if (version.build >= 19041) return 1.5   // Win10 2004+
+  return 2.0                                // Win10 older
 }
 
 /**
@@ -71,10 +87,7 @@ export function isBAMAvailable(): boolean {
 
   // BAM was introduced in Windows 10 version 1709 (build 16299)
   // It's available on Windows 10 build 16299+ and all Windows 11
-  if (version.major > 10) {
-    return true // Windows 11+
-  }
-
+  // Note: Windows 11 still reports major=10 (build >= 22000)
   if (version.major === 10 && version.build >= 16299) {
     return true
   }

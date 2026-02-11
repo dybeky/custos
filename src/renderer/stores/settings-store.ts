@@ -10,6 +10,7 @@ interface SettingsState {
   checkUpdatesOnStartup: boolean
   autoDownloadUpdates: boolean
   deleteAfterUse: boolean
+  disableHardwareAcceleration: boolean
   isLoading: boolean
   version: string
   effectsEnabled: boolean
@@ -20,6 +21,7 @@ interface SettingsState {
   setCheckUpdatesOnStartup: (value: boolean) => void
   setAutoDownloadUpdates: (value: boolean) => void
   setDeleteAfterUse: (value: boolean) => void
+  setDisableHardwareAcceleration: (value: boolean) => void
   setVersion: (version: string) => void
   setEffectsEnabled: (value: boolean) => void
   toggleEffects: () => void
@@ -33,8 +35,9 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   checkUpdatesOnStartup: true,
   autoDownloadUpdates: false,
   deleteAfterUse: false,
+  disableHardwareAcceleration: false,
   isLoading: true,
-  version: '2.1.0',
+  version: '',
   effectsEnabled: true,
   theme: 'tropical' as ThemeName,
 
@@ -58,6 +61,11 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
     get().saveSettings()
   },
 
+  setDisableHardwareAcceleration: (value) => {
+    set({ disableHardwareAcceleration: value })
+    get().saveSettings()
+  },
+
   setVersion: (version) => set({ version }),
 
   setEffectsEnabled: (value) => set({ effectsEnabled: value }),
@@ -66,10 +74,8 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
 
   setTheme: (theme) => {
     set({ theme })
-    // Apply theme to document
     document.documentElement.setAttribute('data-theme', theme)
-    // Save to localStorage for persistence
-    localStorage.setItem('custos-theme', theme)
+    get().saveSettings()
   },
 
   loadSettings: async () => {
@@ -77,9 +83,9 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
       const settings = await window.electronAPI.getSettings()
       const version = await window.electronAPI.getVersion()
 
-      // Load theme from localStorage
-      const savedTheme = localStorage.getItem('custos-theme') as ThemeName | null
-      const theme = savedTheme && ['aurora', 'mono', 'tropical'].includes(savedTheme) ? savedTheme : 'tropical'
+      const theme = settings.theme && ['aurora', 'mono', 'tropical'].includes(settings.theme)
+        ? settings.theme as ThemeName
+        : 'tropical'
       document.documentElement.setAttribute('data-theme', theme)
 
       set({
@@ -87,6 +93,7 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
         checkUpdatesOnStartup: settings.checkUpdatesOnStartup,
         autoDownloadUpdates: settings.autoDownloadUpdates,
         deleteAfterUse: settings.deleteAfterUse,
+        disableHardwareAcceleration: settings.disableHardwareAcceleration ?? false,
         version,
         theme,
         isLoading: false
@@ -112,7 +119,9 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
           language: freshState.language,
           checkUpdatesOnStartup: freshState.checkUpdatesOnStartup,
           autoDownloadUpdates: freshState.autoDownloadUpdates,
-          deleteAfterUse: freshState.deleteAfterUse
+          deleteAfterUse: freshState.deleteAfterUse,
+          theme: freshState.theme,
+          disableHardwareAcceleration: freshState.disableHardwareAcceleration
         })
       } catch (error) {
         console.error('Failed to save settings:', error)

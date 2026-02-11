@@ -1,11 +1,38 @@
 import { exec } from 'child_process'
 import { logger } from '../services/logger'
 
+// Global process concurrency limiter to prevent spawning too many cmd.exe/powershell
+const MAX_CONCURRENT_PROCESSES = 5
+let activeProcesses = 0
+const waitQueue: Array<() => void> = []
+
+function acquireSlot(): Promise<void> {
+  if (activeProcesses < MAX_CONCURRENT_PROCESSES) {
+    activeProcesses++
+    return Promise.resolve()
+  }
+  return new Promise<void>(resolve => waitQueue.push(resolve))
+}
+
+function releaseSlot(): void {
+  const next = waitQueue.shift()
+  if (next) {
+    next() // pass slot to next waiter, don't decrement
+  } else {
+    activeProcesses--
+  }
+}
+
 export interface AsyncExecOptions {
   timeout?: number
   maxBuffer?: number
   /** If true, rejects on command errors instead of resolving with empty string (default: false) */
   throwOnError?: boolean
+}
+
+/** Check if command starts with powershell (already outputs UTF-8 JSON or ASCII-only) */
+function isPowerShellCommand(command: string): boolean {
+  return command.trimStart().toLowerCase().startsWith('powershell')
 }
 
 /** Classifies exec errors for better logging */
@@ -29,13 +56,23 @@ export async function asyncExec(
   const maxBuffer = options?.maxBuffer || 5 * 1024 * 1024
   const throwOnError = options?.throwOnError ?? false
 
+  await acquireSlot()
+
+  // Force UTF-8 code page for cmd.exe commands to prevent mojibake on non-English Windows.
+  // PowerShell commands that use ConvertTo-Json already produce ASCII-safe JSON output.
+  const finalCommand = isPowerShellCommand(command)
+    ? command
+    : `chcp 65001 >nul && ${command}`
+
   return new Promise((resolve, reject) => {
-    const proc = exec(command, {
+    const proc = exec(finalCommand, {
       windowsHide: true,
+      encoding: 'utf8',
       maxBuffer,
       timeout,
       killSignal: 'SIGKILL'
     }, (error, stdout) => {
+      releaseSlot()
       if (error) {
         const errorType = classifyError(error as Error & { code?: string | number; killed?: boolean; signal?: string })
         logger.debug('asyncExec command error', {

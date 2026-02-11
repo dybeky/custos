@@ -33,10 +33,12 @@ export function Settings() {
     checkUpdatesOnStartup,
     autoDownloadUpdates,
     deleteAfterUse,
+    disableHardwareAcceleration,
     theme,
     setCheckUpdatesOnStartup,
     setAutoDownloadUpdates,
     setDeleteAfterUse,
+    setDisableHardwareAcceleration,
     setTheme
   } = useSettingsStore()
 
@@ -131,6 +133,21 @@ export function Settings() {
                 description={t('settings.autoDownloadDesc')}
               />
             </div>
+          </CardContent>
+        </Card>
+
+        {/* Performance */}
+        <Card className="mb-4">
+          <CardHeader>
+            <CardTitle>{t('settings.performance')}</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Toggle
+              checked={disableHardwareAcceleration}
+              onChange={setDisableHardwareAcceleration}
+              label={t('settings.disableHardwareAcceleration')}
+              description={t('settings.disableHardwareAccelerationDesc')}
+            />
           </CardContent>
         </Card>
 
