@@ -6,14 +6,6 @@ import { scheduleSelfDestruct } from './services/self-destruct'
 import { logger } from './services/logger'
 import Store from 'electron-store'
 
-// Catch unhandled errors to prevent silent crashes
-process.on('uncaughtException', (err) => {
-  console.error('Uncaught exception:', err)
-})
-process.on('unhandledRejection', (err) => {
-  console.error('Unhandled rejection:', err)
-})
-
 // Read settings from electron-store before app is ready
 const themeColors = { aurora: '#320d40', mono: '#1a1a1a', tropical: '#0a0a0f' } as const
 const appStore = new Store<{ settings: { theme: string } }>({
@@ -97,4 +89,4 @@ app.on('window-all-closed', () => {
   app.quit()
 })
 
-// Note: Error handlers are set up in logger service
+

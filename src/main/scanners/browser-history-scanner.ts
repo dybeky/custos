@@ -7,6 +7,7 @@ import initSqlJs from 'sql.js'
 import { BaseScanner, ScannerEventEmitter } from './base-scanner'
 import { ScanResult } from '../../shared/types'
 import { logger } from '../services/logger'
+import { formatTimestamp } from '../utils/format'
 
 interface BrowserProfile {
   browser: string
@@ -592,12 +593,6 @@ export class BrowserHistoryScanner extends BaseScanner {
 
   private formatDate(date: Date): string {
     if (date.getTime() === 0) return 'Unknown'
-    return date.toLocaleString('ru-RU', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    })
+    return formatTimestamp(date)
   }
 }

@@ -70,7 +70,7 @@ async function runScannerWithTimeout(
           scannerName: scanner.name,
           success: false,
           findings: [],
-          error: 'Scanner error',
+          error: err instanceof Error ? err.message : String(err),
           startTime: new Date(),
           endTime: new Date(),
           duration: 0,

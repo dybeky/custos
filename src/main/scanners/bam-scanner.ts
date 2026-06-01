@@ -4,6 +4,7 @@ import { asyncExec } from '../utils/async-exec'
 import { isBAMAvailable } from '../utils/os-utils'
 import { logger } from '../services/logger'
 import { RegistryQueryScanner } from './registry-query-scanner'
+import { formatTimestamp } from '../utils/format'
 
 export class BamScanner extends RegistryQueryScanner {
   readonly name = 'BAM/DAM Scanner'
@@ -347,13 +348,7 @@ export class BamScanner extends RegistryQueryScanner {
       if (parts.length >= 3 && parts[1] === 'REG_BINARY') {
         const date = this.parseFiletime(parts[2])
         if (date) {
-          return date.toLocaleString('en-GB', {
-            day: '2-digit',
-            month: '2-digit',
-            year: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit'
-          })
+          return formatTimestamp(date)
         }
       }
     } catch {

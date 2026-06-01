@@ -1,6 +1,6 @@
 import { BaseScanner, ScannerEventEmitter } from './base-scanner'
 import { ScanResult } from '../../shared/types'
-import { asyncExec } from '../utils/async-exec'
+import { asyncExec, execFileAsync } from '../utils/async-exec'
 import { existsSync } from 'fs'
 
 // VM Guest Tools processes (only run INSIDE VM)
@@ -443,12 +443,9 @@ export class VMScanner extends BaseScanner {
 
       for (const keyPath of keys) {
         try {
-          const output = await asyncExec(
-            `reg query "${keyPath}" 2>nul`,
-            { timeout: VMScanner.EXEC_TIMEOUT }
-          )
+          const { stdout } = await execFileAsync('reg', ['query', keyPath])
 
-          if (output && output.trim()) {
+          if (stdout && stdout.trim()) {
             findings.push({
               type: 'Registry',
               vmName,
