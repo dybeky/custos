@@ -7,6 +7,7 @@
 
 import { ipcMain, BrowserWindow } from 'electron'
 import { IPC_CHANNELS, LiveScanStatus, LiveFinding } from '../shared/types'
+import { GAMES, type GameId } from '../shared/games'
 import { logger } from './services/logger'
 import { isMemoryNativeAvailable } from './live/native/memory'
 import { findGameProcess } from './live/process-locator'
@@ -23,9 +24,10 @@ export function setupLiveIpcHandlers(mainWindow: BrowserWindow): void {
   }
 
   // ── live:get-status ──────────────────────────────────────────────────────
-  ipcMain.handle(IPC_CHANNELS.LIVE_GET_STATUS, (): LiveScanStatus => {
+  ipcMain.handle(IPC_CHANNELS.LIVE_GET_STATUS, (_e, gameId?: GameId): LiveScanStatus => {
+    const names = gameId ? GAMES[gameId].processNames : undefined
     const nativeAvailable = isMemoryNativeAvailable()
-    const game = nativeAvailable ? findGameProcess() : null
+    const game = nativeAvailable ? findGameProcess(names) : null
     return {
       nativeAvailable,
       platform: process.platform,
@@ -35,7 +37,7 @@ export function setupLiveIpcHandlers(mainWindow: BrowserWindow): void {
   })
 
   // ── live:scan:start ──────────────────────────────────────────────────────
-  ipcMain.handle(IPC_CHANNELS.LIVE_SCAN_START, async (): Promise<LiveFinding[]> => {
+  ipcMain.handle(IPC_CHANNELS.LIVE_SCAN_START, async (_e, gameId?: GameId): Promise<LiveFinding[]> => {
     if (isLiveScanning) {
       logger.warn('Live scan already in progress')
       throw new Error('Live scan already in progress')
@@ -46,9 +48,11 @@ export function setupLiveIpcHandlers(mainWindow: BrowserWindow): void {
     liveAbortController = new AbortController()
 
     try {
+      const names = gameId ? GAMES[gameId].processNames : undefined
       const results = await runLiveScan({
         emit: safeSend,
-        signal: liveAbortController.signal
+        signal: liveAbortController.signal,
+        processNames: names
       })
 
       const highCount = results.filter(f => f.confidence === 'high').length

@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { Card, CardContent } from '../components/ui/Card'
 import { Button } from '../components/ui/Button'
 import type { LiveFinding, LiveScanStatus } from '../../shared/types'
+import { useGameStore } from '../stores/game-store'
 
 type ScanPhase = 'idle' | 'scanning' | 'done'
 
@@ -15,6 +16,7 @@ interface LiveProgress {
 
 export function LiveScan() {
   const { t } = useTranslation()
+  const { selectedGame } = useGameStore()
 
   const [status, setStatus] = useState<LiveScanStatus | null>(null)
   const [statusLoading, setStatusLoading] = useState(true)
@@ -33,12 +35,12 @@ export function LiveScan() {
   const fetchStatus = useCallback(async () => {
     setStatusLoading(true)
     try {
-      const s = await window.electronAPI.getLiveStatus()
+      const s = await window.electronAPI.getLiveStatus(selectedGame ?? undefined)
       setStatus(s)
     } finally {
       setStatusLoading(false)
     }
-  }, [])
+  }, [selectedGame])
 
   useEffect(() => {
     fetchStatus()
@@ -81,7 +83,7 @@ export function LiveScan() {
     unsubRef.current = [unsubProgress, unsubResult, unsubComplete]
 
     try {
-      await window.electronAPI.startLiveScan()
+      await window.electronAPI.startLiveScan(selectedGame ?? undefined)
     } catch {
       setPhase('done')
       clearSubs()

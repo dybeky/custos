@@ -26,6 +26,8 @@ export interface LiveScanOptions {
   emit: (channel: string, payload: unknown) => void
   /** AbortSignal for cancellation (respected between detectors) */
   signal: AbortSignal
+  /** Override process name list passed to findGameProcess (optional). */
+  processNames?: string[]
 }
 
 // Detectors enabled in phase 1 (in run order)
@@ -59,7 +61,7 @@ export async function runLiveScan(opts: LiveScanOptions): Promise<LiveFinding[]>
   }
 
   // ── 2. Locate game process ────────────────────────────────────────────────
-  const game = findGameProcess()
+  const game = findGameProcess(opts.processNames)
   if (!game) {
     const f = makeStatusFinding(
       'Unturned not running — start it and rescan',

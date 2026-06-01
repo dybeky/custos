@@ -129,13 +129,13 @@ const api = {
   // ── Live scan ────────────────────────────────────────────────────────────
 
   /** Get the current live-scan capability status (platform, native, game). */
-  getLiveStatus: (): Promise<LiveScanStatus> => {
-    return ipcRenderer.invoke(IPC_CHANNELS.LIVE_GET_STATUS)
+  getLiveStatus: (gameId?: string): Promise<LiveScanStatus> => {
+    return ipcRenderer.invoke(IPC_CHANNELS.LIVE_GET_STATUS, gameId)
   },
 
   /** Start a live scan. Streams results via onLiveScanResult; returns all findings when done. */
-  startLiveScan: (): Promise<LiveFinding[]> => {
-    return ipcRenderer.invoke(IPC_CHANNELS.LIVE_SCAN_START)
+  startLiveScan: (gameId?: string): Promise<LiveFinding[]> => {
+    return ipcRenderer.invoke(IPC_CHANNELS.LIVE_SCAN_START, gameId)
   },
 
   /** Subscribe to per-detector progress events during a live scan. Returns unsubscribe fn. */
