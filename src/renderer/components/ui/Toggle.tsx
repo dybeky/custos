@@ -52,10 +52,10 @@ export const Toggle = forwardRef<HTMLButtonElement, ToggleProps>(
         {(label || description) && (
           <div className="flex-1 mr-4">
             {label && (
-              <span id={labelId} className="text-sm font-medium text-text-primary">{label}</span>
+              <span id={labelId} className="text-sm font-medium text-ink">{label}</span>
             )}
             {description && (
-              <p id={descriptionId} className="text-xs text-text-secondary mt-0.5">{description}</p>
+              <p id={descriptionId} className="text-xs text-ink-dim mt-0.5">{description}</p>
             )}
           </div>
         )}
@@ -71,15 +71,15 @@ export const Toggle = forwardRef<HTMLButtonElement, ToggleProps>(
           onClick={() => onChange(!checked)}
           className={cn(
             'relative inline-flex shrink-0 cursor-pointer rounded-full transition-colors duration-200',
-            'focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-background',
+            'focus:outline-none focus-visible:ring-2 focus-visible:ring-scan/50 focus-visible:ring-offset-2 focus-visible:ring-offset-bg',
             'disabled:opacity-50 disabled:cursor-not-allowed',
             sizeStyles.track,
-            checked ? 'theme-toggle-on' : 'theme-toggle-off'
+            checked ? 'bg-scan' : 'bg-panel-2 border border-[color:var(--line)]'
           )}
         >
           <motion.span
             className={cn(
-              'pointer-events-none inline-block rounded-full bg-white shadow-lg',
+              'pointer-events-none inline-block rounded-full bg-ink shadow-lg',
               sizeStyles.thumb
             )}
             aria-hidden="true"

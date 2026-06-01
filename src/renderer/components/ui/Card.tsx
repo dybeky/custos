@@ -8,9 +8,9 @@ interface CardProps extends HTMLMotionProps<'div'> {
 }
 
 const variants = {
-  default: 'bg-background-surface border border-border',
-  glass: 'bg-background-surface/50 backdrop-blur-glass border border-border shadow-glass',
-  elevated: 'bg-background-elevated border border-border shadow-lg'
+  default: 'bg-panel border border-[color:var(--line)]',
+  glass: 'bg-panel glow-scan border border-[color:var(--line)]',
+  elevated: 'bg-panel-2 border border-[color:var(--line)] shadow-lg'
 }
 
 const paddings = {
@@ -21,7 +21,7 @@ const paddings = {
 }
 
 export const Card = forwardRef<HTMLDivElement, CardProps>(
-  ({ className, variant = 'glass', padding = 'md', children, ...props }, ref) => {
+  ({ className, variant = 'default', padding = 'md', children, ...props }, ref) => {
     return (
       <motion.div
         ref={ref}
@@ -66,7 +66,7 @@ export const CardTitle = forwardRef<HTMLHeadingElement, CardTitleProps>(
   ({ className, children, ...props }, ref) => (
     <h3
       ref={ref}
-      className={cn('text-lg font-semibold text-text-primary', className)}
+      className={cn('text-lg font-semibold text-ink font-display', className)}
       {...props}
     >
       {children}

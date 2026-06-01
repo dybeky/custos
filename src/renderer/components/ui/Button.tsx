@@ -14,11 +14,11 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 }
 
 const variants: Record<ButtonVariant, string> = {
-  primary: 'theme-primary-btn theme-glow',
-  secondary: 'bg-background-elevated hover:bg-white/10 active:bg-white/5 text-text-primary border border-border',
-  outline: 'theme-outline-btn',
-  danger: 'bg-error hover:bg-error/80 active:bg-error/70 text-white',
-  ghost: 'text-text-secondary hover:text-text-primary hover:bg-white/5 active:bg-white/10'
+  primary: 'bg-scan text-bg hover:shadow-glow active:opacity-80',
+  secondary: 'bg-panel text-ink border border-[color:var(--line)] hover:bg-panel-2 active:opacity-80',
+  outline: 'border border-scan text-scan bg-transparent hover:bg-scan hover:text-bg active:opacity-80',
+  danger: 'bg-alert/10 text-alert border border-alert/30 hover:bg-alert/20 active:opacity-80',
+  ghost: 'text-ink-dim hover:text-ink hover:bg-panel-2 active:bg-panel'
 }
 
 const sizes: Record<ButtonSize, string> = {
@@ -49,7 +49,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         ref={ref}
         className={cn(
           'inline-flex items-center justify-center font-medium transition-colors duration-150',
-          'focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--theme-primary)]/50 focus-visible:ring-offset-2 focus-visible:ring-offset-background',
+          'focus:outline-none focus-visible:ring-2 focus-visible:ring-scan/50 focus-visible:ring-offset-2 focus-visible:ring-offset-bg',
           'disabled:opacity-50 disabled:cursor-not-allowed',
           variants[variant],
           sizes[size],

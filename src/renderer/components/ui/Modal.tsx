@@ -95,7 +95,7 @@ export function Modal({
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.2 }}
-            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            className="absolute inset-0 bg-bg/80 backdrop-blur-sm"
             onClick={onClose}
             aria-hidden="true"
           />
@@ -112,21 +112,21 @@ export function Modal({
             exit={{ opacity: 0, scale: 0.95, y: 10 }}
             transition={{ duration: 0.2 }}
             className={cn(
-              'relative w-full mx-4 bg-background-surface border border-border rounded-2xl shadow-glass',
+              'relative w-full mx-4 bg-panel glow-scan rounded-2xl',
               sizes[size]
             )}
           >
             {/* Header */}
             {(title || showCloseButton) && (
-              <div className="flex items-center justify-between p-4 border-b border-border">
+              <div className="flex items-center justify-between p-4 border-b border-[color:var(--line)]">
                 {title && (
-                  <h2 id={titleId} className="text-lg font-semibold text-text-primary">{title}</h2>
+                  <h2 id={titleId} className="text-lg font-semibold text-ink font-display">{title}</h2>
                 )}
                 {showCloseButton && (
                   <button
                     onClick={onClose}
                     aria-label="Close modal"
-                    className="p-1 rounded-lg text-text-secondary hover:text-text-primary hover:bg-white/5 transition-colors"
+                    className="p-1 rounded-lg text-ink-dim hover:text-ink hover:bg-panel-2 transition-colors"
                   >
                     <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />

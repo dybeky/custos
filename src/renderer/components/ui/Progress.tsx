@@ -11,10 +11,10 @@ interface ProgressProps extends HTMLAttributes<HTMLDivElement> {
 }
 
 const variants = {
-  default: 'theme-progress',
-  success: 'bg-success',
-  warning: 'bg-warning',
-  danger: 'bg-error'
+  default: 'bg-scan',
+  success: 'bg-scan',
+  warning: 'bg-amber',
+  danger: 'bg-alert'
 }
 
 const sizes = {
@@ -42,15 +42,15 @@ export const Progress = forwardRef<HTMLDivElement, ProgressProps>(
       <div ref={ref} className={cn('w-full', className)} {...props}>
         {showLabel && (
           <div className="flex justify-between items-center mb-1">
-            <span className="text-xs text-text-secondary">Progress</span>
-            <span className="text-xs text-text-primary font-medium">
+            <span className="text-xs text-ink-dim">Progress</span>
+            <span className="text-xs text-ink font-medium">
               {Math.round(percentage)}%
             </span>
           </div>
         )}
         <div
           className={cn(
-            'w-full bg-background-elevated rounded-full overflow-hidden',
+            'w-full bg-panel-2 rounded-full overflow-hidden',
             sizes[size]
           )}
         >
@@ -77,10 +77,10 @@ interface CircularProgressProps {
 }
 
 const circularVariants = {
-  default: 'theme-stroke',
-  success: 'stroke-success',
-  warning: 'stroke-warning',
-  danger: 'stroke-error'
+  default: 'stroke-scan',
+  success: 'stroke-scan',
+  warning: 'stroke-amber',
+  danger: 'stroke-alert'
 }
 
 export function CircularProgress({
@@ -98,7 +98,7 @@ export function CircularProgress({
     <svg width={size} height={size} className="transform -rotate-90">
       {/* Background circle */}
       <circle
-        className="stroke-background-elevated"
+        className="stroke-panel-2"
         fill="none"
         strokeWidth={strokeWidth}
         r={radius}
