@@ -14,6 +14,7 @@
     "package:win": "electron-vite build && electron-builder --win",
     "package:win:admin": "npm run package:win && node scripts/build-with-manifest.js",
     "lint": "eslint .",
+    "rebuild": "electron-rebuild -f -w memoryjs",
     "typecheck": "tsc -p tsconfig.node.json --noEmit && tsc -p tsconfig.web.json --noEmit",
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",
@@ -38,6 +39,7 @@
   },
   "devDependencies": {
     "@electron-toolkit/tsconfig": "^1.0.1",
+    "@electron/rebuild": "^4.0.4",
     "@eslint/js": "^10.0.1",
     "@types/node": "^22.10.0",
     "@types/react": "^19.2.0",

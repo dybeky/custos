@@ -5,7 +5,7 @@ directories:
   buildResources: resources
 
 compression: maximum
-npmRebuild: false
+npmRebuild: true
 
 electronLanguages:
   - en

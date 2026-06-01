@@ -124,6 +124,18 @@ npm run package:win
 
 Requires Node.js 20 and a Windows environment (or a CI runner with `windows-latest`) for the final packaged build. `npm run typecheck` and `npm run build` work cross-platform.
 
+### Native module (Windows only)
+
+The live-memory scanner depends on `memoryjs`, a native addon that must be
+compiled against Electron's ABI. On Windows, run this after `npm install`:
+
+```bash
+npm run rebuild
+```
+
+On non-Windows hosts this step can be skipped — the live-scan feature will
+report "native unavailable" but all forensic scanners remain fully functional.
+
 ---
 
 ## disclaimer
