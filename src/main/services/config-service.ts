@@ -73,6 +73,10 @@ const KeywordSettingsSchema = z.object({
   exactMatch: z.array(z.string())
 })
 
+const KnownHashesSchema = z.object({
+  sha256: z.array(z.string())
+})
+
 // Export types inferred from schemas
 export type AppTimeouts = z.infer<typeof AppTimeoutsSchema>
 export type ScanSettings = z.infer<typeof ScanSettingsSchema>
@@ -84,10 +88,12 @@ export type TelegramBot = z.infer<typeof TelegramBotSchema>
 export type ExternalResourceSettings = z.infer<typeof ExternalResourceSettingsSchema>
 export type AppConfig = z.infer<typeof AppConfigSchema>
 export type KeywordSettings = z.infer<typeof KeywordSettingsSchema>
+export type KnownHashes = z.infer<typeof KnownHashesSchema>
 
 class ConfigService {
   private config: AppConfig | null = null
   private keywords: KeywordSettings | null = null
+  private knownHashes: string[] | null = null
 
   private getResourcePath(): string {
     // In production, configs are in resources folder
@@ -142,6 +148,28 @@ class ConfigService {
     } catch (error) {
       logger.error('Failed to load keywords:', error)
       return { patterns: [], exactMatch: [] }
+    }
+  }
+
+  loadKnownHashes(): string[] {
+    if (this.knownHashes) return this.knownHashes
+
+    try {
+      const hashesPath = join(this.getResourcePath(), 'hashes.json')
+      const hashesContent = readFileSync(hashesPath, 'utf-8')
+      const parsed = JSON.parse(hashesContent)
+
+      const result = KnownHashesSchema.safeParse(parsed)
+      if (result.success) {
+        this.knownHashes = result.data.sha256.map(h => h.toLowerCase())
+        return this.knownHashes
+      } else {
+        logger.error('Known hashes validation failed:', result.error.format())
+        return []
+      }
+    } catch (error) {
+      logger.error('Failed to load known hashes:', error)
+      return []
     }
   }
 

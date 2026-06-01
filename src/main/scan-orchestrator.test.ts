@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest'
 import { SCANNER_GROUPS, getGroupForScanner } from './scan-orchestrator'
 import type { ScannerName } from './scanners'
 
-const ALL: ScannerName[] = ['appdata','prefetch','recentfiles','gamefolder','registry','browserhistory','process','steam','amcache','bam','shellbags','vm','dnscache','scheduledtasks']
+const ALL: ScannerName[] = ['appdata','prefetch','recentfiles','gamefolder','registry','browserhistory','process','steam','amcache','bam','shellbags','vm','dnscache','scheduledtasks','filehash']
 
 describe('scanner grouping', () => {
   it('assigns every scanner to exactly one group', () => {
