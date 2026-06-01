@@ -1,5 +1,8 @@
-import { exec } from 'child_process'
+import { exec, execFile } from 'child_process'
+import { promisify } from 'util'
 import { logger } from '../services/logger'
+
+const execFilePromise = promisify(execFile)
 
 // Global process concurrency limiter to prevent spawning too many cmd.exe/powershell
 const MAX_CONCURRENT_PROCESSES = 5
@@ -101,4 +104,33 @@ export async function asyncExec(
       clearTimeout(killTimer)
     })
   })
+}
+
+/**
+ * Async execFile (no shell) — safe for reg.exe queries.
+ * Does NOT throw when `reg query` returns a non-zero exit code due to a missing
+ * registry key (mirrors the `2>nul` behaviour of the old shell-based exec calls).
+ */
+export async function execFileAsync(
+  file: string,
+  args: string[]
+): Promise<{ stdout: string; stderr: string }> {
+  await acquireSlot()
+  try {
+    const result = await execFilePromise(file, args, {
+      windowsHide: true,
+      encoding: 'utf8',
+      maxBuffer: 1024 * 1024 * 64 // 64 MB
+    })
+    return { stdout: result.stdout ?? '', stderr: result.stderr ?? '' }
+  } catch (error) {
+    // execFile rejects when the process exits with a non-zero code.
+    // For `reg query`, a non-zero exit means "key not found" — not a hard error.
+    // Return whatever stdout/stderr the process produced so callers can still parse.
+    const execError = error as Error & { stdout?: string; stderr?: string; code?: number | string }
+    logger.debug('execFileAsync non-zero exit', { file, code: execError.code, stderr: execError.stderr?.substring(0, 200) })
+    return { stdout: execError.stdout ?? '', stderr: execError.stderr ?? '' }
+  } finally {
+    releaseSlot()
+  }
 }

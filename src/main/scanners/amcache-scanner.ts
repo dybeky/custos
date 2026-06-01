@@ -1,11 +1,11 @@
-import { BaseScanner, ScannerEventEmitter } from './base-scanner'
+import { ScannerEventEmitter } from './base-scanner'
 import { ScanResult } from '../../shared/types'
-import { asyncExec } from '../utils/async-exec'
+import { RegistryQueryScanner } from './registry-query-scanner'
 
 // Overall scan timeout (45 seconds max)
 const SCAN_TIMEOUT_MS = 45000
 
-export class AmcacheScanner extends BaseScanner {
+export class AmcacheScanner extends RegistryQueryScanner {
   readonly name = 'Amcache Scanner'
   readonly description = 'Scanning Amcache for program execution history'
 
@@ -63,7 +63,7 @@ export class AmcacheScanner extends BaseScanner {
   private async scanInventoryApplicationFile(): Promise<string[]> {
     const results: string[] = []
 
-    // Use reg query instead of PowerShell - much faster and more reliable
+    // Use execFileAsync (no shell) instead of PowerShell - much faster and more reliable
     const uninstallPaths = [
       'HKLM\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall',
       'HKLM\\SOFTWARE\\WOW6432Node\\Microsoft\\Windows\\CurrentVersion\\Uninstall'
@@ -72,31 +72,26 @@ export class AmcacheScanner extends BaseScanner {
     for (const regPath of uninstallPaths) {
       if (this.cancelled) break
 
-      try {
-        const output = await asyncExec(`reg query "${regPath}" /s 2>nul`, {
-          maxBuffer: 10 * 1024 * 1024,
-          timeout: 15000
-        })
+      // Specialized parse: only look at DisplayName and InstallLocation values;
+      // keyword is matched against the data portion (parts[2]+).
+      const stdout = await this.runRegQuery(regPath)
 
-        const lines = output.split('\n')
-        for (const line of lines) {
-          if (this.cancelled) break
-          const trimmed = line.trim()
-          if (!trimmed || trimmed.startsWith('HKEY_')) continue
+      const lines = stdout.split('\n')
+      for (const line of lines) {
+        if (this.cancelled) break
+        const trimmed = line.trim()
+        if (!trimmed || trimmed.startsWith('HKEY_')) continue
 
-          // Look for DisplayName and InstallLocation values
-          if (trimmed.includes('DisplayName') || trimmed.includes('InstallLocation')) {
-            const parts = trimmed.split(/\s{4,}/)
-            if (parts.length >= 3) {
-              const data = parts.slice(2).join(' ')
-              if (this.keywordMatcher.containsKeyword(data)) {
-                results.push(`[Amcache/Inventory] ${data}`)
-              }
+        // Look for DisplayName and InstallLocation values
+        if (trimmed.includes('DisplayName') || trimmed.includes('InstallLocation')) {
+          const parts = trimmed.split(/\s{4,}/)
+          if (parts.length >= 3) {
+            const data = parts.slice(2).join(' ')
+            if (this.keywordMatcher.containsKeyword(data)) {
+              results.push(`[Amcache/Inventory] ${data}`)
             }
           }
         }
-      } catch {
-        // Registry query failed
       }
     }
 
@@ -124,24 +119,20 @@ export class AmcacheScanner extends BaseScanner {
         if (this.cancelled) return []
 
         const pathResults: string[] = []
-        try {
-          const output = await asyncExec(`reg query "${regPath}" /s 2>nul`, {
-            maxBuffer: 5 * 1024 * 1024,
-            timeout: 15000
-          })
 
-          const lines = output.split('\n')
-          for (const line of lines) {
-            const trimmed = line.trim()
-            if (!trimmed) continue
+        // Specialized parse: keyword-match the full trimmed line (not just data portion).
+        const stdout = await this.runRegQuery(regPath)
 
-            if (this.keywordMatcher.containsKeyword(trimmed)) {
-              pathResults.push(`[Amcache/AppCompat] ${trimmed}`)
-            }
+        const lines = stdout.split('\n')
+        for (const line of lines) {
+          const trimmed = line.trim()
+          if (!trimmed) continue
+
+          if (this.keywordMatcher.containsKeyword(trimmed)) {
+            pathResults.push(`[Amcache/AppCompat] ${trimmed}`)
           }
-        } catch {
-          // Registry key doesn't exist or access denied
         }
+
         return pathResults
       })
 

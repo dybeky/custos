@@ -1,10 +1,11 @@
-import { BaseScanner, ScannerEventEmitter } from './base-scanner'
+import { ScannerEventEmitter } from './base-scanner'
 import { ScanResult } from '../../shared/types'
 import { asyncExec } from '../utils/async-exec'
 import { isBAMAvailable } from '../utils/os-utils'
 import { logger } from '../services/logger'
+import { RegistryQueryScanner } from './registry-query-scanner'
 
-export class BamScanner extends BaseScanner {
+export class BamScanner extends RegistryQueryScanner {
   readonly name = 'BAM/DAM Scanner'
   readonly description = 'Scanning Background Activity Moderator for execution history'
 
@@ -140,7 +141,7 @@ export class BamScanner extends BaseScanner {
     // Collect all BAM and DAM paths to scan in parallel.
     // Modern (Win10 1809+): bam\State\UserSettings\{SID}
     // Legacy (Win10 1709-1803): bam\UserSettings\{SID}
-    // Non-existent paths return empty via `reg query ... 2>nul` — no performance penalty.
+    // Non-existent paths return empty via runRegQuery — no performance penalty.
     const scanPaths: { path: string; source: string }[] = []
 
     const bamSubPaths = ['bam\\State\\UserSettings', 'bam\\UserSettings']
@@ -226,13 +227,7 @@ export class BamScanner extends BaseScanner {
     for (const sidPath of sidPaths) {
       if (sids.length > 0) break // Already found SIDs from modern path
       try {
-        const output = await asyncExec(
-          `reg query "${sidPath}" 2>nul`,
-          {
-            maxBuffer: 10 * 1024 * 1024,
-            timeout: 10000
-          }
-        )
+        const output = await this.runRegQuery(sidPath, false) // not /s — just list immediate subkeys
 
         const lines = output.split('\n')
         for (const line of lines) {
@@ -270,52 +265,46 @@ export class BamScanner extends BaseScanner {
   private async scanRegistryPath(regPath: string, source: string): Promise<string[]> {
     const results: string[] = []
 
-    try {
-      const output = await asyncExec(`reg query "${regPath}" /s 2>nul`, {
-        maxBuffer: 10 * 1024 * 1024,
-        timeout: 10000
-      })
+    // Use runRegQuery (no shell) — specialized BAM parsing preserved below
+    const output = await this.runRegQuery(regPath)
 
-      const lines = output.split('\n')
-      for (const line of lines) {
-        if (this.cancelled) break
+    const lines = output.split('\n')
+    for (const line of lines) {
+      if (this.cancelled) break
 
-        const trimmed = line.trim()
-        if (!trimmed) continue
+      const trimmed = line.trim()
+      if (!trimmed) continue
 
-        // BAM/DAM entries contain file paths with device paths or regular paths
-        // Example: \Device\HarddiskVolume3\Users\user\Desktop\program.exe
-        // or: C:\Users\user\Desktop\program.exe
+      // BAM/DAM entries contain file paths with device paths or regular paths
+      // Example: \Device\HarddiskVolume3\Users\user\Desktop\program.exe
+      // or: C:\Users\user\Desktop\program.exe
 
-        // Skip registry key headers
-        if (trimmed.startsWith('HKEY_')) continue
+      // Skip registry key headers
+      if (trimmed.startsWith('HKEY_')) continue
 
-        // Parse registry value line
-        // Format: ValueName    REG_BINARY    HexData
-        // The ValueName contains the executable path
-        const parts = trimmed.split(/\s{4,}/)
-        if (parts.length > 0) {
-          const valueName = parts[0]
+      // Parse registry value line
+      // Format: ValueName    REG_BINARY    HexData
+      // The ValueName contains the executable path
+      const parts = trimmed.split(/\s{4,}/)
+      if (parts.length > 0) {
+        const valueName = parts[0]
 
-          // Check if the value name contains a path
-          if (valueName.includes('\\') || valueName.includes('/')) {
-            // Extract filename from path for keyword matching
-            const pathToCheck = await this.normalizeDevicePath(valueName)
+        // Check if the value name contains a path
+        if (valueName.includes('\\') || valueName.includes('/')) {
+          // Extract filename from path for keyword matching
+          const pathToCheck = await this.normalizeDevicePath(valueName)
 
-            if (this.keywordMatcher.containsKeyword(pathToCheck)) {
-              // Try to extract timestamp if available
-              const timestamp = this.parseTimestamp(parts)
-              let entry = `[${source}] ${pathToCheck}`
-              if (timestamp) {
-                entry += ` | ${timestamp}`
-              }
-              results.push(entry)
+          if (this.keywordMatcher.containsKeyword(pathToCheck)) {
+            // Try to extract timestamp if available
+            const timestamp = this.parseTimestamp(parts)
+            let entry = `[${source}] ${pathToCheck}`
+            if (timestamp) {
+              entry += ` | ${timestamp}`
             }
+            results.push(entry)
           }
         }
       }
-    } catch {
-      // Registry key doesn't exist or access denied
     }
 
     return results

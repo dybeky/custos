@@ -1,8 +1,8 @@
-import { BaseScanner, ScannerEventEmitter } from './base-scanner'
+import { ScannerEventEmitter } from './base-scanner'
 import { ScanResult } from '../../shared/types'
-import { asyncExec } from '../utils/async-exec'
+import { RegistryQueryScanner } from './registry-query-scanner'
 
-export class ShellbagsScanner extends BaseScanner {
+export class ShellbagsScanner extends RegistryQueryScanner {
   readonly name = 'Shellbags Scanner'
   readonly description = 'Scanning Shellbags for folder access history'
 
@@ -66,59 +66,54 @@ export class ShellbagsScanner extends BaseScanner {
   private async scanShellbagPath(regPath: string, seenPaths: Set<string>): Promise<string[]> {
     const results: string[] = []
 
-    try {
-      const output = await asyncExec(`reg query "${regPath}" /s 2>nul`, {
-        maxBuffer: 20 * 1024 * 1024, // 20MB - shellbags can be large
-        timeout: 30000
-      })
+    // Use runRegQuery (no shell) — specialized shellbags parsing preserved below:
+    // tracks currentKey, extracts paths, deduplicates with seenPaths.
+    const output = await this.runRegQuery(regPath)
 
-      const lines = output.split('\n')
-      let currentKey = ''
+    const lines = output.split('\n')
+    let currentKey = ''
 
-      for (const line of lines) {
-        if (this.cancelled) break
+    for (const line of lines) {
+      if (this.cancelled) break
 
-        const trimmed = line.trim()
-        if (!trimmed) continue
+      const trimmed = line.trim()
+      if (!trimmed) continue
 
-        // Track current registry key
-        if (trimmed.startsWith('HKEY_')) {
-          currentKey = trimmed
-          continue
+      // Track current registry key
+      if (trimmed.startsWith('HKEY_')) {
+        currentKey = trimmed
+        continue
+      }
+
+      // Shellbag entries can contain folder paths in various formats
+      // Check both the key path and value data for keywords
+      const combined = `${currentKey} ${trimmed}`
+
+      // Look for path-like patterns in the data
+      const pathMatches = this.extractPaths(combined)
+
+      for (const pathMatch of pathMatches) {
+        if (seenPaths.has(pathMatch.toLowerCase())) continue
+
+        if (this.keywordMatcher.containsKeyword(pathMatch)) {
+          seenPaths.add(pathMatch.toLowerCase())
+          results.push(`[Shellbags] ${pathMatch}`)
         }
+      }
 
-        // Shellbag entries can contain folder paths in various formats
-        // Check both the key path and value data for keywords
-        const combined = `${currentKey} ${trimmed}`
-
-        // Look for path-like patterns in the data
-        const pathMatches = this.extractPaths(combined)
-
-        for (const pathMatch of pathMatches) {
-          if (seenPaths.has(pathMatch.toLowerCase())) continue
-
-          if (this.keywordMatcher.containsKeyword(pathMatch)) {
-            seenPaths.add(pathMatch.toLowerCase())
-            results.push(`[Shellbags] ${pathMatch}`)
-          }
-        }
-
-        // Also check the raw line for keywords
-        if (this.keywordMatcher.containsKeyword(trimmed)) {
-          // Extract meaningful part
-          const parts = trimmed.split(/\s{4,}/)
-          if (parts.length > 0) {
-            const valuePart = parts[parts.length - 1] || parts[0]
-            const key = `raw:${valuePart}`.toLowerCase()
-            if (!seenPaths.has(key)) {
-              seenPaths.add(key)
-              results.push(`[Shellbags] ${trimmed}`)
-            }
+      // Also check the raw line for keywords
+      if (this.keywordMatcher.containsKeyword(trimmed)) {
+        // Extract meaningful part
+        const parts = trimmed.split(/\s{4,}/)
+        if (parts.length > 0) {
+          const valuePart = parts[parts.length - 1] || parts[0]
+          const key = `raw:${valuePart}`.toLowerCase()
+          if (!seenPaths.has(key)) {
+            seenPaths.add(key)
+            results.push(`[Shellbags] ${trimmed}`)
           }
         }
       }
-    } catch {
-      // Registry key doesn't exist or access denied
     }
 
     return results
