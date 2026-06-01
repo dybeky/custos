@@ -39,7 +39,7 @@ export function Header() {
       {/* Window controls */}
       <div className="flex items-center gap-1" style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}>
         {/* Status + Version indicator */}
-        <div className="flex items-center gap-1.5 mr-2" style={{ lineHeight: 1 }}>
+        <div className="flex items-center gap-1.5 mr-2 h-full">
           {/* Status dot */}
           <div
             className="w-2 h-2 rounded-full animate-pulse-slow flex-shrink-0"
@@ -52,7 +52,7 @@ export function Header() {
 
           {/* OS version */}
           {isLoaded && osInfo && (
-            <span className="text-[11px] font-extrabold tracking-wide text-ink-dim font-display">
+            <span className="text-[11px] font-extrabold tracking-wide text-ink-dim font-display leading-none flex items-center">
               {osInfo.displayName}
             </span>
           )}
