@@ -1,10 +1,13 @@
 import { useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useAppHealthStore } from '../../stores/app-health-store'
+import { useGameStore } from '../../stores/game-store'
+import { GAMES } from '../../../shared/games'
 
 export function Header() {
   const { t } = useTranslation()
   const { status, osInfo, isLoaded, initialize } = useAppHealthStore()
+  const { selectedGame } = useGameStore()
 
   useEffect(() => {
     initialize()
@@ -34,6 +37,11 @@ export function Header() {
         <span className="text-sm font-bold tracking-wide font-display text-scan text-glow">
           custos
         </span>
+        {selectedGame && (
+          <span className="ml-2 px-2 py-0.5 rounded-md text-[10px] font-bold tracking-wide uppercase text-ink-dim bg-panel-2 font-display">
+            {GAMES[selectedGame].name}
+          </span>
+        )}
       </div>
 
       {/* Window controls */}
