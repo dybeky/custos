@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Card, CardContent } from '../components/ui/Card'
 import { useAppHealthStore } from '../stores/app-health-store'
+import { useGameStore } from '../stores/game-store'
+import { GAMES } from '../../shared/games'
 import type { CapabilityCategory, ScannerCapability, ChangelogGroup } from '../../shared/types'
 
 // Render order + i18n label key for each app-area group.
@@ -18,6 +20,7 @@ export function Dashboard() {
   const [changelog, setChangelog] = useState<ChangelogGroup[]>([])
   const [changelogLoaded, setChangelogLoaded] = useState(false)
   const { osInfo, capabilities, initialize } = useAppHealthStore()
+  const { selectedGame } = useGameStore()
 
   useEffect(() => {
     loadVersion()
@@ -219,7 +222,9 @@ export function Dashboard() {
                     {allReady
                       ? t('dashboard.allChecksAvailable')
                       : t('dashboard.someChecksUnavailable')}
+                    {' · '}{t('dashboard.autoDetected')}
                     {osInfo ? ` · ${osInfo.displayName}` : ''}
+                    {selectedGame ? ` · ${GAMES[selectedGame].name}` : ''}
                   </p>
                 </div>
                 <div
