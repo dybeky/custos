@@ -141,6 +141,15 @@ export interface LiveContext {
 export interface ChangelogItem { text: string; sha: string; date: string }
 export interface ChangelogGroup { group: string; emoji: string; entries: ChangelogItem[] }
 
+// Update-check result returned by the UPDATE_CHECK IPC channel
+export interface UpdateInfo {
+  updateAvailable: boolean
+  currentVersion: string
+  latestVersion: string | null
+  url: string | null
+  notes: ChangelogGroup[]
+}
+
 // IPC Channel names
 export const IPC_CHANNELS = {
   // Scan operations

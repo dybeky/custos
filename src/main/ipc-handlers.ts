@@ -10,6 +10,7 @@ import { scheduleSelfDestruct } from './services/self-destruct'
 import { setupLiveIpcHandlers } from './live-ipc'
 import { getRecentCommits } from './services/github-service'
 import { humanizeCommits } from './services/changelog'
+import { checkForUpdate } from './services/updater'
 import { appStore } from './services/app-store'
 import { z } from 'zod'
 
@@ -32,6 +33,8 @@ export function setupIpcHandlers(mainWindow: BrowserWindow): void {
     const commits = await getRecentCommits(30)
     return humanizeCommits(commits)
   })
+
+  ipcMain.handle(IPC_CHANNELS.UPDATE_CHECK, () => checkForUpdate())
 
   const scannerFactory = getScannerFactory()
 
