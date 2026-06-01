@@ -49,6 +49,15 @@ const navItems: NavItem[] = [
     labelKey: 'nav.scan'
   },
   {
+    path: '/live',
+    icon: (
+      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17H4a2 2 0 01-2-2V5a2 2 0 012-2h16a2 2 0 012 2v10a2 2 0 01-2 2h-1" />
+      </svg>
+    ),
+    labelKey: 'nav.liveScan'
+  },
+  {
     path: '/results',
     icon: (
       <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">

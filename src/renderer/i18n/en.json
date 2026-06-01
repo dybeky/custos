@@ -120,9 +120,37 @@
   "nav": {
     "dashboard": "Dashboard",
     "scan": "Scan",
+    "liveScan": "Live Scan",
     "results": "Results",
     "manual": "Manual",
     "utilities": "Utilities",
     "settings": "Settings"
+  },
+  "liveScan": {
+    "title": "Live Scan",
+    "subtitle": "Scan Unturned process memory in real time",
+    "startScan": "START LIVE SCAN",
+    "scanAgain": "SCAN AGAIN",
+    "scanning": "Scanning...",
+    "scanComplete": "Scan Complete",
+    "checkingStatus": "Checking status...",
+    "refreshStatus": "Refresh status",
+    "windowsOnly": "Windows only",
+    "windowsOnlyDesc": "Live memory scanning is Windows-only",
+    "nativeUnavailable": "Native module not available",
+    "nativeUnavailableDesc": "Native module unavailable — build on Windows to enable",
+    "gameNotRunning": "Unturned is not running",
+    "gameNotRunningDesc": "Start the game, then scan",
+    "gameDetected": "Unturned detected — ready to scan",
+    "gameDetectedDesc": "Detected: {{name}}",
+    "readyToScan": "Ready to scan",
+    "confidenceHigh": "HIGH",
+    "confidenceSuspicious": "SUSPICIOUS",
+    "confidenceInfo": "INFO",
+    "highThreats": "high",
+    "suspicious": "suspicious",
+    "noThreatsFound": "No live threats detected",
+    "noLiveThreats": "No live threats detected",
+    "noLiveThreatsDesc": "The process memory appears clean"
   }
 }

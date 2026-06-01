@@ -9,6 +9,7 @@ import { Results } from './pages/Results'
 import { Manual } from './pages/Manual'
 import { Utilities } from './pages/Utilities'
 import { Settings } from './pages/Settings'
+import { LiveScan } from './pages/LiveScan'
 import { ErrorBoundary } from './components/ErrorBoundary'
 import { useSettingsStore } from './stores/settings-store'
 import './i18n'
@@ -62,6 +63,7 @@ export function App() {
               <Routes>
                 <Route path="/" element={<Dashboard />} />
                 <Route path="/scan" element={<Scan />} />
+                <Route path="/live" element={<LiveScan />} />
                 <Route path="/results" element={<Results />} />
                 <Route path="/manual" element={<Manual />} />
                 <Route path="/utilities" element={<Utilities />} />
