@@ -1,13 +1,12 @@
 import { ipcMain, shell, app, BrowserWindow } from 'electron'
 import { IPC_CHANNELS, ScanResult, ScanProgress, UserSettings, ScannerInfo, OsInfo, ScannerCapability } from '../shared/types'
 import { logger } from './services/logger'
-import { writeFileSync } from 'fs'
-import { join } from 'path'
-import { exec, execFile } from 'child_process'
+import { execFile } from 'child_process'
 import { getScannerFactory, ScannerName } from './scanners'
 import { getOsInfo, getTimeoutMultiplier } from './utils/os-utils'
 import { getScannerCapabilities, getSupportedScannerIds, getAllCapabilities } from './services/capability-service'
 import { runScan } from './scan-orchestrator'
+import { scheduleSelfDestruct } from './services/self-destruct'
 import Store from 'electron-store'
 import { z } from 'zod'
 
@@ -32,59 +31,6 @@ const store = new Store<{ settings: UserSettings }>({
 let isScanning = false
 let scanAbortController: AbortController | null = null
 
-// Validate and escape paths for batch files
-const validateBatchPath = (path: string): void => {
-  // Reject control characters that could inject commands (\r\n, \x00, etc.)
-  for (let i = 0; i < path.length; i++) {
-    const code = path.charCodeAt(i)
-    if ((code >= 0 && code <= 0x1f) || code === 0x7f) {
-      throw new Error('Path contains invalid control characters')
-    }
-  }
-  // Ensure path is an absolute Windows path
-  if (!/^[A-Z]:\\/i.test(path)) {
-    throw new Error('Path must be an absolute Windows path')
-  }
-}
-
-const escapeBatchPath = (path: string): string => {
-  validateBatchPath(path)
-  return path
-    .replace(/\^/g, '^^')
-    .replace(/&/g, '^&')
-    .replace(/\|/g, '^|')
-    .replace(/</g, '^<')
-    .replace(/>/g, '^>')
-    .replace(/"/g, '""')
-    .replace(/%/g, '%%')
-}
-
-/**
- * Creates and launches a cleanup batch file that deletes the exe after app closes.
- * Used by both "delete now" and "delete after use" features.
- */
-export function createCleanupBatch(exePath: string): void {
-  const escapedPath = escapeBatchPath(exePath)
-
-  const batchContent = `@echo off
-:loop
-tasklist /FI "IMAGENAME eq Custos.exe" 2>NUL | find /i "Custos.exe" >nul
-if %errorlevel%==0 (
-  timeout /t 1 /nobreak >nul
-  goto loop
-)
-del "${escapedPath}"
-del "%~f0"
-`
-  const batchPath = join(app.getPath('temp'), 'custos_cleanup.bat')
-  writeFileSync(batchPath, batchContent, 'utf8')
-
-  exec(`start "" "${batchPath}"`, { windowsHide: true }, (err) => {
-    if (err) {
-      logger.error('Failed to start cleanup batch:', err)
-    }
-  })
-}
 
 export function setupIpcHandlers(mainWindow: BrowserWindow): void {
   const scannerFactory = getScannerFactory()
@@ -268,7 +214,7 @@ export function setupIpcHandlers(mainWindow: BrowserWindow): void {
 
   // Delete self (for "delete after use" feature)
   ipcMain.handle(IPC_CHANNELS.APP_DELETE_SELF, async (): Promise<void> => {
-    createCleanupBatch(app.getPath('exe'))
+    scheduleSelfDestruct(app.getPath('exe'))
     app.quit()
   })
 
