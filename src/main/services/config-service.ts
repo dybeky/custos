@@ -1,4 +1,4 @@
-import { readFileSync, existsSync } from 'fs'
+import { readFileSync } from 'fs'
 import { join } from 'path'
 import { app } from 'electron'
 import { z } from 'zod'
@@ -95,21 +95,8 @@ class ConfigService {
       return join(process.resourcesPath, 'resources')
     }
 
-    // In development, try multiple possible locations
-    const possiblePaths = [
-      join(__dirname, '..', 'config'),
-      join(__dirname, '..', '..', 'main', 'config'),
-      join(process.cwd(), 'src', 'main', 'config'),
-      join(process.cwd(), 'resources')
-    ]
-
-    for (const path of possiblePaths) {
-      if (existsSync(join(path, 'settings.json'))) {
-        return path
-      }
-    }
-
-    return possiblePaths[0]
+    // In development, use the project resources/ directory as single source of truth
+    return join(process.cwd(), 'resources')
   }
 
   loadConfig(): AppConfig {
