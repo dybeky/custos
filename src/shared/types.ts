@@ -86,6 +86,57 @@ export interface ScannerCapability {
   category: CapabilityCategory  // which app area / tab this check belongs to
 }
 
+// ── Live-scan types ──────────────────────────────────────────────────────────
+
+/** Confidence level for a live-scan finding. */
+export type LiveFindingConfidence = 'high' | 'suspicious' | 'info'
+
+/** A single finding produced by a live detector. */
+export interface LiveFinding {
+  /** Stable identifier of the detector that produced this finding. */
+  detectorId: string
+  /** Human-readable detector name. */
+  detectorName: string
+  /** Short title for the UI. */
+  title: string
+  /** Full description / evidence. */
+  detail: string
+  /** Confidence level — drives colour coding in the renderer. */
+  confidence: LiveFindingConfidence
+}
+
+/** Status object returned by LIVE_GET_STATUS. */
+export interface LiveScanStatus {
+  /** True when memoryjs loaded successfully (Windows + correct Electron ABI). */
+  nativeAvailable: boolean
+  /** process.platform value from the main process. */
+  platform: string
+  /** True when the Unturned game process was found running. */
+  gameRunning: boolean
+  /** Name of the game process if found (e.g. "Unturned.exe"). */
+  gameName?: string
+}
+
+/**
+ * Context passed to every live detector at run-time.
+ * Detectors must NOT open or close the handle — that is managed by the
+ * orchestrator.
+ */
+export interface LiveContext {
+  /** PID of the located game process. */
+  pid: number
+  /** OS process handle (from memoryjs openProcess). */
+  handle: number
+  /** Executable name (e.g. "Unturned.exe"). */
+  gameName: string
+  /** Loaded signatures / module allow-deny lists. */
+  signatures: {
+    moduleAllowlist: string[]
+    moduleDenylist: string[]
+    aob: Array<{ name: string; pattern: string; module?: string }>
+  }
+}
+
 // IPC Channel names
 export const IPC_CHANNELS = {
   // Scan operations
@@ -119,7 +170,14 @@ export const IPC_CHANNELS = {
   // Window operations
   WINDOW_MINIMIZE: 'window:minimize',
   WINDOW_MAXIMIZE: 'window:maximize',
-  WINDOW_CLOSE: 'window:close'
+  WINDOW_CLOSE: 'window:close',
+
+  // Live-scan operations
+  LIVE_GET_STATUS: 'live:get-status',
+  LIVE_SCAN_START: 'live:scan:start',
+  LIVE_SCAN_PROGRESS: 'live:scan:progress',
+  LIVE_SCAN_RESULT: 'live:scan:result',
+  LIVE_SCAN_COMPLETE: 'live:scan:complete'
 } as const
 
 export type IpcChannel = typeof IPC_CHANNELS[keyof typeof IPC_CHANNELS]

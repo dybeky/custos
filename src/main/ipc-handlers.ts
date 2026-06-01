@@ -7,6 +7,7 @@ import { getOsInfo, getTimeoutMultiplier } from './utils/os-utils'
 import { getScannerCapabilities, getSupportedScannerIds, getAllCapabilities } from './services/capability-service'
 import { runScan } from './scan-orchestrator'
 import { scheduleSelfDestruct } from './services/self-destruct'
+import { setupLiveIpcHandlers } from './live-ipc'
 import Store from 'electron-store'
 import { z } from 'zod'
 
@@ -33,6 +34,9 @@ let scanAbortController: AbortController | null = null
 
 
 export function setupIpcHandlers(mainWindow: BrowserWindow): void {
+  // Register live-scan IPC handlers
+  setupLiveIpcHandlers(mainWindow)
+
   const scannerFactory = getScannerFactory()
 
   // Safe send to renderer (check if window is destroyed)

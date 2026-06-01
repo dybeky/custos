@@ -1,10 +1,21 @@
 import { contextBridge, ipcRenderer } from 'electron'
-import { IPC_CHANNELS, ScanResult, ScanProgress, UserSettings, ScannerInfo, OsInfo, ScannerCapability, ScannerName } from '../shared/types'
+import { IPC_CHANNELS, ScanResult, ScanProgress, UserSettings, ScannerInfo, OsInfo, ScannerCapability, ScannerName, LiveFinding, LiveScanStatus } from '../shared/types'
 
 export type ScanProgressCallback = (progress: ScanProgress) => void
 export type ScanResultCallback = (result: ScanResult) => void
 export type ScanCompleteCallback = (results: ScanResult[]) => void
 export type ScanErrorCallback = (error: { message: string }) => void
+
+// Live-scan callback types
+export type LiveScanResultCallback = (finding: LiveFinding) => void
+export type LiveScanProgressCallback = (progress: {
+  detectorId: string
+  detectorName: string
+  current: number
+  total: number
+  percentage: number
+}) => void
+export type LiveScanCompleteCallback = (findings: LiveFinding[]) => void
 
 const api = {
   // Scanner operations
@@ -113,6 +124,45 @@ const api = {
 
   close: (): Promise<void> => {
     return ipcRenderer.invoke(IPC_CHANNELS.WINDOW_CLOSE)
+  },
+
+  // ── Live scan ────────────────────────────────────────────────────────────
+
+  /** Get the current live-scan capability status (platform, native, game). */
+  getLiveStatus: (): Promise<LiveScanStatus> => {
+    return ipcRenderer.invoke(IPC_CHANNELS.LIVE_GET_STATUS)
+  },
+
+  /** Start a live scan. Streams results via onLiveScanResult; returns all findings when done. */
+  startLiveScan: (): Promise<LiveFinding[]> => {
+    return ipcRenderer.invoke(IPC_CHANNELS.LIVE_SCAN_START)
+  },
+
+  /** Subscribe to per-detector progress events during a live scan. Returns unsubscribe fn. */
+  onLiveScanProgress: (callback: LiveScanProgressCallback): (() => void) => {
+    const listener = (_event: Electron.IpcRendererEvent, payload: Parameters<LiveScanProgressCallback>[0]): void => {
+      callback(payload)
+    }
+    ipcRenderer.on(IPC_CHANNELS.LIVE_SCAN_PROGRESS, listener)
+    return () => ipcRenderer.removeListener(IPC_CHANNELS.LIVE_SCAN_PROGRESS, listener)
+  },
+
+  /** Subscribe to individual findings as they arrive. Returns unsubscribe fn. */
+  onLiveScanResult: (callback: LiveScanResultCallback): (() => void) => {
+    const listener = (_event: Electron.IpcRendererEvent, finding: LiveFinding): void => {
+      callback(finding)
+    }
+    ipcRenderer.on(IPC_CHANNELS.LIVE_SCAN_RESULT, listener)
+    return () => ipcRenderer.removeListener(IPC_CHANNELS.LIVE_SCAN_RESULT, listener)
+  },
+
+  /** Subscribe to the scan-complete event (all findings). Returns unsubscribe fn. */
+  onLiveScanComplete: (callback: LiveScanCompleteCallback): (() => void) => {
+    const listener = (_event: Electron.IpcRendererEvent, findings: LiveFinding[]): void => {
+      callback(findings)
+    }
+    ipcRenderer.on(IPC_CHANNELS.LIVE_SCAN_COMPLETE, listener)
+    return () => ipcRenderer.removeListener(IPC_CHANNELS.LIVE_SCAN_COMPLETE, listener)
   }
 }
 
