@@ -570,7 +570,7 @@ export class BrowserHistoryScanner extends BaseScanner {
     return results
   }
 
-  private convertChromeTimestamp(chromeTimestamp: number): Date {
+  convertChromeTimestamp(chromeTimestamp: number): Date {
     try {
       if (chromeTimestamp <= 0) return new Date(0)
       // Chrome timestamp is microseconds since January 1, 1601 UTC
@@ -581,7 +581,7 @@ export class BrowserHistoryScanner extends BaseScanner {
     }
   }
 
-  private convertFirefoxTimestamp(firefoxTimestamp: number): Date {
+  convertFirefoxTimestamp(firefoxTimestamp: number): Date {
     try {
       if (firefoxTimestamp <= 0) return new Date(0)
       // Firefox timestamp is microseconds since Unix epoch

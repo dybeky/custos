@@ -9,7 +9,14 @@ export default defineConfig({
     coverage: {
       provider: 'v8',
       reporter: ['text', 'html'],
-      exclude: ['node_modules', 'out', 'release', '**/*.test.ts', '**/*.spec.ts']
+      include: ['src/main/**'],
+      exclude: ['node_modules', 'out', 'release', '**/*.test.ts', '**/*.spec.ts'],
+      thresholds: {
+        statements: 14,
+        branches: 13,
+        functions: 14,
+        lines: 15
+      }
     }
   }
 })

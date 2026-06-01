@@ -84,7 +84,7 @@ export class BamScanner extends RegistryQueryScanner {
   /**
    * Parse FILETIME (100-nanosecond intervals since 1601-01-01) from hex data
    */
-  private parseFiletime(hexData: string): Date | null {
+  parseFiletime(hexData: string): Date | null {
     try {
       // BAM stores FILETIME as 8 bytes in little-endian format
       const cleanHex = hexData.replace(/\s/g, '')

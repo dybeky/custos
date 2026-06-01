@@ -8,7 +8,7 @@ import { getScannerFactory } from '../scanners'
  * `minWindowsBuild` optionally gates a scanner behind a minimum Windows build.
  * `requirement` is the short human-readable label shown in the UI.
  */
-interface Requirement {
+export interface Requirement {
   platforms: OsPlatform[]
   minWindowsBuild?: number
   requirement: string
@@ -123,7 +123,7 @@ export function getAllCapabilities(): ScannerCapability[] {
 }
 
 /** Shared resolution of a single capability against the current OS. */
-function resolveCapability(
+export function resolveCapability(
   base: Pick<ScannerCapability, 'id' | 'name' | 'description' | 'category'>,
   req: Requirement,
   os: ReturnType<typeof getOsInfo>

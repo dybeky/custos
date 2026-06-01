@@ -77,6 +77,9 @@ const KnownHashesSchema = z.object({
   sha256: z.array(z.string())
 })
 
+// Export schemas for testing
+export { AppConfigSchema, KeywordSettingsSchema, KnownHashesSchema }
+
 // Export types inferred from schemas
 export type AppTimeouts = z.infer<typeof AppTimeoutsSchema>
 export type ScanSettings = z.infer<typeof ScanSettingsSchema>

@@ -3,7 +3,7 @@ import { ScanResult } from '../../shared/types'
 import { asyncExec } from '../utils/async-exec'
 import { logger } from '../services/logger'
 
-interface DnsCacheEntry {
+export interface DnsCacheEntry {
   recordName: string
   recordType: string
   ttl: number
@@ -107,7 +107,7 @@ export class DnsCacheScanner extends BaseScanner {
    *   Тип записи. . . . : 1
    *   Срок жизни. . . .  : 300
    */
-  private parseDnsOutput(output: string): DnsCacheEntry[] {
+  parseDnsOutput(output: string): DnsCacheEntry[] {
     const entries: DnsCacheEntry[] = []
     const lines = output.split('\n')
 
@@ -177,7 +177,7 @@ export class DnsCacheScanner extends BaseScanner {
     return entries
   }
 
-  private dnsTypeToString(type: number): string {
+  dnsTypeToString(type: number): string {
     switch (type) {
       case 1: return 'A'
       case 5: return 'CNAME'
