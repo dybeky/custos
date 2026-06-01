@@ -118,6 +118,14 @@ declare module 'memoryjs' {
   function readMemory(handle: number, address: number, type: string): unknown
 
   /**
+   * Read `size` bytes from the process at `address` into a Buffer.
+   * @param handle  The OS process handle.
+   * @param address Target address.
+   * @param size    Number of bytes to read.
+   */
+  function readBuffer(handle: number, address: number, size: number): Buffer
+
+  /**
    * AOB / byte-pattern scan within a module's memory range.
    * @param handle  The OS process handle.
    * @param module  Module name (e.g. "UnityPlayer.dll") or "" for all memory.

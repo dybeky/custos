@@ -160,3 +160,18 @@ export const EXEC_PROTECTIONS = new Set<number>([
 
 /** Win32 MEM_PRIVATE type constant */
 export const MEM_PRIVATE = 0x20000
+
+/**
+ * Read `size` bytes from the process at `address`.
+ * Returns null when native is unavailable or the read throws.
+ */
+export function readBuffer(handle: number, address: number, size: number): Buffer | null {
+  if (process.platform !== 'win32') return null
+  const m = loadMemoryjs()
+  if (!m) return null
+  try {
+    return m.readBuffer(handle, address, size)
+  } catch {
+    return null
+  }
+}
