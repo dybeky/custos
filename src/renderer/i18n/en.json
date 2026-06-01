@@ -140,6 +140,11 @@
     "download": "Download",
     "later": "Later"
   },
+  "promo": {
+    "title": "Built by 97437",
+    "body": "Tools, mods & more — come say hi.",
+    "visit": "Visit 97437.dev"
+  },
   "liveScan": {
     "title": "Live Scan",
     "subtitle": "Scan Unturned process memory in real time",

@@ -13,6 +13,7 @@ import { ErrorBoundary } from './components/ErrorBoundary'
 import { useSettingsStore } from './stores/settings-store'
 import { GamePicker } from './components/GamePicker'
 import { UpdateModal } from './components/UpdateModal'
+import { WebsitePromoToast } from './components/WebsitePromoToast'
 import { useGameStore } from './stores/game-store'
 import type { UpdateInfo } from '../shared/types'
 import './i18n'
@@ -21,6 +22,8 @@ export function App() {
   const { loadSettings, isLoading } = useSettingsStore()
   const { selectedGame } = useGameStore()
   const [update, setUpdate] = useState<UpdateInfo | null>(null)
+  const [promoDone, setPromoDone] = useState(false)
+  const showPromo = !!selectedGame && update === null && !promoDone
 
   useEffect(() => {
     if (!selectedGame) return
@@ -65,6 +68,7 @@ export function App() {
         <div className="h-screen w-screen bg-background text-text-primary flex flex-col overflow-hidden">
           <GamePicker />
           {update && <UpdateModal info={update} onClose={() => setUpdate(null)} />}
+          {showPromo && <WebsitePromoToast onDone={() => setPromoDone(true)} />}
           <Header />
 
           <div className="flex flex-1 overflow-hidden relative z-10">
