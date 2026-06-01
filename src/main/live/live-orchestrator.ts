@@ -68,9 +68,9 @@ export async function runLiveScan(opts: LiveScanOptions): Promise<LiveFinding[]>
   const game = findGameProcess(opts.processNames)
   if (!game) {
     const f = makeStatusFinding(
-      'Unturned not running — start it and rescan',
-      'The live scanner could not find a running Unturned process. ' +
-      'Launch Unturned and click "Live Scan" again.'
+      'Game not running — start it and rescan',
+      'The live scanner could not find a running game process. ' +
+      'Launch your game and click "Live Scan" again.'
     )
     allFindings.push(f)
     emit(IPC_CHANNELS.LIVE_SCAN_RESULT, f)

@@ -23,13 +23,15 @@ export function App() {
   const { selectedGame } = useGameStore()
   const [update, setUpdate] = useState<UpdateInfo | null>(null)
   const [promoDone, setPromoDone] = useState(false)
-  const showPromo = !!selectedGame && update === null && !promoDone
+  const [updateChecked, setUpdateChecked] = useState(false)
+  const showPromo = !!selectedGame && updateChecked && update === null && !promoDone
 
   useEffect(() => {
     if (!selectedGame) return
     window.electronAPI.checkForUpdate()
       .then((info) => { if (info.updateAvailable) setUpdate(info) })
       .catch(() => {})
+      .finally(() => setUpdateChecked(true))
   }, [selectedGame])
 
   useEffect(() => {

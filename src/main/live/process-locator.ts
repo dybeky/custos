@@ -1,5 +1,5 @@
 /**
- * Locates the Unturned game process in the running process list.
+ * Locates a target game process in the running process list.
  *
  * Uses the memoryjs wrapper — returns null when native is unavailable or the
  * game is not currently running.
@@ -16,7 +16,7 @@ export interface GameProcess {
 }
 
 /**
- * Scan the system process list for a running Unturned instance.
+ * Scan the system process list for a running game instance.
  *
  * @param candidates Override the default process name list (mainly for tests).
  * @returns The first matching process, or null if not found / native unavailable.
