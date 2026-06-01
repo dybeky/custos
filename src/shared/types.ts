@@ -139,7 +139,7 @@ export interface LiveContext {
 
 // Changelog types (shared between main-process humanizer and renderer Dashboard)
 export interface ChangelogItem { text: string; sha: string; date: string }
-export interface ChangelogGroup { group: string; emoji: string; entries: ChangelogItem[] }
+export interface ChangelogGroup { group: string; entries: ChangelogItem[] }
 
 // Update-check result returned by the UPDATE_CHECK IPC channel
 export interface UpdateInfo {

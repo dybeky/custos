@@ -15,13 +15,13 @@ export function parseConventionalCommit(message: string): ParsedCommit {
   return { type: m[1].toLowerCase(), scope: m[2] ?? null, summary: m[3].trim() }
 }
 
-// type -> friendly group + emoji. Anything unlisted becomes "Improvements".
-const GROUP_MAP: Record<string, { group: string; emoji: string }> = {
-  feat: { group: 'New', emoji: '✨' },
-  fix: { group: 'Fixes', emoji: '🐛' },
-  perf: { group: 'Performance', emoji: '⚡' }
+// type -> friendly group. Anything unlisted becomes "Improvements".
+const GROUP_MAP: Record<string, { group: string }> = {
+  feat: { group: 'New' },
+  fix: { group: 'Fixes' },
+  perf: { group: 'Performance' }
 }
-const FALLBACK = { group: 'Improvements', emoji: '🔧' }
+const FALLBACK = { group: 'Improvements' }
 // Fixed display order of groups.
 const GROUP_ORDER = ['New', 'Fixes', 'Performance', 'Improvements']
 
@@ -40,7 +40,7 @@ export function humanizeCommits(commits: RawCommit[]): ChangelogGroup[] {
     const meta = GROUP_MAP[parsed.type] ?? FALLBACK
 
     if (!buckets.has(meta.group)) {
-      buckets.set(meta.group, { group: meta.group, emoji: meta.emoji, entries: [] })
+      buckets.set(meta.group, { group: meta.group, entries: [] })
     }
     buckets.get(meta.group)!.entries.push({
       text: capitalize(parsed.summary),

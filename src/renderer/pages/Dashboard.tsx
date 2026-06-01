@@ -6,6 +6,15 @@ import { useGameStore } from '../stores/game-store'
 import { GAMES } from '../../shared/games'
 import type { CapabilityCategory, ScannerCapability, ChangelogGroup } from '../../shared/types'
 
+// Accent color per changelog group — replaces emojis with quiet semantic color.
+const CHANGELOG_ACCENT: Record<string, string> = {
+  New: '#80A8FF',          // scan blue
+  Fixes: '#34D399',        // emerald — something resolved
+  Performance: '#CEB5FF',  // purple
+  Improvements: '#8EC1DE'  // steel blue
+}
+const CHANGELOG_ACCENT_DEFAULT = '#80A8FF'
+
 // Render order + i18n label key for each app-area group.
 const CATEGORY_ORDER: { id: CapabilityCategory; labelKey: string }[] = [
   { id: 'scan', labelKey: 'dashboard.categoryScan' },
@@ -166,14 +175,20 @@ export function Dashboard() {
               </div>
 
               <div
-                className="shrink-0 inline-flex items-center gap-1.5 rounded-full bg-scan/10 px-2.5 py-1"
+                className="relative shrink-0 inline-flex items-center gap-1.5 rounded-full bg-scan/10 px-2.5 py-1 overflow-hidden"
                 style={{ animation: 'badgeBreathe 2.8s ease-in-out infinite' }}
               >
-                <span
-                  className="w-1.5 h-1.5 rounded-full bg-scan"
-                  style={{ boxShadow: '0 0 8px rgba(128,168,255,0.6)' }}
-                />
-                <span className="text-2xs font-bold tracking-wide text-scan">
+                {/* Light sweep gliding across the pill */}
+                <span className="badge-sheen" aria-hidden="true" />
+                {/* Dot with an expanding radar ring */}
+                <span className="relative flex items-center justify-center w-1.5 h-1.5">
+                  <span className="absolute inset-0 rounded-full bg-scan animate-status-ping" aria-hidden="true" />
+                  <span
+                    className="relative w-1.5 h-1.5 rounded-full bg-scan"
+                    style={{ boxShadow: '0 0 8px rgba(128,168,255,0.6)' }}
+                  />
+                </span>
+                <span className="relative text-2xs font-bold tracking-wide text-scan">
                   {t('dashboard.stable')}
                 </span>
               </div>
@@ -188,22 +203,42 @@ export function Dashboard() {
             {changelogLoaded && changelog.length === 0 && (
               <p className="text-sm text-ink-dim">{t('dashboard.changelogEmpty')}</p>
             )}
-            <div className="space-y-4">
-              {changelog.map((group) => (
-                <div key={group.group}>
-                  <h3 className="text-2xs font-bold tracking-[0.18em] uppercase text-ink-dim font-display mb-2">
-                    {group.emoji} {group.group}
-                  </h3>
-                  <ul className="space-y-1.5">
-                    {group.entries.slice(0, 6).map((e) => (
-                      <li key={e.sha} className="text-sm text-ink flex gap-2">
-                        <span className="text-scan">•</span>
-                        <span>{e.text}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              ))}
+            <div className="space-y-5">
+              {changelog.map((group) => {
+                const accent = CHANGELOG_ACCENT[group.group] ?? CHANGELOG_ACCENT_DEFAULT
+                return (
+                  <div key={group.group}>
+                    {/* Group header: accent tab · name · count · hairline */}
+                    <div className="flex items-center gap-2.5 mb-2.5">
+                      <span
+                        className="h-3.5 w-1 rounded-full shrink-0"
+                        style={{ backgroundColor: accent, boxShadow: `0 0 8px ${accent}66` }}
+                      />
+                      <h3
+                        className="text-2xs font-bold tracking-[0.18em] uppercase font-display"
+                        style={{ color: accent }}
+                      >
+                        {group.group}
+                      </h3>
+                      <span className="text-2xs font-semibold tabular-nums text-ink-dim/60">
+                        {group.entries.length}
+                      </span>
+                      <span className="flex-1 h-px bg-[color:var(--line)]" />
+                    </div>
+                    <ul className="space-y-2 pl-3">
+                      {group.entries.slice(0, 6).map((e) => (
+                        <li key={e.sha} className="text-sm text-ink flex gap-2.5 items-start">
+                          <span
+                            className="mt-1.5 w-1 h-1 rounded-full shrink-0"
+                            style={{ backgroundColor: accent }}
+                          />
+                          <span className="leading-snug">{e.text}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )
+              })}
             </div>
           </CardContent>
         </Card>

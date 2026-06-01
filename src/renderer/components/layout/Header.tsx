@@ -46,21 +46,30 @@ export function Header() {
 
       {/* Window controls */}
       <div className="flex items-center gap-1" style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}>
-        {/* Status + Version indicator */}
-        <div className="flex items-center gap-1.5 mr-2 h-full">
-          {/* Status dot */}
-          <div
-            className="w-2 h-2 rounded-full animate-pulse-slow flex-shrink-0"
-            style={{
-              backgroundColor: statusColors[status],
-              boxShadow: `0 0 8px ${statusColors[status]}80`
-            }}
-            title={statusTitles[status]}
-          />
+        {/* Status + OS indicator — glass pill */}
+        <div
+          className="flex items-center gap-1.5 mr-2 h-6 px-2.5 rounded-full bg-panel-2/60 border border-[color:var(--line)] backdrop-blur-sm"
+          title={statusTitles[status]}
+        >
+          {/* Status dot with expanding radar ring */}
+          <span className="relative flex items-center justify-center w-2 h-2 shrink-0">
+            <span
+              className="absolute inset-0 rounded-full animate-status-ping"
+              style={{ backgroundColor: statusColors[status] }}
+              aria-hidden="true"
+            />
+            <span
+              className="relative w-2 h-2 rounded-full"
+              style={{
+                backgroundColor: statusColors[status],
+                boxShadow: `0 0 8px ${statusColors[status]}aa`
+              }}
+            />
+          </span>
 
           {/* OS version */}
           {isLoaded && osInfo && (
-            <span className="text-[11px] font-extrabold tracking-wide text-ink-dim font-display leading-none flex items-center">
+            <span className="text-[11px] font-extrabold tracking-wide text-ink-dim font-display leading-none">
               {osInfo.displayName}
             </span>
           )}

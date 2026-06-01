@@ -3,6 +3,15 @@ import { Modal } from './ui/Modal'
 import { Button } from './ui/Button'
 import type { UpdateInfo } from '../../shared/types'
 
+// Accent color per changelog group — keeps the emoji-free changelog readable.
+const ACCENT: Record<string, string> = {
+  New: '#80A8FF',
+  Fixes: '#34D399',
+  Performance: '#CEB5FF',
+  Improvements: '#8EC1DE'
+}
+const ACCENT_DEFAULT = '#80A8FF'
+
 export function UpdateModal({ info, onClose }: { info: UpdateInfo; onClose: () => void }) {
   const { t } = useTranslation()
   return (
@@ -10,21 +19,37 @@ export function UpdateModal({ info, onClose }: { info: UpdateInfo; onClose: () =
       <p className="text-sm text-ink-dim mb-3">
         {t('update.newVersion', { version: info.latestVersion })}
       </p>
-      <div className="space-y-3 max-h-64 overflow-y-auto mb-4">
-        {info.notes.map((group) => (
-          <div key={group.group}>
-            <h3 className="text-2xs font-bold tracking-[0.18em] uppercase text-ink-dim font-display mb-1">
-              {group.emoji} {group.group}
-            </h3>
-            <ul className="space-y-1">
-              {group.entries.map((e) => (
-                <li key={e.sha} className="text-sm text-ink flex gap-2">
-                  <span className="text-scan">•</span><span>{e.text}</span>
-                </li>
-              ))}
-            </ul>
-          </div>
-        ))}
+      <div className="space-y-4 max-h-64 overflow-y-auto mb-4">
+        {info.notes.map((group) => {
+          const accent = ACCENT[group.group] ?? ACCENT_DEFAULT
+          return (
+            <div key={group.group}>
+              <div className="flex items-center gap-2 mb-1.5">
+                <span
+                  className="h-3 w-1 rounded-full shrink-0"
+                  style={{ backgroundColor: accent, boxShadow: `0 0 8px ${accent}66` }}
+                />
+                <h3
+                  className="text-2xs font-bold tracking-[0.18em] uppercase font-display"
+                  style={{ color: accent }}
+                >
+                  {group.group}
+                </h3>
+              </div>
+              <ul className="space-y-1 pl-3">
+                {group.entries.map((e) => (
+                  <li key={e.sha} className="text-sm text-ink flex gap-2.5 items-start">
+                    <span
+                      className="mt-1.5 w-1 h-1 rounded-full shrink-0"
+                      style={{ backgroundColor: accent }}
+                    />
+                    <span className="leading-snug">{e.text}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )
+        })}
       </div>
       <div className="flex justify-end gap-2">
         <Button variant="secondary" size="sm" onClick={onClose}>{t('update.later')}</Button>

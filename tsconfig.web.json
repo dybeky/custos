@@ -1,6 +1,7 @@
 {
   "compilerOptions": {
     "composite": true,
+    "target": "ESNext",
     "module": "ESNext",
     "moduleResolution": "bundler",
     "allowSyntheticDefaultImports": true,
@@ -13,8 +14,7 @@
     "lib": ["DOM", "DOM.Iterable", "ESNext"],
     "types": ["node"],
     "resolveJsonModule": true,
-    "isolatedModules": true,
-    "baseUrl": "."
+    "isolatedModules": true
   },
   "include": [
     "src/renderer/**/*",
