@@ -60,7 +60,7 @@ const utilities: Utility[] = [
     )
   },
   {
-    name: 'ShellBag Analyzer',
+    name: 'ShellBag Analyzer & Cleaner',
     descKey: 'utilities.shellbagAnalyzerDesc',
     url: 'https://privazer.com/en/download-shellbag-analyzer-shellbag-cleaner.php',
     icon: (

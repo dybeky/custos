@@ -71,11 +71,11 @@
     "title": "Utilities",
     "subtitle": "Useful tools for anti-cheat verification",
     "openWebsite": "OPEN WEBSITE",
-    "lastActivityViewDesc": "Shows computer activity log including program executions, file operations and more",
-    "usbDeviewDesc": "Lists all USB devices ever connected to the computer with dates and details",
-    "everythingDesc": "Instant file search tool that indexes all files on your drives",
-    "systemInformerDesc": "Advanced system monitor and process viewer (formerly Process Hacker)",
-    "shellbagAnalyzerDesc": "Analyzes and cleans Windows ShellBag entries that store folder access history"
+    "lastActivityViewDesc": "Shows what you did on your computer, including program executions and file opens.",
+    "usbDeviewDesc": "Lists all USB devices that were ever connected to your computer.",
+    "everythingDesc": "Instant file-name search for Windows.",
+    "systemInformerDesc": "Free, powerful, multi-purpose tool that helps you monitor system resources and debug software.",
+    "shellbagAnalyzerDesc": "Analyzes and cleans Windows ShellBag entries left by folder browsing activity."
   },
   "general": {
     "home": "Home",
