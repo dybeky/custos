@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { HashRouter, Routes, Route } from 'react-router-dom'
 import { Header } from './components/layout/Header'
 import { Sidebar } from './components/layout/Sidebar'
@@ -12,10 +12,22 @@ import { LiveScan } from './pages/LiveScan'
 import { ErrorBoundary } from './components/ErrorBoundary'
 import { useSettingsStore } from './stores/settings-store'
 import { GamePicker } from './components/GamePicker'
+import { UpdateModal } from './components/UpdateModal'
+import { useGameStore } from './stores/game-store'
+import type { UpdateInfo } from '../shared/types'
 import './i18n'
 
 export function App() {
   const { loadSettings, isLoading } = useSettingsStore()
+  const { selectedGame } = useGameStore()
+  const [update, setUpdate] = useState<UpdateInfo | null>(null)
+
+  useEffect(() => {
+    if (!selectedGame) return
+    window.electronAPI.checkForUpdate()
+      .then((info) => { if (info.updateAvailable) setUpdate(info) })
+      .catch(() => {})
+  }, [selectedGame])
 
   useEffect(() => {
     loadSettings()
@@ -52,6 +64,7 @@ export function App() {
       <HashRouter>
         <div className="h-screen w-screen bg-background text-text-primary flex flex-col overflow-hidden">
           <GamePicker />
+          {update && <UpdateModal info={update} onClose={() => setUpdate(null)} />}
           <Header />
 
           <div className="flex flex-1 overflow-hidden relative z-10">

@@ -134,6 +134,12 @@
     "comingSoon": "Coming soon",
     "select": "Select"
   },
+  "update": {
+    "title": "Update available",
+    "newVersion": "Version {{version}} is available",
+    "download": "Download",
+    "later": "Later"
+  },
   "liveScan": {
     "title": "Live Scan",
     "subtitle": "Scan Unturned process memory in real time",
