@@ -121,7 +121,7 @@ export class DnsCacheScanner extends BaseScanner {
 
       // Record Name — multilingual support (EN, RU, DE, FR, ES, PT, IT, PL, TR, ZH, JA, KO)
       const nameMatch = trimmed.match(
-        /^(?:Record Name|Имя записи|Eintragsname|Nom de l'enregistrement|Nombre del registro|Nome do Registro|Nome record|Nazwa rekordu|Kayıt Adı|记录名称|レコード名|레코드 이름)\s*\.+\s*:\s*(.+)/i
+        /^(?:Record Name|Имя записи|Eintragsname|Nom de l'enregistrement|Nombre del registro|Nome do Registro|Nome record|Nazwa rekordu|Kayıt Adı|记录名称|レコード名|레코드 이름)(?:\s*\.)+\s*:\s*(.+)/i
       )
       if (nameMatch && nameMatch[1]) {
         // Save previous entry if exists
@@ -136,7 +136,7 @@ export class DnsCacheScanner extends BaseScanner {
 
       // Record Type — multilingual
       const typeMatch = trimmed.match(
-        /^(?:Record Type|Тип записи|Eintragstyp|Type d'enregistrement|Tipo del registro|Tipo de Registro|Tipo record|Typ rekordu|Kayıt Türü|记录类型|レコードの種類|레코드 유형)\s*\.+\s*:\s*(.+)/i
+        /^(?:Record Type|Тип записи|Eintragstyp|Type d'enregistrement|Tipo del registro|Tipo de Registro|Tipo record|Typ rekordu|Kayıt Türü|记录类型|レコードの種類|레코드 유형)(?:\s*\.)+\s*:\s*(.+)/i
       )
       if (typeMatch && typeMatch[1]) {
         const typeNum = parseInt(typeMatch[1].trim(), 10)
@@ -148,7 +148,7 @@ export class DnsCacheScanner extends BaseScanner {
 
       // Time To Live — multilingual
       const ttlMatch = trimmed.match(
-        /^(?:Time To Live|Срок жизни|Gültigkeitsdauer|Durée de vie|Período de vida|Tempo de Vida|Durata|Czas wygaśnięcia|Yaşam Süresi|生存时间|有効期間|TTL)\s*\.+\s*:\s*(\d+)/i
+        /^(?:Time To Live|Срок жизни|Gültigkeitsdauer|Durée de vie|Período de vida|Tempo de Vida|Durata|Czas wygaśnięcia|Yaşam Süresi|生存时间|有効期間|TTL)(?:\s*\.)+\s*:\s*(\d+)/i
       )
       if (ttlMatch && ttlMatch[1]) {
         currentTtl = parseInt(ttlMatch[1], 10)
@@ -159,7 +159,7 @@ export class DnsCacheScanner extends BaseScanner {
       // Fallback: match any line with ". . . :" pattern containing a domain-like value
       // This catches unsupported locales by detecting the ipconfig output format
       if (!currentName) {
-        const fallbackMatch = trimmed.match(/^[^.]+\s*\.+\s*:\s*([a-zA-Z0-9][\w.-]+\.[a-zA-Z]{2,})$/i)
+        const fallbackMatch = trimmed.match(/^[^.]+(?:\s*\.)+\s*:\s*([a-zA-Z0-9][\w.-]+\.[a-zA-Z]{2,})$/i)
         if (fallbackMatch && fallbackMatch[1]) {
           currentName = fallbackMatch[1].trim()
           currentType = ''

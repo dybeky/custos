@@ -17,57 +17,55 @@ function makeScanner(): DnsCacheScanner {
   return new DnsCacheScanner(matcher, minimalSettings)
 }
 
-// The parseDnsOutput regex matches consecutive-dot separators:
-//   Record Name .....: value
-// (not the alternating-space format '. . . . .' that real Windows uses on EN locale,
-//  but that is consistent with how the regex is written — spaces between dots are
-//  handled by localised name matching).
+// Real Windows `ipconfig /displaydns` (EN locale) uses an alternating dot-space
+// leader: "Record Name . . . . . : value". The parser must handle that exact
+// format — these fixtures use it verbatim.
 
 const ENGLISH_SINGLE_A_RECORD = `
     Windows IP Configuration
 
-    Record Name .....: example.com
-    Record Type .....: 1
-    Time To Live  ...: 300
-    Data Length .....: 4
-    Section .........: Answer
-    A (Host) Record .: 93.184.216.34
+    Record Name . . . . . : example.com
+    Record Type . . . . . : 1
+    Time To Live  . . . . : 300
+    Data Length . . . . . : 4
+    Section . . . . . . . : Answer
+    A (Host) Record . . . : 93.184.216.34
 
 `
 
 const ENGLISH_MULTI_RECORD = `
     Windows IP Configuration
 
-    Record Name .....: google.com
-    Record Type .....: 1
-    Time To Live  ...: 254
-    Data Length .....: 4
-    Section .........: Answer
-    A (Host) Record .: 142.250.80.46
+    Record Name . . . . . : google.com
+    Record Type . . . . . : 1
+    Time To Live  . . . . : 254
+    Data Length . . . . . : 4
+    Section . . . . . . . : Answer
+    A (Host) Record . . . : 142.250.80.46
 
-    Record Name .....: github.com
-    Record Type .....: 28
-    Time To Live  ...: 60
-    Data Length .....: 16
-    Section .........: Answer
-    AAAA Record .....: 2606:50c0:8000::153
+    Record Name . . . . . : github.com
+    Record Type . . . . . : 28
+    Time To Live  . . . . : 60
+    Data Length . . . . . : 16
+    Section . . . . . . . : Answer
+    AAAA Record . . . . . : 2606:50c0:8000::153
 
-    Record Name .....: api.example.org
-    Record Type .....: 5
-    Time To Live  ...: 120
-    Data Length .....: 8
-    Section .........: Answer
-    CNAME Record ....: origin.example.org
+    Record Name . . . . . : api.example.org
+    Record Type . . . . . : 5
+    Time To Live  . . . . : 120
+    Data Length . . . . . : 8
+    Section . . . . . . . : Answer
+    CNAME Record  . . . . : origin.example.org
 
 `
 
 const ENGLISH_CNAME_RECORD = `
-    Record Name .....: cdn.cloudflare.net
-    Record Type .....: 5
-    Time To Live  ...: 86400
-    Data Length .....: 12
-    Section .........: Answer
-    CNAME Record ....: cdn-lb.cloudflare.net
+    Record Name . . . . . : cdn.cloudflare.net
+    Record Type . . . . . : 5
+    Time To Live  . . . . : 86400
+    Data Length . . . . . : 12
+    Section . . . . . . . : Answer
+    CNAME Record  . . . . : cdn-lb.cloudflare.net
 
 `
 
