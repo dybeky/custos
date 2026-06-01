@@ -1,5 +1,5 @@
 import { ipcMain, shell, app, BrowserWindow } from 'electron'
-import { IPC_CHANNELS, ScanResult, ScanProgress, UserSettings, ScannerInfo, OsInfo, ScannerCapability } from '../shared/types'
+import { IPC_CHANNELS, ScanResult, UserSettings, ScannerInfo, OsInfo, ScannerCapability } from '../shared/types'
 import { logger } from './services/logger'
 import { execFile } from 'child_process'
 import { getScannerFactory, ScannerName } from './scanners'
