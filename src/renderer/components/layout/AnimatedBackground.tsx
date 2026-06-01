@@ -2,18 +2,17 @@ import { motion } from 'framer-motion'
 import { useSettingsStore } from '../../stores/settings-store'
 import { useScanStore } from '../../stores/scan-store'
 
-// Single pastel palette — the only color set in the app
+// Periwinkle forensic-console palette
 const palette = {
-  purple: '#CEB5FF',
-  blue: '#80A8FF'
+  periwinkle: 'rgba(128,168,255,',  // --scan
+  purple: 'rgba(206,181,255,'       // accent
 }
 
-// Two large, soft glows anchored in opposite corners. They drift only a few
-// dozen pixels over ~40s, so the field reads as calm and near-static — depth
-// without distraction.
+// Two large, soft glows that drift slowly — depth without distraction.
+// Anchored to match the website's radial periwinkle glow motif.
 const glows = [
   {
-    color: palette.blue,
+    color: `${palette.periwinkle}1)`,
     size: 900,
     top: '-18%',
     left: '-12%',
@@ -22,7 +21,7 @@ const glows = [
     y: [0, 30, 0]
   },
   {
-    color: palette.purple,
+    color: `${palette.purple}1)`,
     size: 820,
     top: '52%',
     left: '58%',
@@ -41,6 +40,7 @@ export function AnimatedBackground() {
 
   return (
     <div className="fixed inset-0 overflow-hidden pointer-events-none z-0">
+      {/* Radial periwinkle glows — website motif */}
       {glows.map((glow, i) => (
         <motion.div
           key={i}
@@ -59,10 +59,19 @@ export function AnimatedBackground() {
         />
       ))}
 
-      {/* Subtle vignette to settle the edges and focus the center */}
+      {/* Scan-line gradient overlay — forensic console texture */}
       <div
         className="absolute inset-0"
-        style={{ background: 'radial-gradient(ellipse at 50% 40%, transparent 60%, rgba(10,11,18,0.6) 100%)' }}
+        style={{
+          backgroundImage: 'repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(128,168,255,0.015) 2px, rgba(128,168,255,0.015) 4px)',
+          backgroundSize: '100% 4px'
+        }}
+      />
+
+      {/* Vignette to focus the center */}
+      <div
+        className="absolute inset-0"
+        style={{ background: 'radial-gradient(ellipse at 50% 40%, transparent 55%, rgba(13,15,31,0.65) 100%)' }}
       />
     </div>
   )

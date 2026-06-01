@@ -96,7 +96,7 @@ function Tooltip({ label, targetRect }: { label: string; targetRect: DOMRect | n
       initial={{ opacity: 0, x: -5 }}
       animate={{ opacity: 1, x: 0 }}
       transition={{ duration: 0.15 }}
-      className="fixed px-3 py-1.5 bg-background-elevated text-text-primary text-xs font-medium rounded-lg whitespace-nowrap shadow-lg border border-border pointer-events-none"
+      className="fixed px-3 py-1.5 bg-panel-2 text-ink text-xs font-medium rounded-lg whitespace-nowrap shadow-lg border border-[color:var(--line-strong)] pointer-events-none"
       style={{
         zIndex: 99999,
         left: targetRect.right + 12,
@@ -143,7 +143,7 @@ export function Sidebar() {
 
   return (
     <>
-      <nav className="w-16 min-w-16 bg-background-surface/50 backdrop-blur-sm border-r border-border flex flex-col py-4 relative">
+      <nav className="w-16 min-w-16 bg-panel border-r border-[color:var(--line)] flex flex-col py-4 relative">
         <div className="flex-1">
         {navItems.map((item) => (
           <NavLink
@@ -155,8 +155,8 @@ export function Sidebar() {
             className={({ isActive }) =>
               `group relative flex items-center justify-center py-3 mx-2 rounded-xl transition-all duration-200 ${
                 isActive
-                  ? 'theme-active theme-text-primary'
-                  : 'text-text-secondary hover:bg-white/10 hover:text-text-primary'
+                  ? 'bg-scan/10 text-scan'
+                  : 'text-ink-dim hover:text-ink hover:bg-panel-2'
               }`
             }
             onMouseEnter={(e) => handleMouseEnter(item.path, e.currentTarget)}
@@ -167,7 +167,7 @@ export function Sidebar() {
                 {isActive && (
                   <motion.div
                     layoutId="sidebar-indicator"
-                    className="absolute left-0 w-1 h-8 theme-progress rounded-r-full"
+                    className="absolute left-0 w-1 h-8 bg-scan rounded-r-full shadow-glow"
                     transition={{ type: 'spring', stiffness: 500, damping: 30 }}
                   />
                 )}
@@ -183,15 +183,15 @@ export function Sidebar() {
                   {item.icon}
                   {/* Badge for results */}
                   {item.path === '/results' && totalFindings > 0 && (
-                    <span className="absolute -top-1 -right-1 w-4 h-4 bg-error text-white text-2xs font-bold rounded-full flex items-center justify-center">
+                    <span className="absolute -top-1 -right-1 w-4 h-4 bg-alert text-bg text-2xs font-bold rounded-full flex items-center justify-center">
                       {totalFindings > 9 ? '9+' : totalFindings}
                     </span>
                   )}
                   {/* Scanning indicator */}
                   {item.path === '/scan' && status === 'scanning' && (
                     <span className="absolute -top-1 -right-1 w-3 h-3">
-                      <span className="absolute w-full h-full theme-progress rounded-full animate-ping opacity-75" />
-                      <span className="absolute w-full h-full theme-progress rounded-full" />
+                      <span className="absolute w-full h-full bg-scan rounded-full animate-ping opacity-75" />
+                      <span className="absolute w-full h-full bg-scan rounded-full" />
                     </span>
                   )}
                 </motion.span>
@@ -202,7 +202,7 @@ export function Sidebar() {
         </div>
 
         {/* External Links */}
-        <div className="border-t border-border pt-4 mt-2">
+        <div className="border-t border-[color:var(--line)] pt-4 mt-2">
           {externalLinks.map((link) => (
             <button
               key={link.url}
@@ -212,7 +212,7 @@ export function Sidebar() {
               onClick={() => handleOpenExternal(link.url)}
               onMouseEnter={(e) => handleExternalMouseEnter(link.url, e.currentTarget)}
               onMouseLeave={handleMouseLeave}
-              className="group relative flex items-center justify-center py-3 mx-2 rounded-xl transition-all duration-200 text-text-secondary hover:bg-white/10 hover:text-text-primary w-12"
+              className="group relative flex items-center justify-center py-3 mx-2 rounded-xl transition-all duration-200 text-ink-dim hover:text-ink hover:bg-panel-2 w-12"
             >
               <motion.span
                 className="relative"
