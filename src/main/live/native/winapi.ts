@@ -1,13 +1,10 @@
 /**
- * koffi wrappers for Win32 APIs used by the self-integrity detector.
+ * koffi wrappers for Win32 APIs used by the self-integrity detector and the
+ * thread start-address detector.
  *
  * koffi loads on macOS but its Win32 DLL calls obviously only work on Windows.
- * All functions degrade gracefully (return false / null) on non-Windows or when
- * koffi fails to load.
- *
- * TODO: Thread enumeration via CreateToolhelp32Snapshot + Thread32First /
- *       NtQueryInformationThread for the thread-start-address detector (#6).
- *       Deferred to a later phase.
+ * All functions degrade gracefully (return false / null / []) on non-Windows or
+ * when koffi fails to load.
  */
 
 import type { LibraryHandle } from 'koffi'
@@ -104,4 +101,85 @@ export function checkRemoteDebugger(): boolean {
   } catch {
     return false
   }
+}
+
+// ── Thread start-address enumeration (detector #6) ───────────────────────────
+// Uses CreateToolhelp32Snapshot + Thread32First/Next to list thread IDs for the
+// target PID, then OpenThread + NtQueryInformationThread(ThreadQuerySetWin32StartAddress).
+// Returns the start addresses as numbers. Returns [] when unavailable.
+
+const TH32CS_SNAPTHREAD = 0x00000004
+const THREAD_QUERY_INFORMATION = 0x0040
+const ThreadQuerySetWin32StartAddress = 9
+
+interface ThreadApi {
+  CreateToolhelp32Snapshot: KoffiFunction
+  Thread32First: KoffiFunction
+  Thread32Next: KoffiFunction
+  OpenThread: KoffiFunction
+  CloseHandle: KoffiFunction
+  NtQueryInformationThread: KoffiFunction
+  THREADENTRY32: unknown
+}
+
+let _threadApiLoaded = false
+let _threadApi: ThreadApi | null = null
+
+function loadThreadApi(): ThreadApi | null {
+  if (_threadApiLoaded) return _threadApi
+  _threadApiLoaded = true
+  if (process.platform !== 'win32') return null
+  const koffi = loadKoffi()
+  if (!koffi) return null
+  try {
+    const k = koffi.load('kernel32.dll')
+    const nt = koffi.load('ntdll.dll')
+    const THREADENTRY32 = koffi.struct('THREADENTRY32', {
+      dwSize: 'uint32', cntUsage: 'uint32', th32ThreadID: 'uint32',
+      th32OwnerProcessID: 'uint32', tpBasePri: 'int32', tpDeltaPri: 'int32', dwFlags: 'uint32'
+    })
+    _threadApi = {
+      CreateToolhelp32Snapshot: k.func('void * __stdcall CreateToolhelp32Snapshot(uint32 flags, uint32 pid)'),
+      Thread32First: k.func('int __stdcall Thread32First(void *snap, _Inout_ THREADENTRY32 *te)'),
+      Thread32Next: k.func('int __stdcall Thread32Next(void *snap, _Inout_ THREADENTRY32 *te)'),
+      OpenThread: k.func('void * __stdcall OpenThread(uint32 access, int inherit, uint32 tid)'),
+      CloseHandle: k.func('int __stdcall CloseHandle(void *h)'),
+      NtQueryInformationThread: nt.func('long __stdcall NtQueryInformationThread(void *h, int cls, _Out_ void *info, uint32 len, _Out_ uint32 *ret)'),
+      THREADENTRY32
+    }
+  } catch {
+    _threadApi = null
+  }
+  return _threadApi
+}
+
+export function listThreadStartAddresses(pid: number): number[] {
+  if (process.platform !== 'win32') return []
+  const api = loadThreadApi()
+  const koffi = loadKoffi()
+  if (!api || !koffi) return []
+  const out: number[] = []
+  try {
+    const snap = api.CreateToolhelp32Snapshot(TH32CS_SNAPTHREAD, 0)
+    const te = { dwSize: 28, cntUsage: 0, th32ThreadID: 0, th32OwnerProcessID: 0, tpBasePri: 0, tpDeltaPri: 0, dwFlags: 0 }
+    let ok = api.Thread32First(snap, te) as number
+    while (ok) {
+      if (te.th32OwnerProcessID === pid) {
+        const h = api.OpenThread(THREAD_QUERY_INFORMATION, 0, te.th32ThreadID)
+        if (h) {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const addrBuf: any[] = [0] // koffi will write back an 8-byte (uint64) value; verified on Windows
+          const retLen = [0]
+          const status = api.NtQueryInformationThread(h, ThreadQuerySetWin32StartAddress, addrBuf, 8, retLen) as number
+          if (status === 0) out.push(Number(addrBuf[0]))
+          api.CloseHandle(h)
+        }
+      }
+      ok = api.Thread32Next(snap, te) as number
+    }
+    api.CloseHandle(snap)
+  } catch {
+    return out
+  }
+  return out
 }
