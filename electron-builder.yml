@@ -1,4 +1,4 @@
-appId: com.cobra.custos
+appId: com.custos.app
 productName: Custos
 directories:
   output: release

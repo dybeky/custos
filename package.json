@@ -1,9 +1,9 @@
 {
   "name": "custos",
-  "version": "2.2.2",
+  "version": "3.0.0",
   "description": "Anti-cheat scanner for Unturned servers",
   "main": "./out/main/index.js",
-  "author": "COBRA",
+  "author": "Paulus Platov",
   "license": "MIT",
   "scripts": {
     "dev": "electron-vite dev",

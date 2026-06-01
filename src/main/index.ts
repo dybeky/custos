@@ -68,7 +68,7 @@ app.whenReady().then(() => {
   logger.logStartup()
 
   // Set app user model id for Windows
-  electronApp.setAppUserModelId('com.cobra.custos')
+  electronApp.setAppUserModelId('com.custos.app')
 
   // Default open or close DevTools by F12 in development
   // and ignore CommandOrControl + R in production.
