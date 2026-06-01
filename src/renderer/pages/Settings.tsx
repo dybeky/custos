@@ -31,8 +31,8 @@ export function Settings() {
       <div className="max-w-2xl mx-auto animate-fade-in">
         {/* Header */}
         <div className="mb-6">
-          <h1 className="text-2xl font-bold text-text-primary">{t('settings.title')}</h1>
-          <p className="text-text-secondary mt-1">{t('settings.subtitle')}</p>
+          <h1 className="text-2xl font-bold text-ink font-display">{t('settings.title')}</h1>
+          <p className="text-ink-dim mt-1">{t('settings.subtitle')}</p>
         </div>
 
         {/* Appearance — single palette showcase */}
@@ -41,7 +41,7 @@ export function Settings() {
             <CardTitle>{t('settings.appearance')}</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-sm text-text-secondary mb-4">{t('settings.paletteDesc')}</p>
+            <p className="text-sm text-ink-dim mb-4">{t('settings.paletteDesc')}</p>
             <div className="grid grid-cols-4 gap-3">
               {[
                 { hex: '#D3D3FF', name: 'Lavender' },
@@ -51,10 +51,10 @@ export function Settings() {
               ].map((c) => (
                 <div key={c.hex} className="flex flex-col items-center gap-2">
                   <div
-                    className="w-full h-12 rounded-xl border border-border"
+                    className="w-full h-12 rounded-xl border border-[color:var(--line)]"
                     style={{ background: c.hex, boxShadow: `0 0 16px ${c.hex}55` }}
                   />
-                  <span className="text-2xs font-mono text-text-muted">{c.hex}</span>
+                  <span className="text-2xs font-mono text-ink-dim">{c.hex}</span>
                 </div>
               ))}
             </div>
@@ -62,9 +62,9 @@ export function Settings() {
         </Card>
 
         {/* Danger Zone */}
-        <Card variant="default" className="border-error/30">
+        <Card variant="default" className="border-alert/30">
           <CardHeader>
-            <CardTitle className="text-error">{t('settings.dangerZone')}</CardTitle>
+            <CardTitle className="text-alert">{t('settings.dangerZone')}</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
@@ -92,12 +92,12 @@ export function Settings() {
         title={t('confirm.confirmDeleteTitle')}
         size="sm"
       >
-        <p className="text-text-secondary mb-6 whitespace-pre-line">
+        <p className="text-ink-dim mb-6 whitespace-pre-line">
           {t('confirm.confirmDelete')}
         </p>
         {deleteError && (
-          <div className="mb-4 p-3 bg-error/10 border border-error/20 rounded-xl">
-            <p className="text-error text-sm text-center">{deleteError}</p>
+          <div className="mb-4 p-3 bg-alert/10 border border-alert/20 rounded-xl">
+            <p className="text-alert text-sm text-center">{deleteError}</p>
           </div>
         )}
         <div className="flex gap-3 justify-end">

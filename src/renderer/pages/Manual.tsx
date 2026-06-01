@@ -54,7 +54,7 @@ const globeIcon = (
   </svg>
 )
 const chevron = (
-  <svg className="w-4 h-4 shrink-0 text-text-muted opacity-0 -translate-x-1 transition-all duration-200 group-hover:opacity-100 group-hover:translate-x-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+  <svg className="w-4 h-4 shrink-0 text-ink-dim opacity-0 -translate-x-1 transition-all duration-200 group-hover:opacity-100 group-hover:translate-x-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
   </svg>
 )
@@ -160,8 +160,8 @@ export function Manual() {
       <div className="animate-fade-in">
         {/* Header */}
         <div className="mb-6">
-          <h1 className="text-2xl font-bold text-text-primary">{t('manual.title')}</h1>
-          <p className="text-text-secondary mt-1">{t('manual.subtitle')}</p>
+          <h1 className="text-2xl font-bold text-ink font-display">{t('manual.title')}</h1>
+          <p className="text-ink-dim mt-1">{t('manual.subtitle')}</p>
         </div>
 
         <div className="columns-1 md:columns-2 xl:columns-3 gap-3">
@@ -182,9 +182,9 @@ export function Manual() {
                   {cat.icon}
                 </span>
                 <div className="flex-1 min-w-0">
-                  <h3 className="text-sm font-semibold text-text-primary leading-tight">{t(cat.titleKey)}</h3>
+                  <h3 className="text-sm font-semibold text-ink leading-tight font-display">{t(cat.titleKey)}</h3>
                   {cat.descKey && (
-                    <p className="text-2xs text-text-muted mt-0.5 truncate">{t(cat.descKey)}</p>
+                    <p className="text-2xs text-ink-dim mt-0.5 truncate">{t(cat.descKey)}</p>
                   )}
                 </div>
                 <span
@@ -202,7 +202,7 @@ export function Manual() {
                     key={item.target}
                     onClick={() => run(cat.action, item.target)}
                     title={item.target}
-                    className="group relative w-full flex items-center gap-3 pl-3.5 pr-2.5 py-2.5 rounded-xl bg-background-surface/60 hover:bg-background-elevated border border-border hover:border-border-hover transition-all duration-200 text-left overflow-hidden"
+                    className="group relative w-full flex items-center gap-3 pl-3.5 pr-2.5 py-2.5 rounded-xl bg-panel-2 hover:bg-panel-2 border border-[color:var(--line)] hover:border-[color:var(--line-strong)] transition-all duration-200 text-left overflow-hidden"
                   >
                     {/* Hover accent bar */}
                     <span
@@ -218,9 +218,9 @@ export function Manual() {
                     </span>
                     {/* Text */}
                     <span className="flex-1 min-w-0">
-                      <span className="block text-sm text-text-primary truncate">{item.label}</span>
+                      <span className="block text-sm text-ink truncate">{item.label}</span>
                       {cat.showHint && item.hint && (
-                        <span className="block text-2xs text-text-muted font-mono truncate mt-0.5">{item.hint}</span>
+                        <span className="block text-2xs text-ink-dim font-mono truncate mt-0.5">{item.hint}</span>
                       )}
                     </span>
                     {chevron}

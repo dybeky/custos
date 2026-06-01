@@ -61,23 +61,23 @@ export function Results() {
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-4">
                 <div className={`w-16 h-16 rounded-2xl flex items-center justify-center ${
-                  _totalFindings > 0 ? 'bg-error/10' : 'bg-success/10'
+                  _totalFindings > 0 ? 'bg-alert/10' : 'bg-scan/10'
                 }`}>
                   {_totalFindings > 0 ? (
-                    <svg className="w-8 h-8 text-error" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <svg className="w-8 h-8 text-alert" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                     </svg>
                   ) : (
-                    <svg className="w-8 h-8 text-success" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <svg className="w-8 h-8 text-scan" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
                   )}
                 </div>
                 <div>
-                  <h2 className="text-xl font-bold text-text-primary">
+                  <h2 className="text-xl font-bold text-ink font-display">
                     {t('results.scanResults')}
                   </h2>
-                  <p className={`text-sm ${_totalFindings > 0 ? 'text-error' : 'text-success'}`}>
+                  <p className={`text-sm ${_totalFindings > 0 ? 'text-alert' : 'text-scan'}`}>
                     {_totalFindings > 0
                       ? `${_totalFindings} ${t('results.threatsFound')}`
                       : t('results.noThreatsFound')}
@@ -102,10 +102,10 @@ export function Results() {
         {!hasResults ? (
           <Card>
             <CardContent className="text-center py-12">
-              <svg className="w-16 h-16 mx-auto text-text-muted mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <svg className="w-16 h-16 mx-auto text-ink-dim mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
               </svg>
-              <p className="text-text-secondary">
+              <p className="text-ink-dim">
                 {status === 'idle' ? t('results.runScanToSee') : t('results.noResultsYet')}
               </p>
             </CardContent>
@@ -119,7 +119,7 @@ export function Results() {
                 style={{ animationDelay: `${index * 50}ms` }}
               >
                 <Card
-                  className="cursor-pointer hover:border-border-hover transition-colors"
+                  className="cursor-pointer hover:border-[color:var(--line-strong)] transition-colors"
                   onClick={() => setExpandedScanner(
                     expandedScanner === result.scannerName ? null : result.scannerName
                   )}
@@ -128,7 +128,7 @@ export function Results() {
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
                         <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
-                          result.hasFindings ? 'bg-error/10 text-error' : 'bg-success/10 text-success'
+                          result.hasFindings ? 'bg-alert/10 text-alert' : 'bg-scan/10 text-scan'
                         }`}>
                           {result.hasFindings ? (
                             <span className="text-sm font-bold">{result.findings.length}</span>
@@ -139,15 +139,15 @@ export function Results() {
                           )}
                         </div>
                         <div>
-                          <p className="text-sm font-medium text-text-primary">{result.scannerName}</p>
-                          <p className="text-xs text-text-muted">
+                          <p className="text-sm font-medium text-ink">{result.scannerName}</p>
+                          <p className="text-xs text-ink-dim">
                             {result.duration}ms
                           </p>
                         </div>
                       </div>
                       <motion.svg
                         animate={{ rotate: expandedScanner === result.scannerName ? 180 : 0 }}
-                        className="w-5 h-5 text-text-muted"
+                        className="w-5 h-5 text-ink-dim"
                         fill="none"
                         viewBox="0 0 24 24"
                         stroke="currentColor"
@@ -162,13 +162,13 @@ export function Results() {
                           initial={{ opacity: 0, height: 0 }}
                           animate={{ opacity: 1, height: 'auto' }}
                           exit={{ opacity: 0, height: 0 }}
-                          className="mt-4 pt-4 border-t border-border"
+                          className="mt-4 pt-4 border-t border-[color:var(--line)]"
                         >
                           <div className="space-y-2 max-h-60 overflow-y-auto">
                             {result.findings.map((finding, i) => (
                               <div
                                 key={i}
-                                className="text-xs text-text-secondary bg-background/50 p-2 rounded-lg break-all font-mono"
+                                className="text-xs text-ink-dim bg-panel-2 p-2 rounded-lg break-all font-mono"
                               >
                                 {finding}
                               </div>

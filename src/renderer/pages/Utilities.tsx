@@ -83,8 +83,8 @@ export function Utilities() {
       <div className="animate-fade-in">
         {/* Header */}
         <div className="mb-6">
-          <h1 className="text-2xl font-bold text-text-primary">{t('utilities.title')}</h1>
-          <p className="text-text-secondary mt-1">{t('utilities.subtitle')}</p>
+          <h1 className="text-2xl font-bold text-ink font-display">{t('utilities.title')}</h1>
+          <p className="text-ink-dim mt-1">{t('utilities.subtitle')}</p>
         </div>
 
         {/* Utilities Grid */}
@@ -98,14 +98,14 @@ export function Utilities() {
               <Card className="h-full">
                 <CardContent>
                   <div className="flex items-start gap-4">
-                    <div className="w-12 h-12 rounded-xl bg-primary/10 text-accent-blue flex items-center justify-center shrink-0">
+                    <div className="w-12 h-12 rounded-xl bg-scan/10 text-scan flex items-center justify-center shrink-0">
                       {utility.icon}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <h3 className="text-lg font-semibold text-text-primary mb-1">
+                      <h3 className="text-lg font-semibold text-ink mb-1">
                         {utility.name}
                       </h3>
-                      <p className="text-sm text-text-secondary mb-4">
+                      <p className="text-sm text-ink-dim mb-4">
                         {t(utility.descKey)}
                       </p>
                       <Button
