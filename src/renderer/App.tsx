@@ -1,6 +1,5 @@
 import { useEffect } from 'react'
 import { HashRouter, Routes, Route } from 'react-router-dom'
-import { AnimatedBackground } from './components/layout/AnimatedBackground'
 import { Header } from './components/layout/Header'
 import { Sidebar } from './components/layout/Sidebar'
 import { Dashboard } from './pages/Dashboard'
@@ -26,7 +25,6 @@ export function App() {
     return (
       <ErrorBoundary>
         <div className="h-screen w-screen bg-background flex items-center justify-center">
-          <AnimatedBackground />
           <div className="text-center relative z-10">
             <span
               className="text-3xl font-bold tracking-wide mb-6 block"
@@ -52,8 +50,6 @@ export function App() {
     <ErrorBoundary>
       <HashRouter>
         <div className="h-screen w-screen bg-background text-text-primary flex flex-col overflow-hidden">
-          <AnimatedBackground />
-
           <Header />
 
           <div className="flex flex-1 overflow-hidden relative z-10">

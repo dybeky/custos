@@ -10,15 +10,12 @@ interface SettingsState {
   deleteAfterUse: boolean
   isLoading: boolean
   version: string
-  effectsEnabled: boolean
   theme: ThemeName
 
   // Actions
   setLanguage: (value: 'en' | 'ru') => void
   setDeleteAfterUse: (value: boolean) => void
   setVersion: (version: string) => void
-  setEffectsEnabled: (value: boolean) => void
-  toggleEffects: () => void
   setTheme: (theme: ThemeName) => void
   loadSettings: () => Promise<void>
   saveSettings: () => Promise<void>
@@ -29,7 +26,6 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   deleteAfterUse: false,
   isLoading: true,
   version: '',
-  effectsEnabled: true,
   theme: 'tropical' as ThemeName,
 
   setLanguage: (value) => {
@@ -43,10 +39,6 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   },
 
   setVersion: (version) => set({ version }),
-
-  setEffectsEnabled: (value) => set({ effectsEnabled: value }),
-
-  toggleEffects: () => set((state) => ({ effectsEnabled: !state.effectsEnabled })),
 
   setTheme: (theme) => {
     set({ theme })
