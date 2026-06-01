@@ -9,66 +9,55 @@ export class AmcacheScanner extends BaseScanner {
   readonly name = 'Amcache Scanner'
   readonly description = 'Scanning Amcache for program execution history'
 
-  async scan(events?: ScannerEventEmitter): Promise<ScanResult> {
-    const startTime = new Date()
+  protected async doScan(events: ScannerEventEmitter | undefined, startTime: Date): Promise<ScanResult> {
     this.reset()
 
     // Track overall scan time to prevent excessive duration
     const scanStartMs = Date.now()
     const isTimedOut = () => Date.now() - scanStartMs > SCAN_TIMEOUT_MS
 
-    try {
-      const results: string[] = []
+    const results: string[] = []
 
-      // Progress update
-      if (events?.onProgress) {
-        events.onProgress({
-          scannerName: this.name,
-          currentItem: 1,
-          totalItems: 2,
-          currentPath: 'Scanning Amcache registry...',
-          percentage: 50
-        })
-      }
-
-      // Method 1: Query InventoryApplicationFile (Windows 10+)
-      if (!isTimedOut()) {
-        const inventoryResults = await this.scanInventoryApplicationFile()
-        results.push(...inventoryResults)
-      }
-
-      if (this.cancelled || isTimedOut()) {
-        return this.cancelled
-          ? this.createErrorResult('Scan cancelled', startTime)
-          : this.createSuccessResult(results, startTime) // Return partial results on timeout
-      }
-
-      if (events?.onProgress) {
-        events.onProgress({
-          scannerName: this.name,
-          currentItem: 2,
-          totalItems: 2,
-          currentPath: 'Scanning AppCompat Programs...',
-          percentage: 100
-        })
-      }
-
-      // Method 2: Query AppCompatFlags
-      if (!isTimedOut()) {
-        const appCompatResults = await this.scanAppCompatFlags()
-        results.push(...appCompatResults)
-      }
-
-      return this.createSuccessResult(results, startTime)
-    } catch (error) {
-      if (this.cancelled) {
-        return this.createErrorResult('Scan cancelled', startTime)
-      }
-      return this.createErrorResult(
-        error instanceof Error ? error.message : 'Unknown error',
-        startTime
-      )
+    // Progress update
+    if (events?.onProgress) {
+      events.onProgress({
+        scannerName: this.name,
+        currentItem: 1,
+        totalItems: 2,
+        currentPath: 'Scanning Amcache registry...',
+        percentage: 50
+      })
     }
+
+    // Method 1: Query InventoryApplicationFile (Windows 10+)
+    if (!isTimedOut()) {
+      const inventoryResults = await this.scanInventoryApplicationFile()
+      results.push(...inventoryResults)
+    }
+
+    if (this.cancelled || isTimedOut()) {
+      return this.cancelled
+        ? this.createErrorResult('Scan cancelled', startTime)
+        : this.createSuccessResult(results, startTime) // Return partial results on timeout
+    }
+
+    if (events?.onProgress) {
+      events.onProgress({
+        scannerName: this.name,
+        currentItem: 2,
+        totalItems: 2,
+        currentPath: 'Scanning AppCompat Programs...',
+        percentage: 100
+      })
+    }
+
+    // Method 2: Query AppCompatFlags
+    if (!isTimedOut()) {
+      const appCompatResults = await this.scanAppCompatFlags()
+      results.push(...appCompatResults)
+    }
+
+    return this.createSuccessResult(results, startTime)
   }
 
   private async scanInventoryApplicationFile(): Promise<string[]> {

@@ -120,108 +120,97 @@ export class BamScanner extends BaseScanner {
     }
   }
 
-  async scan(events?: ScannerEventEmitter): Promise<ScanResult> {
-    const startTime = new Date()
+  protected async doScan(events: ScannerEventEmitter | undefined, startTime: Date): Promise<ScanResult> {
     this.reset()
 
-    try {
-      // Check if BAM is available on this Windows version (requires build 16299+)
-      const bamAvailable = isBAMAvailable()
-      if (!bamAvailable) {
-        return this.createSuccessResult(
-          ['[BAM/DAM] Not available on this Windows version (requires Windows 10 build 16299 or later)'],
-          startTime
-        )
-      }
-
-      const results: string[] = []
-
-      // Get all user SIDs to scan BAM/DAM for each user
-      const userSids = await this.getUserSids()
-
-      // Collect all BAM and DAM paths to scan in parallel.
-      // Modern (Win10 1809+): bam\State\UserSettings\{SID}
-      // Legacy (Win10 1709-1803): bam\UserSettings\{SID}
-      // Non-existent paths return empty via `reg query ... 2>nul` — no performance penalty.
-      const scanPaths: { path: string; source: string }[] = []
-
-      const bamSubPaths = ['bam\\State\\UserSettings', 'bam\\UserSettings']
-      const damSubPaths = ['dam\\State\\UserSettings', 'dam\\UserSettings']
-
-      // BAM paths (Background Activity Moderator) — both modern and legacy
-      for (const subPath of bamSubPaths) {
-        for (const sid of userSids) {
-          scanPaths.push({
-            path: `HKLM\\SYSTEM\\CurrentControlSet\\Services\\${subPath}\\${sid}`,
-            source: 'BAM'
-          })
-        }
-      }
-
-      // DAM paths (Desktop Activity Moderator) — both modern and legacy
-      for (const subPath of damSubPaths) {
-        for (const sid of userSids) {
-          scanPaths.push({
-            path: `HKLM\\SYSTEM\\CurrentControlSet\\Services\\${subPath}\\${sid}`,
-            source: 'DAM'
-          })
-        }
-      }
-
-      // Backup control sets — both modern and legacy
-      const backupControlSets = ['ControlSet001', 'ControlSet002']
-      for (const controlSet of backupControlSets) {
-        for (const subPath of bamSubPaths) {
-          for (const sid of userSids) {
-            scanPaths.push({
-              path: `HKLM\\SYSTEM\\${controlSet}\\Services\\${subPath}\\${sid}`,
-              source: `BAM/${controlSet}`
-            })
-          }
-        }
-      }
-
-      // Scan paths with limited concurrency (max 3 at a time to avoid process limiter overload)
-      const concurrency = 3
-      let completed = 0
-
-      for (let i = 0; i < scanPaths.length; i += concurrency) {
-        if (this.cancelled) break
-
-        const chunk = scanPaths.slice(i, i + concurrency)
-        const chunkPromises = chunk.map(async ({ path, source }) => {
-          if (this.cancelled) return []
-
-          completed++
-          if (events?.onProgress) {
-            events.onProgress({
-              scannerName: this.name,
-              currentItem: completed,
-              totalItems: scanPaths.length,
-              currentPath: `${source} - scanning...`,
-              percentage: (completed / scanPaths.length) * 100
-            })
-          }
-
-          return this.scanRegistryPath(path, source)
-        })
-
-        const chunkResults = await Promise.all(chunkPromises)
-        for (const pathResults of chunkResults) {
-          results.push(...pathResults)
-        }
-      }
-
-      return this.createSuccessResult(results, startTime)
-    } catch (error) {
-      if (this.cancelled) {
-        return this.createErrorResult('Scan cancelled', startTime)
-      }
-      return this.createErrorResult(
-        error instanceof Error ? error.message : 'Unknown error',
+    // Check if BAM is available on this Windows version (requires build 16299+)
+    const bamAvailable = isBAMAvailable()
+    if (!bamAvailable) {
+      return this.createSuccessResult(
+        ['[BAM/DAM] Not available on this Windows version (requires Windows 10 build 16299 or later)'],
         startTime
       )
     }
+
+    const results: string[] = []
+
+    // Get all user SIDs to scan BAM/DAM for each user
+    const userSids = await this.getUserSids()
+
+    // Collect all BAM and DAM paths to scan in parallel.
+    // Modern (Win10 1809+): bam\State\UserSettings\{SID}
+    // Legacy (Win10 1709-1803): bam\UserSettings\{SID}
+    // Non-existent paths return empty via `reg query ... 2>nul` — no performance penalty.
+    const scanPaths: { path: string; source: string }[] = []
+
+    const bamSubPaths = ['bam\\State\\UserSettings', 'bam\\UserSettings']
+    const damSubPaths = ['dam\\State\\UserSettings', 'dam\\UserSettings']
+
+    // BAM paths (Background Activity Moderator) — both modern and legacy
+    for (const subPath of bamSubPaths) {
+      for (const sid of userSids) {
+        scanPaths.push({
+          path: `HKLM\\SYSTEM\\CurrentControlSet\\Services\\${subPath}\\${sid}`,
+          source: 'BAM'
+        })
+      }
+    }
+
+    // DAM paths (Desktop Activity Moderator) — both modern and legacy
+    for (const subPath of damSubPaths) {
+      for (const sid of userSids) {
+        scanPaths.push({
+          path: `HKLM\\SYSTEM\\CurrentControlSet\\Services\\${subPath}\\${sid}`,
+          source: 'DAM'
+        })
+      }
+    }
+
+    // Backup control sets — both modern and legacy
+    const backupControlSets = ['ControlSet001', 'ControlSet002']
+    for (const controlSet of backupControlSets) {
+      for (const subPath of bamSubPaths) {
+        for (const sid of userSids) {
+          scanPaths.push({
+            path: `HKLM\\SYSTEM\\${controlSet}\\Services\\${subPath}\\${sid}`,
+            source: `BAM/${controlSet}`
+          })
+        }
+      }
+    }
+
+    // Scan paths with limited concurrency (max 3 at a time to avoid process limiter overload)
+    const concurrency = 3
+    let completed = 0
+
+    for (let i = 0; i < scanPaths.length; i += concurrency) {
+      if (this.cancelled) break
+
+      const chunk = scanPaths.slice(i, i + concurrency)
+      const chunkPromises = chunk.map(async ({ path, source }) => {
+        if (this.cancelled) return []
+
+        completed++
+        if (events?.onProgress) {
+          events.onProgress({
+            scannerName: this.name,
+            currentItem: completed,
+            totalItems: scanPaths.length,
+            currentPath: `${source} - scanning...`,
+            percentage: (completed / scanPaths.length) * 100
+          })
+        }
+
+        return this.scanRegistryPath(path, source)
+      })
+
+      const chunkResults = await Promise.all(chunkPromises)
+      for (const pathResults of chunkResults) {
+        results.push(...pathResults)
+      }
+    }
+
+    return this.createSuccessResult(results, startTime)
   }
 
   private async getUserSids(): Promise<string[]> {

@@ -13,8 +13,7 @@ export class DnsCacheScanner extends BaseScanner {
   readonly name = 'DNS Cache Scanner'
   readonly description = 'Scanning Windows DNS cache for suspicious domain resolutions'
 
-  async scan(events?: ScannerEventEmitter): Promise<ScanResult> {
-    const startTime = new Date()
+  protected async doScan(events: ScannerEventEmitter | undefined, startTime: Date): Promise<ScanResult> {
     this.reset()
 
     try {

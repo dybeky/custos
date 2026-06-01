@@ -25,7 +25,17 @@ export abstract class BaseScanner {
     )
   }
 
-  abstract scan(events?: ScannerEventEmitter): Promise<ScanResult>
+  protected abstract doScan(events: ScannerEventEmitter | undefined, startTime: Date): Promise<ScanResult>
+
+  async scan(events?: ScannerEventEmitter): Promise<ScanResult> {
+    const startTime = new Date()
+    try {
+      return await this.doScan(events, startTime)
+    } catch (error) {
+      if (this.cancelled) return this.createErrorResult('Scan cancelled', startTime)
+      return this.createErrorResult(error instanceof Error ? error.message : String(error), startTime)
+    }
+  }
 
   cancel(): void {
     this.cancelled = true
@@ -110,6 +120,14 @@ export abstract class BaseScanner {
   private getExtension(fileName: string): string {
     const lastDot = fileName.lastIndexOf('.')
     return lastDot > 0 ? fileName.substring(lastDot) : ''
+  }
+
+  protected emitProgress(
+    events: ScannerEventEmitter | undefined,
+    currentItem: number, totalItems: number, currentPath: string
+  ): void {
+    events?.onProgress?.({ scannerName: this.name, currentItem, totalItems, currentPath,
+      percentage: totalItems > 0 ? (currentItem / totalItems) * 100 : 0 })
   }
 
   protected createSuccessResult(findings: string[], startTime: Date): ScanResult {

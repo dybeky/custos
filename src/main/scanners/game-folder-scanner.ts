@@ -81,49 +81,38 @@ export class GameFolderScanner extends BaseScanner {
     return [...new Set(libraryPaths)] // Remove duplicates
   }
 
-  async scan(events?: ScannerEventEmitter): Promise<ScanResult> {
-    const startTime = new Date()
+  protected async doScan(events: ScannerEventEmitter | undefined, startTime: Date): Promise<ScanResult> {
     this.reset()
 
-    try {
-      // Get Steam library paths dynamically from libraryfolders.vdf
-      const gameFolders = await this.getSteamLibraryPaths()
+    // Get Steam library paths dynamically from libraryfolders.vdf
+    const gameFolders = await this.getSteamLibraryPaths()
 
-      const results: string[] = []
-      let processedCount = 0
-      const existingFolders = gameFolders.filter(f => existsSync(f))
+    const results: string[] = []
+    let processedCount = 0
+    const existingFolders = gameFolders.filter(f => existsSync(f))
 
-      for (const folder of existingFolders) {
-        if (this.cancelled) break
+    for (const folder of existingFolders) {
+      if (this.cancelled) break
 
-        processedCount++
-        if (events?.onProgress) {
-          events.onProgress({
-            scannerName: this.name,
-            currentItem: processedCount,
-            totalItems: existingFolders.length,
-            currentPath: folder,
-            percentage: (processedCount / existingFolders.length) * 100
-          })
-        }
-
-        const findings = await this.scanFolder(
-          folder,
-          this.scanSettings.executableExtensions,
-          this.scanSettings.userFoldersScanDepth
-        )
-        results.push(...findings)
+      processedCount++
+      if (events?.onProgress) {
+        events.onProgress({
+          scannerName: this.name,
+          currentItem: processedCount,
+          totalItems: existingFolders.length,
+          currentPath: folder,
+          percentage: (processedCount / existingFolders.length) * 100
+        })
       }
 
-      return this.createSuccessResult(results, startTime)
-    } catch (error) {
-      if (this.cancelled) {
-        return this.createErrorResult('Scan cancelled', startTime)
-      }
-      return this.createErrorResult(
-        error instanceof Error ? error.message : 'Unknown error',
-        startTime
+      const findings = await this.scanFolder(
+        folder,
+        this.scanSettings.executableExtensions,
+        this.scanSettings.userFoldersScanDepth
       )
+      results.push(...findings)
     }
+
+    return this.createSuccessResult(results, startTime)
   }
 }

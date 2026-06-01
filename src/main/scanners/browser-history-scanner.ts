@@ -133,80 +133,69 @@ export class BrowserHistoryScanner extends BaseScanner {
     }
   ]
 
-  async scan(events?: ScannerEventEmitter): Promise<ScanResult> {
-    const startTime = new Date()
+  protected async doScan(events: ScannerEventEmitter | undefined, startTime: Date): Promise<ScanResult> {
     this.reset()
 
-    try {
-      const profiles = await this.findAllBrowserProfiles()
-      const results: string[] = []
-      const seenUrls = new Set<string>()
+    const profiles = await this.findAllBrowserProfiles()
+    const results: string[] = []
+    const seenUrls = new Set<string>()
 
-      const totalSteps = profiles.length
-      let currentStep = 0
+    const totalSteps = profiles.length
+    let currentStep = 0
 
-      // Process profiles in parallel with concurrency limit of 3
-      const concurrency = 3
-      const profileChunks: BrowserProfile[][] = []
-      for (let i = 0; i < profiles.length; i += concurrency) {
-        profileChunks.push(profiles.slice(i, i + concurrency))
-      }
+    // Process profiles in parallel with concurrency limit of 3
+    const concurrency = 3
+    const profileChunks: BrowserProfile[][] = []
+    for (let i = 0; i < profiles.length; i += concurrency) {
+      profileChunks.push(profiles.slice(i, i + concurrency))
+    }
 
-      for (const chunk of profileChunks) {
-        if (this.cancelled) break
+    for (const chunk of profileChunks) {
+      if (this.cancelled) break
 
-        const chunkPromises = chunk.map(async profile => {
+      const chunkPromises = chunk.map(async profile => {
+        if (this.cancelled) return []
+
+        currentStep++
+        if (events?.onProgress) {
+          events.onProgress({
+            scannerName: this.name,
+            currentItem: currentStep,
+            totalItems: totalSteps,
+            currentPath: `${profile.browser} - ${profile.profilePath}`,
+            percentage: (currentStep / totalSteps) * 100
+          })
+        }
+
+        const profileResults: string[] = []
+
+        // Scan all Chromium databases for this profile in parallel
+        const dbPromises = this.chromiumDatabases.map(async dbConfig => {
           if (this.cancelled) return []
 
-          currentStep++
-          if (events?.onProgress) {
-            events.onProgress({
-              scannerName: this.name,
-              currentItem: currentStep,
-              totalItems: totalSteps,
-              currentPath: `${profile.browser} - ${profile.profilePath}`,
-              percentage: (currentStep / totalSteps) * 100
-            })
-          }
-
-          const profileResults: string[] = []
-
-          // Scan all Chromium databases for this profile in parallel
-          const dbPromises = this.chromiumDatabases.map(async dbConfig => {
-            if (this.cancelled) return []
-
-            const dbPath = join(profile.profilePath, dbConfig.file)
-            return this.scanDatabase(dbPath, profile.browser, dbConfig, seenUrls)
-          })
-
-          const dbResults = await Promise.all(dbPromises)
-          for (const findings of dbResults) {
-            profileResults.push(...findings)
-          }
-
-          return profileResults
+          const dbPath = join(profile.profilePath, dbConfig.file)
+          return this.scanDatabase(dbPath, profile.browser, dbConfig, seenUrls)
         })
 
-        const chunkResults = await Promise.all(chunkPromises)
-        for (const profileResults of chunkResults) {
-          results.push(...profileResults)
+        const dbResults = await Promise.all(dbPromises)
+        for (const findings of dbResults) {
+          profileResults.push(...findings)
         }
-      }
 
-      // Scan Firefox profiles
-      const firefoxFindings = await this.scanFirefoxProfiles(seenUrls)
-      results.push(...firefoxFindings)
+        return profileResults
+      })
 
-      return this.createSuccessResult(results, startTime)
-    } catch (error) {
-      if (this.cancelled) {
-        return this.createErrorResult('Scan cancelled', startTime)
+      const chunkResults = await Promise.all(chunkPromises)
+      for (const profileResults of chunkResults) {
+        results.push(...profileResults)
       }
-      return this.createErrorResult(
-        error instanceof Error ? error.message : 'Unknown error',
-        startTime
-      )
     }
+
+    // Scan Firefox profiles
+    const firefoxFindings = await this.scanFirefoxProfiles(seenUrls)
+    results.push(...firefoxFindings)
+
+    return this.createSuccessResult(results, startTime)
   }
 
   private async findAllBrowserProfiles(): Promise<BrowserProfile[]> {

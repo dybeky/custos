@@ -13,68 +13,57 @@ export class ProcessScanner extends BaseScanner {
   readonly name = 'Process Scanner'
   readonly description = 'Scanning running processes with paths and command lines'
 
-  async scan(events?: ScannerEventEmitter): Promise<ScanResult> {
-    const startTime = new Date()
+  protected async doScan(events: ScannerEventEmitter | undefined, startTime: Date): Promise<ScanResult> {
     this.reset()
 
-    try {
-      const processes = await this.getProcessList()
-      const results: string[] = []
-      const seenPids = new Set<number>()
+    const processes = await this.getProcessList()
+    const results: string[] = []
+    const seenPids = new Set<number>()
 
-      for (let i = 0; i < processes.length; i++) {
-        if (this.cancelled) break
+    for (let i = 0; i < processes.length; i++) {
+      if (this.cancelled) break
 
-        const proc = processes[i]
+      const proc = processes[i]
 
-        // Skip duplicates
-        if (seenPids.has(proc.pid)) continue
-        seenPids.add(proc.pid)
+      // Skip duplicates
+      if (seenPids.has(proc.pid)) continue
+      seenPids.add(proc.pid)
 
-        if (events?.onProgress) {
-          events.onProgress({
-            scannerName: this.name,
-            currentItem: i + 1,
-            totalItems: processes.length,
-            currentPath: proc.name,
-            percentage: ((i + 1) / processes.length) * 100
-          })
-        }
-
-        // Check process name, executable path, and command line for keywords
-        const nameMatch = this.keywordMatcher.containsKeyword(proc.name)
-        const pathMatch = proc.executablePath && this.keywordMatcher.containsKeyword(proc.executablePath)
-        const cmdMatch = proc.commandLine && this.keywordMatcher.containsKeyword(proc.commandLine)
-
-        if (nameMatch || pathMatch || cmdMatch) {
-          let entry = `[Process] ${proc.name} (PID: ${proc.pid})`
-
-          if (proc.executablePath && proc.executablePath !== proc.name) {
-            entry += `\n    Path: ${proc.executablePath}`
-          }
-
-          if (proc.commandLine && proc.commandLine !== proc.executablePath) {
-            // Truncate very long command lines
-            const cmdLine = proc.commandLine.length > 500
-              ? proc.commandLine.substring(0, 500) + '...'
-              : proc.commandLine
-            entry += `\n    CMD: ${cmdLine}`
-          }
-
-          results.push(entry)
-        }
+      if (events?.onProgress) {
+        events.onProgress({
+          scannerName: this.name,
+          currentItem: i + 1,
+          totalItems: processes.length,
+          currentPath: proc.name,
+          percentage: ((i + 1) / processes.length) * 100
+        })
       }
 
-      return this.createSuccessResult(results, startTime)
-    } catch (error) {
-      if (this.cancelled) {
-        return this.createErrorResult('Scan cancelled', startTime)
+      // Check process name, executable path, and command line for keywords
+      const nameMatch = this.keywordMatcher.containsKeyword(proc.name)
+      const pathMatch = proc.executablePath && this.keywordMatcher.containsKeyword(proc.executablePath)
+      const cmdMatch = proc.commandLine && this.keywordMatcher.containsKeyword(proc.commandLine)
+
+      if (nameMatch || pathMatch || cmdMatch) {
+        let entry = `[Process] ${proc.name} (PID: ${proc.pid})`
+
+        if (proc.executablePath && proc.executablePath !== proc.name) {
+          entry += `\n    Path: ${proc.executablePath}`
+        }
+
+        if (proc.commandLine && proc.commandLine !== proc.executablePath) {
+          // Truncate very long command lines
+          const cmdLine = proc.commandLine.length > 500
+            ? proc.commandLine.substring(0, 500) + '...'
+            : proc.commandLine
+          entry += `\n    CMD: ${cmdLine}`
+        }
+
+        results.push(entry)
       }
-      return this.createErrorResult(
-        error instanceof Error ? error.message : 'Unknown error',
-        startTime
-      )
     }
+
+    return this.createSuccessResult(results, startTime)
   }
 
   // Standardized buffer size for all process queries
