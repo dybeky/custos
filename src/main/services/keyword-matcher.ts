@@ -1,4 +1,4 @@
-import { basename } from 'path'
+import { win32 } from 'path'
 import { KeywordSettings } from './config-service'
 
 export class KeywordMatcher {
@@ -49,7 +49,9 @@ export class KeywordMatcher {
   }
 
   private getFileNameWithoutExtension(filePath: string): string {
-    const fileName = basename(filePath)
+    // Custos always scans Windows paths, so use win32 semantics regardless of
+    // the host OS running the tests — win32.basename splits on both \ and /.
+    const fileName = win32.basename(filePath)
     const lastDot = fileName.lastIndexOf('.')
     return lastDot > 0 ? fileName.substring(0, lastDot) : fileName
   }
