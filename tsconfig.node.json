@@ -13,10 +13,7 @@
     "resolveJsonModule": true,
     "isolatedModules": true,
     "downlevelIteration": true,
-    "baseUrl": ".",
-    "paths": {
-      "@shared/*": ["src/shared/*"]
-    }
+    "baseUrl": "."
   },
   "include": [
     "src/main/**/*",

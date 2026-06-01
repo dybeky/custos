@@ -14,15 +14,7 @@
     "types": ["node"],
     "resolveJsonModule": true,
     "isolatedModules": true,
-    "baseUrl": ".",
-    "paths": {
-      "@/*": ["src/renderer/*"],
-      "@components/*": ["src/renderer/components/*"],
-      "@pages/*": ["src/renderer/pages/*"],
-      "@stores/*": ["src/renderer/stores/*"],
-      "@hooks/*": ["src/renderer/hooks/*"],
-      "@i18n/*": ["src/renderer/i18n/*"]
-    }
+    "baseUrl": "."
   },
   "include": [
     "src/renderer/**/*",
