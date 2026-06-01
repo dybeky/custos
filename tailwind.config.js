@@ -4,6 +4,17 @@ module.exports = {
   theme: {
     extend: {
       colors: {
+        // ── Custosweb design-system tokens ──
+        bg: '#0d0f1f',
+        panel: '#16182c',
+        'panel-2': '#1f2238',
+        ink: '#ecedff',
+        'ink-dim': '#9698c0',
+        scan: '#80a8ff',
+        'scan-dim': '#8ec1de',
+        alert: '#ff6b83',
+        amber: '#ffc24b',
+        // ── Legacy tokens (kept so existing components don't break) ──
         // Deep cool-navy base
         background: {
           DEFAULT: '#0a0b12',
@@ -51,6 +62,8 @@ module.exports = {
         }
       },
       fontFamily: {
+        display: ['MuseoModerno', 'system-ui', 'sans-serif'],
+        body: ['MuseoModerno', 'system-ui', 'sans-serif'],
         sans: ['Inter', 'system-ui', 'sans-serif'],
         mono: ['JetBrains Mono', 'monospace']
       },
@@ -67,7 +80,7 @@ module.exports = {
       },
       boxShadow: {
         'glass': '0 8px 32px rgba(0, 0, 0, 0.3)',
-        'glow': '0 0 20px rgba(128, 168, 255, 0.35)',
+        'glow': '0 0 40px -8px rgba(128,168,255,0.35)',
         'glow-success': '0 0 20px rgba(52, 211, 153, 0.3)',
         'glow-purple': '0 0 15px rgba(206, 181, 255, 0.45)'
       },

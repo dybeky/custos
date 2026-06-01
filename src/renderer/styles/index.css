@@ -1,3 +1,20 @@
+@font-face {
+  font-family: 'MuseoModerno';
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url('../assets/fonts/MuseoModerno-latin-ext.woff2') format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: 'MuseoModerno';
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url('../assets/fonts/MuseoModerno-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -6,6 +23,28 @@
    SINGLE PALETTE — cool pastels on a deep navy base
    #D3D3FF lavender · #CEB5FF purple · #8EC1DE sky · #80A8FF blue
    (data-theme variants all resolve to this one palette)
+   ============================================ */
+
+/* ============================================
+   CUSTOSWEB DESIGN TOKENS
+   ============================================ */
+
+:root {
+  --bg:#0d0f1f; --panel:#16182c; --panel-2:#1f2238;
+  --ink:#ecedff; --ink-dim:#9698c0; --scan:#80a8ff; --scan-dim:#8ec1de;
+  --alert:#ff6b83; --amber:#ffc24b;
+  --line:rgba(211,211,255,.1); --line-strong:rgba(211,211,255,.18);
+  --glow:128,168,255;
+}
+html, body { background: var(--bg); color: var(--ink); }
+
+.font-display { text-transform: uppercase; letter-spacing: .02em; }
+.font-mono { font-variant-numeric: tabular-nums; }
+.glow-scan { box-shadow: 0 0 0 1px var(--line-strong), 0 0 40px -8px rgba(var(--glow),.35); }
+.text-glow { text-shadow: 0 0 24px rgba(var(--glow),.45); }
+
+/* ============================================
+   LEGACY THEME VARIABLES (kept for existing components)
    ============================================ */
 
 :root,
@@ -78,11 +117,14 @@
   transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
 }
 
-/* Font smoothing */
+/* Font smoothing + base body styles */
 body {
+  font-family: 'MuseoModerno', system-ui, -apple-system, sans-serif;
+  text-transform: lowercase;
+  letter-spacing: .04em;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  background-color: var(--theme-bg);
+  background: radial-gradient(80% 50% at 50% -5%, rgba(var(--glow),.1), transparent 60%), var(--bg);
 }
 
 /* Hide scrollbar for Chrome, Safari and Opera */
