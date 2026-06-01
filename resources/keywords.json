@@ -26,11 +26,29 @@
     "megadumper",
     "extremedumper",
     "neverlose",
-    "nixware"
+    "nixware",
+    "egguware",
+    "egguwarev1",
+    "defthack",
+    "codakcheat",
+    "undeadhacks",
+    "thanking",
+    "bocheat",
+    "novax",
+    "smgcheat",
+    "kakzy",
+    "loaderarcane",
+    "xenosinjector",
+    "xenos64",
+    "extremeinjector",
+    "melonloader",
+    "titanium"
   ],
   "exactMatch": [
     "esp",
     "hwid",
-    "spoofer"
+    "spoofer",
+    "arcane",
+    "eggu"
   ]
 }
