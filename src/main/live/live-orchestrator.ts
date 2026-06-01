@@ -20,6 +20,7 @@ import { findGameProcess } from './process-locator'
 import { loadSignatures } from './signatures'
 import { aobDetector } from './detectors/aob-detector'
 import { injectedModuleDetector } from './detectors/injected-module-detector'
+import { monoDetector } from './detectors/mono-detector'
 import { selfIntegrityDetector } from './detectors/self-integrity-detector'
 import { threadDetector } from './detectors/thread-detector'
 
@@ -33,7 +34,7 @@ export interface LiveScanOptions {
 }
 
 // Detectors enabled in phase 1 + phase 7 (in run order)
-const DETECTORS = [aobDetector, injectedModuleDetector, threadDetector, selfIntegrityDetector]
+const DETECTORS = [aobDetector, injectedModuleDetector, monoDetector, threadDetector, selfIntegrityDetector]
 
 function makeStatusFinding(title: string, detail: string): LiveFinding {
   return {
