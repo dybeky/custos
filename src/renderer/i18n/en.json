@@ -34,7 +34,10 @@
     "categoryScan": "Scan",
     "categoryManual": "Manual",
     "categoryUtilities": "Utilities",
-    "categoryExport": "Results & Export"
+    "categoryExport": "Results & Export",
+    "changelog": "What's new",
+    "changelogEmpty": "Couldn't load the changelog right now.",
+    "autoDetected": "Auto-detected for your system"
   },
   "scan": {
     "title": "Scan",

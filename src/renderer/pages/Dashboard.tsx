@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Card, CardContent } from '../components/ui/Card'
 import { useAppHealthStore } from '../stores/app-health-store'
-import type { CapabilityCategory, ScannerCapability } from '../../shared/types'
+import type { CapabilityCategory, ScannerCapability, ChangelogGroup } from '../../shared/types'
 
 // Render order + i18n label key for each app-area group.
 const CATEGORY_ORDER: { id: CapabilityCategory; labelKey: string }[] = [
@@ -15,11 +15,17 @@ const CATEGORY_ORDER: { id: CapabilityCategory; labelKey: string }[] = [
 export function Dashboard() {
   const { t } = useTranslation()
   const [appVersion, setAppVersion] = useState<string>('')
+  const [changelog, setChangelog] = useState<ChangelogGroup[]>([])
+  const [changelogLoaded, setChangelogLoaded] = useState(false)
   const { osInfo, capabilities, initialize } = useAppHealthStore()
 
   useEffect(() => {
     loadVersion()
     initialize()
+    window.electronAPI.getChangelog()
+      .then((groups) => setChangelog(groups))
+      .catch(() => setChangelog([]))
+      .finally(() => setChangelogLoaded(true))
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
@@ -168,6 +174,33 @@ export function Dashboard() {
                   {t('dashboard.stable')}
                 </span>
               </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Changelog Card */}
+        <Card className="mt-4">
+          <CardContent>
+            <h2 className="text-lg font-semibold text-ink font-display mb-3">{t('dashboard.changelog')}</h2>
+            {changelogLoaded && changelog.length === 0 && (
+              <p className="text-sm text-ink-dim">{t('dashboard.changelogEmpty')}</p>
+            )}
+            <div className="space-y-4">
+              {changelog.map((group) => (
+                <div key={group.group}>
+                  <h3 className="text-2xs font-bold tracking-[0.18em] uppercase text-ink-dim font-display mb-2">
+                    {group.emoji} {group.group}
+                  </h3>
+                  <ul className="space-y-1.5">
+                    {group.entries.slice(0, 6).map((e) => (
+                      <li key={e.sha} className="text-sm text-ink flex gap-2">
+                        <span className="text-scan">•</span>
+                        <span>{e.text}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ))}
             </div>
           </CardContent>
         </Card>
