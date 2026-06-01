@@ -1,0 +1,37 @@
+appId: com.cobra.custos
+productName: Custos
+directories:
+  output: release
+  buildResources: resources
+
+compression: maximum
+npmRebuild: false
+
+electronLanguages:
+  - en
+  - ru
+
+files:
+  - out/**/*
+  - resources/**/*
+  - "!node_modules/**/*.md"
+  - "!node_modules/**/*.txt"
+  - "!node_modules/**/test/**"
+  - "!node_modules/**/docs/**"
+
+win:
+  target:
+    - target: portable
+      arch:
+        - x64
+  icon: resources/icon.ico
+  requestedExecutionLevel: requireAdministrator
+  signAndEditExecutable: false
+
+portable:
+  artifactName: custos.exe
+  requestExecutionLevel: admin
+
+extraResources:
+  - from: resources
+    to: resources

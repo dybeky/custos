@@ -1,0 +1,290 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ============================================
+   SINGLE PALETTE — cool pastels on a deep navy base
+   #D3D3FF lavender · #CEB5FF purple · #8EC1DE sky · #80A8FF blue
+   (data-theme variants all resolve to this one palette)
+   ============================================ */
+
+:root,
+[data-theme="aurora"],
+[data-theme="mono"],
+[data-theme="tropical"] {
+  /* The four pastels */
+  --c-lavender: #D3D3FF;
+  --c-purple: #CEB5FF;
+  --c-sky: #8EC1DE;
+  --c-blue: #80A8FF;
+
+  --theme-primary: #80A8FF;
+  --theme-primary-hover: #9cbcff;
+  --theme-primary-muted: rgba(128, 168, 255, 0.12);
+  --theme-accent-1: #CEB5FF;
+  --theme-accent-2: #80A8FF;
+  --theme-glow: rgba(128, 168, 255, 0.35);
+  --theme-bg: #0a0b12;
+  --theme-surface: #12131c;
+  --theme-elevated: #1b1d2a;
+  /* Pastel buttons are light, so button text is the dark base for contrast */
+  --theme-text-btn: #0a0b12;
+  --theme-border: rgba(206, 181, 255, 0.1);
+  --theme-border-hover: rgba(206, 181, 255, 0.22);
+}
+
+/* ============================================
+   BASE STYLES
+   ============================================ */
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--theme-border-hover);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+/* Prevent text selection for UI elements */
+.select-none {
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+/* Custom focus styles - theme aware */
+*:focus {
+  outline: none;
+}
+
+*:focus-visible {
+  outline: 2px solid var(--theme-primary);
+  outline-offset: 2px;
+  opacity: 0.8;
+}
+
+/* Transition utility for interactive elements during theme changes */
+.theme-transition {
+  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
+}
+
+/* Font smoothing */
+body {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background-color: var(--theme-bg);
+}
+
+/* Hide scrollbar for Chrome, Safari and Opera */
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+/* Hide scrollbar for IE, Edge and Firefox */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* ============================================
+   THEME COMPONENT STYLES
+   ============================================ */
+
+/* Theme primary button */
+.theme-primary-btn {
+  background-color: var(--theme-primary);
+  color: var(--theme-text-btn);
+  transition: all 0.15s ease;
+}
+
+.theme-primary-btn:hover {
+  background-color: var(--theme-primary-hover);
+}
+
+.theme-primary-btn:active {
+  opacity: 0.8;
+}
+
+/* Theme outline button */
+.theme-outline-btn {
+  border: 1px solid var(--theme-primary);
+  color: var(--theme-primary);
+  background: transparent;
+  transition: all 0.15s ease;
+}
+
+.theme-outline-btn:hover {
+  background-color: var(--theme-primary);
+  color: var(--theme-text-btn);
+}
+
+.theme-outline-btn:active {
+  opacity: 0.8;
+}
+
+/* Theme glow effect */
+.theme-glow {
+  box-shadow: 0 0 20px var(--theme-glow);
+}
+
+.theme-glow:hover {
+  box-shadow: 0 0 30px var(--theme-glow);
+}
+
+/* Theme toggle */
+.theme-toggle-on {
+  background-color: var(--theme-primary);
+}
+
+.theme-toggle-off {
+  background-color: var(--theme-elevated);
+  border: 1px solid var(--theme-border);
+}
+
+/* Theme progress bar */
+.theme-progress {
+  background-color: var(--theme-primary);
+}
+
+/* Theme stroke for SVG */
+.theme-stroke {
+  stroke: var(--theme-primary);
+}
+
+/* Theme border */
+.theme-border {
+  border-color: var(--theme-border);
+}
+
+.theme-border:hover {
+  border-color: var(--theme-border-hover);
+}
+
+/* Theme surface backgrounds */
+.theme-bg {
+  background-color: var(--theme-bg);
+}
+
+.theme-surface {
+  background-color: var(--theme-surface);
+}
+
+.theme-elevated {
+  background-color: var(--theme-elevated);
+}
+
+/* Theme text colors */
+.theme-text-primary {
+  color: var(--theme-primary);
+}
+
+/* Theme border primary */
+.theme-border-primary {
+  border-color: var(--theme-primary);
+}
+
+/* Theme gradient text — sweeps the full pastel palette */
+.theme-gradient-text {
+  background: linear-gradient(90deg, var(--c-lavender), var(--c-purple), var(--c-sky), var(--c-blue), var(--c-lavender));
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: gradientText 3s ease infinite;
+}
+
+@keyframes gradientText {
+  0% { background-position: 0% center; }
+  50% { background-position: 100% center; }
+  100% { background-position: 0% center; }
+}
+
+/* Theme card/surface with border */
+.theme-card {
+  background-color: var(--theme-surface);
+  border: 1px solid var(--theme-border);
+}
+
+/* Theme link/interactive text */
+.theme-link {
+  color: var(--theme-primary);
+  transition: opacity 0.15s ease;
+}
+
+.theme-link:hover {
+  opacity: 0.8;
+}
+
+/* Theme icon button */
+.theme-icon-btn {
+  color: var(--theme-primary);
+  transition: all 0.15s ease;
+}
+
+.theme-icon-btn:hover {
+  opacity: 0.8;
+  transform: scale(1.05);
+}
+
+/* Theme active/selected state */
+.theme-active {
+  border-color: var(--theme-primary);
+  background-color: var(--theme-primary-muted);
+}
+
+/* ============================================
+   LIGHTWEIGHT ANIMATIONS
+   ============================================ */
+
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.animate-fade-in {
+  animation: fade-in 0.3s ease both;
+}
+
+/* ============================================
+   GLASS EFFECTS
+   ============================================ */
+
+.glass {
+  background: rgba(18, 19, 28, 0.5);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+}
+
+/* ============================================
+   FLOATING ANIMATIONS
+   ============================================ */
+
+@keyframes float-particle {
+  0% {
+    transform: translateY(100vh) translateX(0);
+    opacity: 0;
+  }
+  10% {
+    opacity: 1;
+  }
+  90% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(-100vh) translateX(50px);
+    opacity: 0;
+  }
+}
+
+.animate-float-particle {
+  animation: float-particle linear infinite;
+}

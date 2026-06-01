@@ -1,0 +1,128 @@
+{
+  "settings": {
+    "title": "Settings",
+    "subtitle": "Configure custos preferences",
+    "appearance": "Appearance",
+    "paletteDesc": "Custos uses a single pastel palette throughout the interface.",
+    "about": "About",
+    "version": "Version:",
+    "developer": "Developer:",
+    "viewOnGitHub": "VIEW ON GITHUB",
+    "dangerZone": "Danger Zone",
+    "deleteAfterUse": "Delete program after use",
+    "deleteAfterUseDesc": "Automatically delete custos when you close it",
+    "deleteProgramNow": "DELETE PROGRAM NOW",
+    "deleteError": "Failed to delete program",
+    "back": "BACK",
+    "language": "Language",
+    "languageDesc": "Select interface language"
+  },
+  "dashboard": {
+    "title": "Dashboard",
+    "eyebrow": "ANTI-CHEAT TOOLKIT",
+    "welcome": "Welcome",
+    "welcomeMessage": "Detect third-party software, fast.",
+    "madeForUnturned": "MADE FOR UNTURNED SERVERS",
+    "version": "Version",
+    "stable": "STABLE",
+    "compatibility": "System Compatibility",
+    "compatibilitySubtitle": "Checks available on your system",
+    "available": "available",
+    "ready": "Ready",
+    "unavailable": "Unavailable",
+    "allChecksAvailable": "All checks are available on your system",
+    "someChecksUnavailable": "Some checks aren't supported on this system",
+    "categoryScan": "Scan",
+    "categoryManual": "Manual",
+    "categoryUtilities": "Utilities",
+    "categoryExport": "Results & Export"
+  },
+  "scan": {
+    "title": "Scan",
+    "startScan": "START SCAN",
+    "readyToScan": "Ready to scan",
+    "scanning": "Scanning...",
+    "scanningSubtitle": "Please wait, checking your system...",
+    "scanComplete": "Scan Complete",
+    "cancelScan": "CANCEL SCAN",
+    "scanDescription": "Scan AppData, Registry, Processes, Prefetch, Steam and more",
+    "scannersReady": "scanners ready",
+    "progress": "Progress:",
+    "complete": "Complete!",
+    "pending": "Pending",
+    "found": "found"
+  },
+  "manual": {
+    "title": "Manual Check",
+    "subtitle": "Open folders and tools manually for investigation",
+    "systemTools": "System Tools",
+    "folders": "Folders",
+    "games": "Games",
+    "registry": "Registry",
+    "telegramCheatBots": "Telegram Cheat Bots",
+    "telegramBotsDesc": "Open these bots to check if the user has interacted with them",
+    "additionalResources": "Additional Resources",
+    "additionalResourcesDesc": "Websites where cheats are commonly sold",
+    "dataUsage": "Data Usage",
+    "videos": "Videos",
+    "downloads": "Downloads",
+    "registryKeyNotFound": "Registry key does not exist on this system"
+  },
+  "utilities": {
+    "title": "Utilities",
+    "subtitle": "Useful tools for anti-cheat verification",
+    "openWebsite": "OPEN WEBSITE",
+    "lastActivityViewDesc": "Shows computer activity log including program executions, file operations and more",
+    "usbDeviewDesc": "Lists all USB devices ever connected to the computer with dates and details",
+    "everythingDesc": "Instant file search tool that indexes all files on your drives",
+    "systemInformerDesc": "Advanced system monitor and process viewer (formerly Process Hacker)",
+    "shellbagAnalyzerDesc": "Analyzes and cleans Windows ShellBag entries that store folder access history"
+  },
+  "general": {
+    "home": "Home",
+    "checkUpdates": "Check Updates",
+    "noReleases": "No releases found on GitHub",
+    "error": "Error",
+    "networkUnavailable": "Network unavailable",
+    "timeout": "Timeout"
+  },
+  "confirm": {
+    "confirmDelete": "Are you sure you want to delete custos?\n\nThis will close the application and remove all program files.",
+    "confirmDeleteTitle": "Confirm Delete",
+    "deleteFailed": "Failed to delete program:"
+  },
+  "results": {
+    "title": "Results",
+    "clean": "Clean",
+    "suspicious": "Suspicious",
+    "filesScanned": "Files scanned",
+    "noThreatsFound": "No threats found",
+    "threatsFound": "threats found",
+    "scanResults": "Scan Results",
+    "exportResults": "EXPORT RESULTS",
+    "exportJSON": "EXPORT JSON",
+    "runScanToSee": "Run a scan to see results",
+    "noResultsYet": "No results yet"
+  },
+  "header": {
+    "allSystemsOk": "All systems OK",
+    "warningDetected": "Warning detected",
+    "errorDetected": "Error detected",
+    "disableEffects": "Disable effects",
+    "enableEffects": "Enable effects"
+  },
+  "errorBoundary": {
+    "title": "Something went wrong",
+    "message": "An unexpected error occurred. Please try reloading the application.",
+    "reload": "Reload Application",
+    "continue": "Continue"
+  },
+  "nav": {
+    "dashboard": "Dashboard",
+    "scan": "Scan",
+    "results": "Results",
+    "manual": "Manual",
+    "utilities": "Utilities",
+    "settings": "Settings"
+  }
+}
