@@ -8,7 +8,7 @@ import { getScannerCapabilities, getSupportedScannerIds, getAllCapabilities } fr
 import { runScan } from './scan-orchestrator'
 import { scheduleSelfDestruct } from './services/self-destruct'
 import { setupLiveIpcHandlers } from './live-ipc'
-import Store from 'electron-store'
+import { appStore } from './services/app-store'
 import { z } from 'zod'
 
 // Strict schema for partial user settings — rejects unknown properties
@@ -17,17 +17,6 @@ const UserSettingsPartialSchema = z.object({
   deleteAfterUse: z.boolean().optional(),
   theme: z.enum(['aurora', 'mono', 'tropical']).optional()
 }).strict()
-
-// Settings store
-const store = new Store<{ settings: UserSettings }>({
-  defaults: {
-    settings: {
-      language: 'en',
-      deleteAfterUse: false,
-      theme: 'tropical'
-    }
-  }
-})
 
 let isScanning = false
 let scanAbortController: AbortController | null = null
@@ -128,7 +117,7 @@ export function setupIpcHandlers(mainWindow: BrowserWindow): void {
 
   // Get settings
   ipcMain.handle(IPC_CHANNELS.SETTINGS_GET, (): UserSettings => {
-    return store.get('settings')
+    return appStore.get('settings')
   })
 
   // Set settings (validated with Zod to reject unknown properties)
@@ -137,9 +126,9 @@ export function setupIpcHandlers(mainWindow: BrowserWindow): void {
     if (!parsed.success) {
       throw new Error(`Invalid settings: ${parsed.error.message}`)
     }
-    const current = store.get('settings')
+    const current = appStore.get('settings')
     const updated = { ...current, ...parsed.data }
-    store.set('settings', updated)
+    appStore.set('settings', updated)
     return updated
   })
 
