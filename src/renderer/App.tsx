@@ -11,6 +11,7 @@ import { Settings } from './pages/Settings'
 import { LiveScan } from './pages/LiveScan'
 import { ErrorBoundary } from './components/ErrorBoundary'
 import { useSettingsStore } from './stores/settings-store'
+import { GamePicker } from './components/GamePicker'
 import './i18n'
 
 export function App() {
@@ -50,6 +51,7 @@ export function App() {
     <ErrorBoundary>
       <HashRouter>
         <div className="h-screen w-screen bg-background text-text-primary flex flex-col overflow-hidden">
+          <GamePicker />
           <Header />
 
           <div className="flex flex-1 overflow-hidden relative z-10">

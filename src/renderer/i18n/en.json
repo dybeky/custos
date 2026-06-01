@@ -125,6 +125,12 @@
     "utilities": "Utilities",
     "settings": "Settings"
   },
+  "gamePicker": {
+    "title": "Choose your game",
+    "subtitle": "custos tailors its checks to the game you're playing.",
+    "comingSoon": "Coming soon",
+    "select": "Select"
+  },
   "liveScan": {
     "title": "Live Scan",
     "subtitle": "Scan Unturned process memory in real time",
