@@ -18,6 +18,7 @@ import { IPC_CHANNELS, LiveFinding, LiveContext } from '../../shared/types'
 import { isMemoryNativeAvailable, openGameProcess, close } from './native/memory'
 import { findGameProcess } from './process-locator'
 import { loadSignatures } from './signatures'
+import { aobDetector } from './detectors/aob-detector'
 import { injectedModuleDetector } from './detectors/injected-module-detector'
 import { selfIntegrityDetector } from './detectors/self-integrity-detector'
 
@@ -30,8 +31,8 @@ export interface LiveScanOptions {
   processNames?: string[]
 }
 
-// Detectors enabled in phase 1 (in run order)
-const DETECTORS = [injectedModuleDetector, selfIntegrityDetector]
+// Detectors enabled in phase 1 + phase 7 (in run order)
+const DETECTORS = [aobDetector, injectedModuleDetector, selfIntegrityDetector]
 
 function makeStatusFinding(title: string, detail: string): LiveFinding {
   return {
