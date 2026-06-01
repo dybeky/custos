@@ -4,10 +4,10 @@ import { logger } from './services/logger'
 import { writeFileSync } from 'fs'
 import { join } from 'path'
 import { exec, execFile } from 'child_process'
-import { getScannerFactory, ScannerName, BaseScanner } from './scanners'
+import { getScannerFactory, ScannerName } from './scanners'
 import { getOsInfo, getTimeoutMultiplier } from './utils/os-utils'
 import { getScannerCapabilities, getSupportedScannerIds, getAllCapabilities } from './services/capability-service'
-import { ThrottledProgress } from './utils/progress-throttle'
+import { runScan } from './scan-orchestrator'
 import Store from 'electron-store'
 import { z } from 'zod'
 
@@ -109,115 +109,8 @@ export function setupIpcHandlers(mainWindow: BrowserWindow): void {
     return getAllCapabilities()
   })
 
-  // Timeout wrapper for scanner - adaptive based on Windows version
+  // Timeout per scanner — adaptive based on Windows version
   const SCANNER_TIMEOUT_MS = Math.round(30000 * getTimeoutMultiplier())
-
-  async function runScannerWithTimeout(
-    scanner: BaseScanner,
-    events: { onProgress: (progress: ScanProgress) => void }
-  ): Promise<ScanResult> {
-    const startTime = Date.now()
-    logger.debug(`Scanner starting: ${scanner.name}`)
-
-    return new Promise((resolve) => {
-      const timeout = setTimeout(() => {
-        logger.warn(`Scanner timeout: ${scanner.name}`, { timeoutMs: SCANNER_TIMEOUT_MS })
-        scanner.cancel()
-        resolve({
-          scannerName: scanner.name,
-          success: false,
-          findings: [],
-          error: `Scanner timeout (${SCANNER_TIMEOUT_MS / 1000}s)`,
-          startTime: new Date(),
-          endTime: new Date(),
-          duration: SCANNER_TIMEOUT_MS,
-          count: 0,
-          hasFindings: false
-        })
-      }, SCANNER_TIMEOUT_MS)
-
-      scanner.scan(events)
-        .then(result => {
-          clearTimeout(timeout)
-          logger.debug(`Scanner completed: ${scanner.name}`, {
-            duration: `${Date.now() - startTime}ms`,
-            findings: result.findings.length
-          })
-          resolve(result)
-        })
-        .catch((err) => {
-          clearTimeout(timeout)
-          logger.error(`Scanner error: ${scanner.name}`, err)
-          resolve({
-            scannerName: scanner.name,
-            success: false,
-            findings: [],
-            error: 'Scanner error',
-            startTime: new Date(),
-            endTime: new Date(),
-            duration: 0,
-            count: 0,
-            hasFindings: false
-          })
-        })
-    })
-  }
-
-  // Helper to run a group of scanners with concurrency limit
-  async function runScannerGroup(
-    scanners: BaseScanner[],
-    concurrency: number,
-    throttledProgress: ThrottledProgress,
-    completedRef: { count: number },
-    totalScanners: number
-  ): Promise<ScanResult[]> {
-    const results: ScanResult[] = []
-    const executing = new Set<Promise<void>>()
-
-    for (const scanner of scanners) {
-      if (scanAbortController?.signal.aborted) break
-
-      const scanPromise = (async () => {
-        // Capture index before await to avoid race condition with concurrent scanners
-        const localIndex = ++completedRef.count
-
-        // Send progress update for starting scanner
-        safeSend(IPC_CHANNELS.SCAN_PROGRESS, {
-          scannerName: scanner.name,
-          currentItem: localIndex,
-          totalItems: totalScanners,
-          currentPath: `Starting ${scanner.name}...`,
-          percentage: ((localIndex - 1) / totalScanners) * 100
-        } as ScanProgress)
-
-        const result = await runScannerWithTimeout(scanner, {
-          onProgress: (progress: ScanProgress) => {
-            throttledProgress.emit(progress, (p) => safeSend(IPC_CHANNELS.SCAN_PROGRESS, p))
-          }
-        })
-
-        results.push(result)
-
-        // Send individual result
-        safeSend(IPC_CHANNELS.SCAN_RESULT, result)
-      })()
-
-      // Self-removing: promise removes itself from the set when it settles
-      const tracked = scanPromise.then(
-        () => { executing.delete(tracked) },
-        () => { executing.delete(tracked) }
-      )
-      executing.add(tracked)
-
-      // Limit concurrency — wait for any promise to settle before adding more
-      if (executing.size >= concurrency) {
-        await Promise.race(executing)
-      }
-    }
-
-    await Promise.all(executing)
-    return results
-  }
 
   // Start scan
   ipcMain.handle(IPC_CHANNELS.SCAN_START, async (_event, scannerIds?: ScannerName[]): Promise<ScanResult[]> => {
@@ -232,66 +125,25 @@ export function setupIpcHandlers(mainWindow: BrowserWindow): void {
     scannerFactory.resetAll()
 
     // Only run scanners supported on the current OS — unsupported ones are skipped
-    const supportedIds = new Set(getSupportedScannerIds())
+    const supportedIds = new Set(getSupportedScannerIds()) as Set<ScannerName>
     const requestedIds: ScannerName[] = scannerIds
       ? scannerIds
       : (scannerFactory.getScannerInfo().map(i => i.id) as ScannerName[])
 
-    const allScanners = requestedIds
-      .filter(id => supportedIds.has(id))
-      .map(id => scannerFactory.getScanner(id))
-      .filter((s): s is NonNullable<typeof s> => s !== undefined)
-
-    if (allScanners.length === 0) {
+    const supportedCount = requestedIds.filter(id => supportedIds.has(id)).length
+    if (supportedCount === 0) {
       logger.warn('No scanners are supported on this OS', { os: getOsInfo().displayName })
     }
 
-    // Group scanners by type for optimal parallel execution
-    const scannerNameMap = new Map<BaseScanner, string>()
-    allScanners.forEach(s => scannerNameMap.set(s, s.name.toLowerCase()))
-
-    // Group A: File system scanners (can run all in parallel)
-    const groupANames = ['appdata', 'prefetch', 'recent', 'game', 'steam']
-    const groupA = allScanners.filter(s => {
-      const name = scannerNameMap.get(s) || ''
-      return groupANames.some(n => name.includes(n))
-    })
-
-    // Group B: Registry/PowerShell/system command scanners (run in parallel with limit)
-    const groupBNames = ['registry', 'bam', 'shellbag', 'amcache', 'scheduled task']
-    const groupB = allScanners.filter(s => {
-      const name = scannerNameMap.get(s) || ''
-      return groupBNames.some(n => name.includes(n))
-    })
-
-    // Group C: Independent scanners (process, browser, dns cache)
-    const groupCNames = ['process', 'browser', 'dns cache']
-    const groupC = allScanners.filter(s => {
-      const name = scannerNameMap.get(s) || ''
-      return groupCNames.some(n => name.includes(n))
-    })
-
-    // Group D: VM detection scanner (runs independently)
-    const groupDNames = ['vm']
-    const groupD = allScanners.filter(s => {
-      const name = scannerNameMap.get(s) || ''
-      return groupDNames.some(n => name.includes(n))
-    })
-
-    const throttledProgress = new ThrottledProgress(100)
-    const completedRef = { count: 0 }
-    const totalScanners = allScanners.length
-
     try {
-      // Run all groups in parallel
-      const [resultsA, resultsB, resultsC, resultsD] = await Promise.all([
-        runScannerGroup(groupA, 5, throttledProgress, completedRef, totalScanners),
-        runScannerGroup(groupB, 4, throttledProgress, completedRef, totalScanners),
-        runScannerGroup(groupC, 2, throttledProgress, completedRef, totalScanners),
-        runScannerGroup(groupD, 1, throttledProgress, completedRef, totalScanners)
-      ])
-
-      const results = [...resultsA, ...resultsB, ...resultsC, ...resultsD]
+      const results = await runScan({
+        factory: scannerFactory,
+        requestedIds,
+        supportedIds,
+        emit: safeSend,
+        signal: scanAbortController.signal,
+        timeoutMs: SCANNER_TIMEOUT_MS
+      })
 
       const totalFindings = results.reduce((sum, r) => sum + r.findings.length, 0)
       logger.info('Scan completed', {
