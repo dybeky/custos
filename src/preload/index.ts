@@ -1,5 +1,6 @@
 import { contextBridge, ipcRenderer } from 'electron'
 import { IPC_CHANNELS, ScanResult, ScanProgress, UserSettings, ScannerInfo, OsInfo, ScannerCapability, ScannerName, LiveFinding, LiveScanStatus } from '../shared/types'
+import type { ChangelogGroup } from '../shared/types'
 
 export type ScanProgressCallback = (progress: ScanProgress) => void
 export type ScanResultCallback = (result: ScanResult) => void
@@ -163,7 +164,11 @@ const api = {
     }
     ipcRenderer.on(IPC_CHANNELS.LIVE_SCAN_COMPLETE, listener)
     return () => ipcRenderer.removeListener(IPC_CHANNELS.LIVE_SCAN_COMPLETE, listener)
-  }
+  },
+
+  /** Fetch the humanized changelog from GitHub commits. */
+  getChangelog: (): Promise<ChangelogGroup[]> =>
+    ipcRenderer.invoke(IPC_CHANNELS.GITHUB_GET_CHANGELOG)
 }
 
 // Expose API to renderer

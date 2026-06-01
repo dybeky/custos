@@ -1,6 +1,8 @@
+import type { ChangelogItem, ChangelogGroup } from '../../shared/types'
+
+export type { ChangelogItem, ChangelogGroup }
+
 export interface RawCommit { message: string; sha: string; date: string }
-export interface ChangelogItem { text: string; sha: string; date: string }
-export interface ChangelogGroup { group: string; emoji: string; entries: ChangelogItem[] }
 
 export interface ParsedCommit { type: string; scope: string | null; summary: string }
 

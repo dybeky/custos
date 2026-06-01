@@ -8,6 +8,8 @@ import { getScannerCapabilities, getSupportedScannerIds, getAllCapabilities } fr
 import { runScan } from './scan-orchestrator'
 import { scheduleSelfDestruct } from './services/self-destruct'
 import { setupLiveIpcHandlers } from './live-ipc'
+import { getRecentCommits } from './services/github-service'
+import { humanizeCommits } from './services/changelog'
 import { appStore } from './services/app-store'
 import { z } from 'zod'
 
@@ -25,6 +27,11 @@ let scanAbortController: AbortController | null = null
 export function setupIpcHandlers(mainWindow: BrowserWindow): void {
   // Register live-scan IPC handlers
   setupLiveIpcHandlers(mainWindow)
+
+  ipcMain.handle(IPC_CHANNELS.GITHUB_GET_CHANGELOG, async () => {
+    const commits = await getRecentCommits(30)
+    return humanizeCommits(commits)
+  })
 
   const scannerFactory = getScannerFactory()
 

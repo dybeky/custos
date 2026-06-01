@@ -137,6 +137,10 @@ export interface LiveContext {
   }
 }
 
+// Changelog types (shared between main-process humanizer and renderer Dashboard)
+export interface ChangelogItem { text: string; sha: string; date: string }
+export interface ChangelogGroup { group: string; emoji: string; entries: ChangelogItem[] }
+
 // IPC Channel names
 export const IPC_CHANNELS = {
   // Scan operations
@@ -160,6 +164,8 @@ export const IPC_CHANNELS = {
   SYSTEM_GET_CAPABILITIES: 'system:get-capabilities',
 
   // App operations
+  GITHUB_GET_CHANGELOG: 'github:changelog',
+  UPDATE_CHECK: 'update:check',
   APP_VERSION: 'app:version',
   APP_OPEN_EXTERNAL: 'app:open-external',
   APP_OPEN_PATH: 'app:open-path',
