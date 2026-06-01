@@ -18,60 +18,49 @@ export class ShellbagsScanner extends BaseScanner {
     'HKCU\\Software\\Classes\\Wow6432Node\\Local Settings\\Software\\Microsoft\\Windows\\Shell\\Bags'
   ]
 
-  async scan(events?: ScannerEventEmitter): Promise<ScanResult> {
-    const startTime = new Date()
+  protected async doScan(events: ScannerEventEmitter | undefined, startTime: Date): Promise<ScanResult> {
     this.reset()
 
-    try {
-      const results: string[] = []
-      const seenPaths = new Set<string>()
+    const results: string[] = []
+    const seenPaths = new Set<string>()
 
-      const totalSteps = this.shellbagPaths.length
+    const totalSteps = this.shellbagPaths.length
 
-      // Scan shellbag paths with limited concurrency (max 2 at a time)
-      const concurrency = 2
-      let completed = 0
+    // Scan shellbag paths with limited concurrency (max 2 at a time)
+    const concurrency = 2
+    let completed = 0
 
-      for (let i = 0; i < this.shellbagPaths.length; i += concurrency) {
-        if (this.cancelled) break
+    for (let i = 0; i < this.shellbagPaths.length; i += concurrency) {
+      if (this.cancelled) break
 
-        const chunk = this.shellbagPaths.slice(i, i + concurrency)
-        const chunkPromises = chunk.map(async (regPath) => {
-          if (this.cancelled) return []
+      const chunk = this.shellbagPaths.slice(i, i + concurrency)
+      const chunkPromises = chunk.map(async (regPath) => {
+        if (this.cancelled) return []
 
-          completed++
-          if (events?.onProgress) {
-            events.onProgress({
-              scannerName: this.name,
-              currentItem: completed,
-              totalItems: totalSteps,
-              currentPath: regPath.split('\\').slice(-2).join('\\'),
-              percentage: (completed / totalSteps) * 100
-            })
-          }
-
-          return this.scanShellbagPath(regPath, seenPaths)
-        })
-
-        const chunkResults = await Promise.all(chunkPromises)
-        for (const pathResults of chunkResults) {
-          results.push(...pathResults)
+        completed++
+        if (events?.onProgress) {
+          events.onProgress({
+            scannerName: this.name,
+            currentItem: completed,
+            totalItems: totalSteps,
+            currentPath: regPath.split('\\').slice(-2).join('\\'),
+            percentage: (completed / totalSteps) * 100
+          })
         }
-      }
 
-      // Note: PowerShell deep scan removed - registry query already gets the data
-      // and the PowerShell scan added 60s timeout causing potential freezes
+        return this.scanShellbagPath(regPath, seenPaths)
+      })
 
-      return this.createSuccessResult(results, startTime)
-    } catch (error) {
-      if (this.cancelled) {
-        return this.createErrorResult('Scan cancelled', startTime)
+      const chunkResults = await Promise.all(chunkPromises)
+      for (const pathResults of chunkResults) {
+        results.push(...pathResults)
       }
-      return this.createErrorResult(
-        error instanceof Error ? error.message : 'Unknown error',
-        startTime
-      )
     }
+
+    // Note: PowerShell deep scan removed - registry query already gets the data
+    // and the PowerShell scan added 60s timeout causing potential freezes
+
+    return this.createSuccessResult(results, startTime)
   }
 
   private async scanShellbagPath(regPath: string, seenPaths: Set<string>): Promise<string[]> {

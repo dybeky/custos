@@ -35,95 +35,84 @@ export class SteamScanner extends BaseScanner {
     return SteamScanner.STEAMID_REGEX.test(steamId)
   }
 
-  async scan(events?: ScannerEventEmitter): Promise<ScanResult> {
-    const startTime = new Date()
+  protected async doScan(events: ScannerEventEmitter | undefined, startTime: Date): Promise<ScanResult> {
     this.reset()
 
-    try {
-      const results: string[] = []
-      const { steam } = this.config.paths
+    const results: string[] = []
+    const { steam } = this.config.paths
 
-      // Get all available system drives dynamically
-      const systemDrives = await getAvailableDrives()
-      // Merge with configured additional drives, removing duplicates
-      const drives = [...new Set([...systemDrives, ...steam.additionalDrives])]
+    // Get all available system drives dynamically
+    const systemDrives = await getAvailableDrives()
+    // Merge with configured additional drives, removing duplicates
+    const drives = [...new Set([...systemDrives, ...steam.additionalDrives])]
 
-      // Find Steam installation
-      const steamPaths: string[] = []
+    // Find Steam installation
+    const steamPaths: string[] = []
 
-      for (const drive of drives) {
-        steamPaths.push(join(drive, 'Program Files (x86)', 'Steam'))
-        steamPaths.push(join(drive, 'Program Files', 'Steam'))
-        steamPaths.push(join(drive, 'Steam'))
-      }
-
-      // Also check user profile - use path.dirname style extraction
-      const userProfileSteamPath = join(homedir(), steam.loginUsersRelativePath)
-      // Extract Steam root from loginusers.vdf path (go up 2 levels: config/loginusers.vdf -> Steam)
-      const steamFromProfile = join(userProfileSteamPath, '..', '..')
-      steamPaths.push(steamFromProfile)
-
-      let steamFound = false
-      let accounts: SteamAccount[] = []
-
-      for (let i = 0; i < steamPaths.length; i++) {
-        if (this.cancelled) break
-
-        const steamPath = steamPaths[i]
-        const loginUsersPath = join(steamPath, 'config', 'loginusers.vdf')
-
-        if (events?.onProgress) {
-          events.onProgress({
-            scannerName: this.name,
-            currentItem: i + 1,
-            totalItems: steamPaths.length,
-            currentPath: steamPath,
-            percentage: ((i + 1) / steamPaths.length) * 100
-          })
-        }
-
-        if (existsSync(loginUsersPath)) {
-          steamFound = true
-
-          try {
-            const vdfContent = await readFile(loginUsersPath, 'utf-8')
-            accounts = this.vdfParser.parseSteamAccounts(vdfContent)
-
-            // Add account info to results with validation
-            for (const account of accounts) {
-              const steamIdValid = this.isValidSteamId(account.steamId)
-              const validationNote = steamIdValid ? '' : ' [Invalid SteamID format]'
-              results.push(`[Steam Account] ${account.accountName} (SteamID: ${account.steamId})${account.personaName ? ` - ${account.personaName}` : ''}${validationNote}`)
-            }
-          } catch {
-            // Error parsing VDF file
-          }
-
-          // Scan Steam folder for suspicious files using configured depth
-          const steamFindings = await this.scanFolder(
-            steamPath,
-            this.scanSettings.executableExtensions,
-            this.scanSettings.userFoldersScanDepth
-          )
-          results.push(...steamFindings)
-
-          break // Found Steam, no need to check other paths
-        }
-      }
-
-      if (!steamFound) {
-        results.push('[Steam] Steam installation not found')
-      }
-
-      return this.createSuccessResult(results, startTime)
-    } catch (error) {
-      if (this.cancelled) {
-        return this.createErrorResult('Scan cancelled', startTime)
-      }
-      return this.createErrorResult(
-        error instanceof Error ? error.message : 'Unknown error',
-        startTime
-      )
+    for (const drive of drives) {
+      steamPaths.push(join(drive, 'Program Files (x86)', 'Steam'))
+      steamPaths.push(join(drive, 'Program Files', 'Steam'))
+      steamPaths.push(join(drive, 'Steam'))
     }
+
+    // Also check user profile - use path.dirname style extraction
+    const userProfileSteamPath = join(homedir(), steam.loginUsersRelativePath)
+    // Extract Steam root from loginusers.vdf path (go up 2 levels: config/loginusers.vdf -> Steam)
+    const steamFromProfile = join(userProfileSteamPath, '..', '..')
+    steamPaths.push(steamFromProfile)
+
+    let steamFound = false
+    let accounts: SteamAccount[] = []
+
+    for (let i = 0; i < steamPaths.length; i++) {
+      if (this.cancelled) break
+
+      const steamPath = steamPaths[i]
+      const loginUsersPath = join(steamPath, 'config', 'loginusers.vdf')
+
+      if (events?.onProgress) {
+        events.onProgress({
+          scannerName: this.name,
+          currentItem: i + 1,
+          totalItems: steamPaths.length,
+          currentPath: steamPath,
+          percentage: ((i + 1) / steamPaths.length) * 100
+        })
+      }
+
+      if (existsSync(loginUsersPath)) {
+        steamFound = true
+
+        try {
+          const vdfContent = await readFile(loginUsersPath, 'utf-8')
+          accounts = this.vdfParser.parseSteamAccounts(vdfContent)
+
+          // Add account info to results with validation
+          for (const account of accounts) {
+            const steamIdValid = this.isValidSteamId(account.steamId)
+            const validationNote = steamIdValid ? '' : ' [Invalid SteamID format]'
+            results.push(`[Steam Account] ${account.accountName} (SteamID: ${account.steamId})${account.personaName ? ` - ${account.personaName}` : ''}${validationNote}`)
+          }
+        } catch {
+          // Error parsing VDF file
+        }
+
+        // Scan Steam folder for suspicious files using configured depth
+        const steamFindings = await this.scanFolder(
+          steamPath,
+          this.scanSettings.executableExtensions,
+          this.scanSettings.userFoldersScanDepth
+        )
+        results.push(...steamFindings)
+
+        break // Found Steam, no need to check other paths
+      }
+    }
+
+    if (!steamFound) {
+      results.push('[Steam] Steam installation not found')
+    }
+
+    return this.createSuccessResult(results, startTime)
   }
 }

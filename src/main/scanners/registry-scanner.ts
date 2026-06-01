@@ -19,43 +19,32 @@ export class RegistryScanner extends BaseScanner {
     this.registrySettings = registrySettings
   }
 
-  async scan(events?: ScannerEventEmitter): Promise<ScanResult> {
-    const startTime = new Date()
+  protected async doScan(events: ScannerEventEmitter | undefined, startTime: Date): Promise<ScanResult> {
     this.reset()
 
-    try {
-      const results: string[] = []
-      const scanKeys = this.registrySettings.scanKeys
+    const results: string[] = []
+    const scanKeys = this.registrySettings.scanKeys
 
-      for (let i = 0; i < scanKeys.length; i++) {
-        if (this.cancelled) break
+    for (let i = 0; i < scanKeys.length; i++) {
+      if (this.cancelled) break
 
-        const regKey = scanKeys[i]
+      const regKey = scanKeys[i]
 
-        if (events?.onProgress) {
-          events.onProgress({
-            scannerName: this.name,
-            currentItem: i + 1,
-            totalItems: scanKeys.length,
-            currentPath: regKey.name,
-            percentage: ((i + 1) / scanKeys.length) * 100
-          })
-        }
-
-        const findings = await this.scanRegistryKey(regKey.path, regKey.name)
-        results.push(...findings)
+      if (events?.onProgress) {
+        events.onProgress({
+          scannerName: this.name,
+          currentItem: i + 1,
+          totalItems: scanKeys.length,
+          currentPath: regKey.name,
+          percentage: ((i + 1) / scanKeys.length) * 100
+        })
       }
 
-      return this.createSuccessResult(results, startTime)
-    } catch (error) {
-      if (this.cancelled) {
-        return this.createErrorResult('Scan cancelled', startTime)
-      }
-      return this.createErrorResult(
-        error instanceof Error ? error.message : 'Unknown error',
-        startTime
-      )
+      const findings = await this.scanRegistryKey(regKey.path, regKey.name)
+      results.push(...findings)
     }
+
+    return this.createSuccessResult(results, startTime)
   }
 
   private async scanRegistryKey(path: string, name: string): Promise<string[]> {

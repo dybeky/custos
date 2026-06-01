@@ -26,8 +26,7 @@ export class ScheduledTasksScanner extends BaseScanner {
   readonly name = 'Scheduled Tasks Scanner'
   readonly description = 'Scanning Windows Task Scheduler for suspicious persistence entries'
 
-  async scan(events?: ScannerEventEmitter): Promise<ScanResult> {
-    const startTime = new Date()
+  protected async doScan(events: ScannerEventEmitter | undefined, startTime: Date): Promise<ScanResult> {
     this.reset()
 
     try {
@@ -110,14 +109,9 @@ export class ScheduledTasksScanner extends BaseScanner {
 
       return this.createSuccessResult(results, startTime)
     } catch (error) {
-      if (this.cancelled) {
-        return this.createErrorResult('Scan cancelled', startTime)
-      }
+      // Log the error before rethrowing so the base class can return the error result
       logger.error('Scheduled Tasks Scanner error', error instanceof Error ? error : new Error(String(error)))
-      return this.createErrorResult(
-        error instanceof Error ? error.message : 'Unknown error',
-        startTime
-      )
+      throw error
     }
   }
 

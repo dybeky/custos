@@ -125,84 +125,73 @@ export class VMScanner extends BaseScanner {
   private static readonly EXEC_TIMEOUT = 15000
   private static readonly BUFFER_SIZE = 10 * 1024 * 1024
 
-  async scan(events?: ScannerEventEmitter): Promise<ScanResult> {
-    const startTime = new Date()
+  protected async doScan(events: ScannerEventEmitter | undefined, startTime: Date): Promise<ScanResult> {
     this.reset()
 
-    try {
-      const allFindings: VMFinding[] = []
-      const checkMethods = [
-        { name: 'WMI Hardware', fn: () => this.checkWMI() },
-        { name: 'MAC Addresses', fn: () => this.checkMacAddresses() },
-        { name: 'Guest Drivers', fn: () => this.checkGuestDrivers() },
-        { name: 'Guest Processes', fn: () => this.checkGuestProcesses() },
-        { name: 'Guest Services', fn: () => this.checkGuestServices() },
-        { name: 'Guest Registry', fn: () => this.checkGuestRegistry() },
-        { name: 'Hardware IDs', fn: () => this.checkHardware() },
-        { name: 'Environment', fn: () => this.checkEnvironment() }
-      ]
+    const allFindings: VMFinding[] = []
+    const checkMethods = [
+      { name: 'WMI Hardware', fn: () => this.checkWMI() },
+      { name: 'MAC Addresses', fn: () => this.checkMacAddresses() },
+      { name: 'Guest Drivers', fn: () => this.checkGuestDrivers() },
+      { name: 'Guest Processes', fn: () => this.checkGuestProcesses() },
+      { name: 'Guest Services', fn: () => this.checkGuestServices() },
+      { name: 'Guest Registry', fn: () => this.checkGuestRegistry() },
+      { name: 'Hardware IDs', fn: () => this.checkHardware() },
+      { name: 'Environment', fn: () => this.checkEnvironment() }
+    ]
 
-      for (let i = 0; i < checkMethods.length; i++) {
-        if (this.cancelled) break
+    for (let i = 0; i < checkMethods.length; i++) {
+      if (this.cancelled) break
 
-        const method = checkMethods[i]
+      const method = checkMethods[i]
 
-        if (events?.onProgress) {
-          events.onProgress({
-            scannerName: this.name,
-            currentItem: i + 1,
-            totalItems: checkMethods.length,
-            currentPath: `Checking ${method.name}...`,
-            percentage: ((i + 1) / checkMethods.length) * 100
-          })
-        }
-
-        try {
-          const findings = await method.fn()
-          allFindings.push(...findings)
-        } catch {
-          // Continue with other checks on error
-        }
+      if (events?.onProgress) {
+        events.onProgress({
+          scannerName: this.name,
+          currentItem: i + 1,
+          totalItems: checkMethods.length,
+          currentPath: `Checking ${method.name}...`,
+          percentage: ((i + 1) / checkMethods.length) * 100
+        })
       }
 
-      // Only report if we have CRITICAL findings (actually running in VM)
-      const criticalFindings = allFindings.filter(f => f.critical)
-
-      if (criticalFindings.length === 0) {
-        // No VM detected
-        return this.createSuccessResult([], startTime)
+      try {
+        const findings = await method.fn()
+        allFindings.push(...findings)
+      } catch {
+        // Continue with other checks on error
       }
-
-      // Group by VM type and count evidence
-      const vmEvidence = new Map<string, { count: number; details: string[] }>()
-      for (const finding of criticalFindings) {
-        const existing = vmEvidence.get(finding.vmName) || { count: 0, details: [] }
-        existing.count++
-        existing.details.push(`${finding.type}: ${finding.detail}`)
-        vmEvidence.set(finding.vmName, existing)
-      }
-
-      // Only report VMs with strong evidence (2+ indicators)
-      const formattedFindings: string[] = []
-      for (const [vmName, evidence] of vmEvidence) {
-        if (evidence.count >= 2) {
-          formattedFindings.push(`[VM DETECTED] ${vmName} - ${evidence.count} indicators found:`)
-          for (const detail of evidence.details) {
-            formattedFindings.push(`  • ${detail}`)
-          }
-        }
-      }
-
-      return this.createSuccessResult(formattedFindings, startTime)
-    } catch (error) {
-      if (this.cancelled) {
-        return this.createErrorResult('Scan cancelled', startTime)
-      }
-      return this.createErrorResult(
-        error instanceof Error ? error.message : 'Unknown error',
-        startTime
-      )
     }
+
+    // Only report if we have CRITICAL findings (actually running in VM)
+    const criticalFindings = allFindings.filter(f => f.critical)
+
+    if (criticalFindings.length === 0) {
+      // No VM detected
+      return this.createSuccessResult([], startTime)
+    }
+
+    // Group by VM type and count evidence
+    const vmEvidence = new Map<string, { count: number; details: string[] }>()
+    for (const finding of criticalFindings) {
+      const existing = vmEvidence.get(finding.vmName) || { count: 0, details: [] }
+      existing.count++
+      existing.details.push(`${finding.type}: ${finding.detail}`)
+      vmEvidence.set(finding.vmName, existing)
+    }
+
+    // Only report VMs with strong evidence (2+ indicators)
+    const formattedFindings: string[] = []
+    for (const [vmName, evidence] of vmEvidence) {
+      if (evidence.count >= 2) {
+        formattedFindings.push(`[VM DETECTED] ${vmName} - ${evidence.count} indicators found:`)
+        for (const detail of evidence.details) {
+          formattedFindings.push(`  • ${detail}`)
+        }
+      }
+    }
+
+    return this.createSuccessResult(formattedFindings, startTime)
   }
 
   private async checkWMI(): Promise<VMFinding[]> {
