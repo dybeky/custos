@@ -122,16 +122,6 @@ export function Dashboard() {
               </div>
             </div>
 
-            {/* Badge */}
-            <div className="mt-4 inline-flex items-center gap-2 rounded-full border border-[color:var(--line-strong)] bg-panel-2 px-3 py-1.5">
-              <span
-                className="w-1.5 h-1.5 rounded-full bg-scan animate-pulse-slow"
-                style={{ boxShadow: '0 0 8px rgba(128,168,255,0.6)' }}
-              />
-              <span className="text-2xs font-bold tracking-[0.18em] text-ink-dim">
-                {t('dashboard.madeForUnturned')}
-              </span>
-            </div>
           </CardContent>
         </Card>
 
@@ -166,7 +156,10 @@ export function Dashboard() {
                 </div>
               </div>
 
-              <div className="shrink-0 inline-flex items-center gap-1.5 rounded-full bg-scan/10 px-2.5 py-1">
+              <div
+                className="shrink-0 inline-flex items-center gap-1.5 rounded-full bg-scan/10 px-2.5 py-1"
+                style={{ animation: 'badgeBreathe 2.8s ease-in-out infinite' }}
+              >
                 <span
                   className="w-1.5 h-1.5 rounded-full bg-scan"
                   style={{ boxShadow: '0 0 8px rgba(128,168,255,0.6)' }}

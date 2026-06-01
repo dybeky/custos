@@ -330,3 +330,8 @@ body {
 .animate-float-particle {
   animation: float-particle linear infinite;
 }
+
+@keyframes badgeBreathe {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(128, 168, 255, 0.0); }
+  50%      { box-shadow: 0 0 14px 1px rgba(128, 168, 255, 0.45); }
+}
