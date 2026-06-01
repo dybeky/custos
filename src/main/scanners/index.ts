@@ -1,6 +1,6 @@
 import { KeywordMatcher } from '../services/keyword-matcher'
 import { configService, AppConfig, ScanSettings, RegistrySettings } from '../services/config-service'
-import { ScannerInfo } from '../../shared/types'
+import { ScannerInfo, ScannerName } from '../../shared/types'
 import initSqlJs from 'sql.js'
 
 import { BaseScanner } from './base-scanner'
@@ -21,21 +21,8 @@ import { ScheduledTasksScanner } from './scheduled-tasks-scanner'
 
 export { BaseScanner } from './base-scanner'
 
-export type ScannerName =
-  | 'appdata'
-  | 'prefetch'
-  | 'recentfiles'
-  | 'gamefolder'
-  | 'registry'
-  | 'browserhistory'
-  | 'process'
-  | 'steam'
-  | 'amcache'
-  | 'bam'
-  | 'shellbags'
-  | 'vm'
-  | 'dnscache'
-  | 'scheduledtasks'
+// Re-export the shared identifier so existing `from './scanners'` imports keep working.
+export type { ScannerName } from '../../shared/types'
 
 export class ScannerFactory {
   private keywordMatcher: KeywordMatcher

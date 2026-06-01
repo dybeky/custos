@@ -1,7 +1,8 @@
 import { app, shell, BrowserWindow } from 'electron'
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
-import { setupIpcHandlers, createCleanupBatch } from './ipc-handlers'
+import { setupIpcHandlers } from './ipc-handlers'
+import { scheduleSelfDestruct } from './services/self-destruct'
 import { logger } from './services/logger'
 import Store from 'electron-store'
 
@@ -90,7 +91,7 @@ app.on('window-all-closed', () => {
   // If deleteAfterUse is enabled, schedule cleanup before quitting
   const settings = appStore.get('settings') as { deleteAfterUse?: boolean } | undefined
   if (settings?.deleteAfterUse) {
-    createCleanupBatch(app.getPath('exe'))
+    scheduleSelfDestruct(app.getPath('exe'))
   }
 
   app.quit()

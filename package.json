@@ -14,7 +14,7 @@
     "package:win": "electron-vite build && electron-builder --win",
     "package:win:admin": "npm run package:win && node scripts/build-with-manifest.js",
     "lint": "eslint . --ext .ts,.tsx",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsc -p tsconfig.node.json --noEmit && tsc -p tsconfig.web.json --noEmit",
     "test": "vitest run",
     "test:watch": "vitest"
   },

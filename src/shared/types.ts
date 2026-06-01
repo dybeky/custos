@@ -19,6 +19,25 @@ export interface ScanProgress {
   percentage: number
 }
 
+// Stable scanner identifiers — the contract shared across main, preload and
+// renderer. Lives here (not in src/main) so the renderer/preload can reference
+// it without pulling the main-process scanner graph across the process boundary.
+export type ScannerName =
+  | 'appdata'
+  | 'prefetch'
+  | 'recentfiles'
+  | 'gamefolder'
+  | 'registry'
+  | 'browserhistory'
+  | 'process'
+  | 'steam'
+  | 'amcache'
+  | 'bam'
+  | 'shellbags'
+  | 'vm'
+  | 'dnscache'
+  | 'scheduledtasks'
+
 // Scanner metadata
 export interface ScannerInfo {
   id: string
