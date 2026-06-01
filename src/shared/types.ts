@@ -38,6 +38,7 @@ export type ScannerName =
   | 'dnscache'
   | 'scheduledtasks'
   | 'filehash'
+  | 'windowmodule'
 
 // Scanner metadata
 export interface ScannerInfo {

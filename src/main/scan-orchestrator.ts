@@ -12,7 +12,7 @@ export interface ScannerGroup {
 export const SCANNER_GROUPS: ScannerGroup[] = [
   { id: 'A', concurrency: 5, members: ['appdata', 'prefetch', 'recentfiles', 'gamefolder', 'steam', 'filehash'] },
   { id: 'B', concurrency: 4, members: ['registry', 'bam', 'shellbags', 'amcache', 'scheduledtasks'] },
-  { id: 'C', concurrency: 2, members: ['process', 'browserhistory', 'dnscache'] },
+  { id: 'C', concurrency: 2, members: ['process', 'browserhistory', 'dnscache', 'windowmodule'] },
   { id: 'D', concurrency: 1, members: ['vm'] },
 ]
 

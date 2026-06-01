@@ -19,6 +19,7 @@ import { VMScanner } from './vm-scanner'
 import { DnsCacheScanner } from './dns-cache-scanner'
 import { ScheduledTasksScanner } from './scheduled-tasks-scanner'
 import { FileHashScanner } from './file-hash-scanner'
+import { WindowModuleScanner } from './window-module-scanner'
 
 export { BaseScanner } from './base-scanner'
 
@@ -62,6 +63,7 @@ export class ScannerFactory {
     this.scanners.set('dnscache', new DnsCacheScanner(this.keywordMatcher, this.scanSettings))
     this.scanners.set('scheduledtasks', new ScheduledTasksScanner(this.keywordMatcher, this.scanSettings))
     this.scanners.set('filehash', new FileHashScanner(this.keywordMatcher, this.scanSettings))
+    this.scanners.set('windowmodule', new WindowModuleScanner(this.keywordMatcher, this.scanSettings))
   }
 
   getScanner(name: ScannerName): BaseScanner | undefined {
