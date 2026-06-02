@@ -57,24 +57,6 @@ export async function getRecentCommits(perPage = 30): Promise<RawCommit[]> {
   return _commitsCache
 }
 
-export async function getLatestRelease(): Promise<GithubRelease | null> {
-  if (_releaseCache !== undefined) return _releaseCache
-  const { ok, data } = await getJson<unknown>(`${BASE}/releases/latest`)
-  const parsed = ok ? ApiReleaseSchema.safeParse(data) : null
-  if (!parsed || !parsed.success) {
-    if (ok) logger.debug('release response failed validation', { error: parsed?.error.message })
-    _releaseCache = null
-    return _releaseCache
-  }
-  _releaseCache = {
-    tagName: parsed.data.tag_name,
-    body: (parsed.data.body ?? '').slice(0, 10000),
-    htmlUrl: parsed.data.html_url,
-    publishedAt: parsed.data.published_at
-  }
-  return _releaseCache
-}
-
 export interface ReleaseResult { status: 'ok' | 'error'; release: GithubRelease | null }
 
 export async function getLatestReleaseResult(): Promise<ReleaseResult> {

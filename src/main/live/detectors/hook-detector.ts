@@ -29,6 +29,9 @@ export const hookDetector = {
     // process and flag trampoline prologues. System DLLs share a base within a
     // session, so the address resolved in our process is valid in the target.
     for (const exp of resolveExportAddresses()) {
+      // Safe to narrow the bigint to Number for memoryjs: user-mode x64 export
+      // addresses are < 2^48, well within Number.MAX_SAFE_INTEGER (2^53);
+      // formatPtr keeps the bigint for display.
       const bytes = readBuffer(ctx.handle, Number(exp.address), 8)
       if (bytes && isHookedPrologue(bytes)) {
         findings.push({
