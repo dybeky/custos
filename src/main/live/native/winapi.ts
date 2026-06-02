@@ -65,6 +65,73 @@ function loadKernel32(): Kernel32Funcs | null {
   return _kernel32
 }
 
+// ── Export-address resolution (inline-hook detector) ─────────────────────────
+
+interface ProcApi {
+  GetModuleHandleA: KoffiFunction
+  GetProcAddress: KoffiFunction
+}
+
+let _procApiLoaded = false
+let _procApi: ProcApi | null = null
+
+function loadProcApi(): ProcApi | null {
+  if (_procApiLoaded) return _procApi
+  _procApiLoaded = true
+  if (process.platform !== 'win32') return null
+  const koffi = loadKoffi()
+  if (!koffi) return null
+  try {
+    const k = koffi.load('kernel32.dll')
+    _procApi = {
+      GetModuleHandleA: k.func('void * __stdcall GetModuleHandleA(const char *name)'),
+      // koffi can read the returned function pointer as a uint64 address.
+      GetProcAddress: k.func('uint64 __stdcall GetProcAddress(void *mod, const char *name)')
+    }
+  } catch {
+    _procApi = null
+  }
+  return _procApi
+}
+
+/** API entry points most often inline-hooked by injected cheats. */
+export const HOOK_PRONE_EXPORTS: ReadonlyArray<{ module: string; fn: string }> = [
+  { module: 'ntdll.dll', fn: 'NtOpenProcess' },
+  { module: 'ntdll.dll', fn: 'NtReadVirtualMemory' },
+  { module: 'ntdll.dll', fn: 'NtWriteVirtualMemory' },
+  { module: 'ntdll.dll', fn: 'NtProtectVirtualMemory' },
+  { module: 'kernel32.dll', fn: 'OpenProcess' },
+  { module: 'kernel32.dll', fn: 'ReadProcessMemory' },
+  { module: 'kernel32.dll', fn: 'WriteProcessMemory' },
+  { module: 'user32.dll', fn: 'GetAsyncKeyState' }
+]
+
+export interface ResolvedExport { module: string; fn: string; address: bigint }
+
+/**
+ * Resolve the in-our-process addresses of HOOK_PRONE_EXPORTS. Returns [] on
+ * non-Windows or when koffi is unavailable. Addresses are resolved in the Custos
+ * process; the detector reads the *target* process's bytes at the same address
+ * (system DLLs load at the same base across processes within a session).
+ */
+export function resolveExportAddresses(): ResolvedExport[] {
+  if (process.platform !== 'win32') return []
+  const api = loadProcApi()
+  if (!api) return []
+  const out: ResolvedExport[] = []
+  for (const { module, fn } of HOOK_PRONE_EXPORTS) {
+    try {
+      const mod = api.GetModuleHandleA(module)
+      if (!mod) continue
+      const addr = toPtr(api.GetProcAddress(mod, fn) as number | bigint)
+      if (addr !== 0n) out.push({ module, fn, address: addr })
+    } catch {
+      // skip this export
+    }
+  }
+  return out
+}
+
 // ── Public API ───────────────────────────────────────────────────────────────
 
 /**
