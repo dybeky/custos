@@ -113,14 +113,17 @@ export async function asyncExec(
  */
 export async function execFileAsync(
   file: string,
-  args: string[]
+  args: string[],
+  opts?: { timeoutMs?: number }
 ): Promise<{ stdout: string; stderr: string }> {
   await acquireSlot()
   try {
     const result = await execFilePromise(file, args, {
       windowsHide: true,
       encoding: 'utf8',
-      maxBuffer: 1024 * 1024 * 64 // 64 MB
+      maxBuffer: 1024 * 1024 * 64, // 64 MB
+      timeout: opts?.timeoutMs ?? 15000,
+      killSignal: 'SIGKILL'
     })
     return { stdout: result.stdout ?? '', stderr: result.stderr ?? '' }
   } catch (error) {
