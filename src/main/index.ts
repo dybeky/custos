@@ -27,7 +27,9 @@ function createWindow(): void {
     icon: join(__dirname, '../../resources/icon.ico'),
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
-      sandbox: false,
+      // Preload only uses electron (contextBridge/ipcRenderer) + inlined type/constant
+      // imports — no Node built-ins or app modules — so it is sandbox-compatible.
+      sandbox: true,
       contextIsolation: true,
       nodeIntegration: false
     }
