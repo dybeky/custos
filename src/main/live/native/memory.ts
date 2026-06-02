@@ -111,6 +111,21 @@ export function listRegions(handle: number): Region[] {
 }
 
 /**
+ * Build the argument list for memoryjs.findPattern. memoryjs dispatches by arity:
+ * 5 args (handle, module, pattern, flags, offset) → findPatternByModule;
+ * 4 args (handle, pattern, flags, offset) → findPattern over all committed memory.
+ * Passing an empty module string to the 5-arg form searches a module named "" and
+ * never matches — so module-less signatures must use the 4-arg overload.
+ */
+export function findPatternArgs(
+  handle: number, module: string, pattern: string, flags: number, offset: number
+): unknown[] {
+  return module
+    ? [handle, module, pattern, flags, offset]
+    : [handle, pattern, flags, offset]
+}
+
+/**
  * AOB scan within the specified module (or all memory when module is "").
  * Returns null when native is unavailable or the scan throws.
  */
@@ -125,7 +140,8 @@ export function scanPattern(
   const m = loadMemoryjs()
   if (!m) return null
   try {
-    return m.findPattern(handle, module, pattern, flags, offset)
+    const fn = m.findPattern as (...a: unknown[]) => PatternResult
+    return fn(...findPatternArgs(handle, module, pattern, flags, offset))
   } catch {
     return null
   }
