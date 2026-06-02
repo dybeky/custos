@@ -14,6 +14,7 @@
 
 import { listModules, listRegions, EXEC_PROTECTIONS, MEM_PRIVATE } from '../native/memory'
 import type { Module, Region } from '../native/memory'
+import { formatPtr, toPtr } from '../native/ptr'
 import type { LiveContext, LiveFinding } from '../../../shared/types'
 
 // ── Pure classification logic (unit-testable, no native) ─────────────────────
@@ -161,7 +162,7 @@ export const injectedModuleDetector = {
           detectorId: 'injected-module',
           detectorName: 'Injected Module / Manual-Map Scan',
           title: 'Private executable memory region',
-          detail: `MEM_PRIVATE + executable protection at 0x${region.BaseAddress.toString(16).toUpperCase()} (size: ${region.RegionSize} bytes) — possible manual-mapped code`,
+          detail: `MEM_PRIVATE + executable protection at ${formatPtr(toPtr(region.BaseAddress))} (size: ${region.RegionSize} bytes) — possible manual-mapped code`,
           confidence: 'suspicious'
         })
       }
