@@ -13,7 +13,7 @@ describe('isScannablePattern', () => {
 
 describe('buildAobFinding', () => {
   it('produces a high-confidence finding with name + address', () => {
-    const f = buildAobFinding('undead-menu', 0x1400abcde)
+    const f = buildAobFinding('undead-menu', 0x1400abcden)
     expect(f.confidence).toBe('high')
     expect(f.detectorId).toBe('aob')
     expect(f.detail).toContain('undead-menu')

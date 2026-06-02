@@ -1,4 +1,5 @@
 import { scanPattern } from '../native/memory'
+import { formatPtr, toPtr } from '../native/ptr'
 import { parseAobPattern } from '../signatures'
 import type { LiveContext, LiveFinding } from '../../../shared/types'
 
@@ -8,12 +9,12 @@ export function isScannablePattern(pattern: string): boolean {
 }
 
 /** Build a high-confidence finding for a matched signature. */
-export function buildAobFinding(name: string, address: number): LiveFinding {
+export function buildAobFinding(name: string, address: bigint): LiveFinding {
   return {
     detectorId: 'aob',
     detectorName: 'AOB Memory Signature Scan',
     title: 'Cheat signature found in memory',
-    detail: `Signature "${name}" matched at 0x${address.toString(16).toUpperCase()}.`,
+    detail: `Signature "${name}" matched at ${formatPtr(address)}.`,
     confidence: 'high'
   }
 }
@@ -29,9 +30,9 @@ export const aobDetector = {
       const result = scanPattern(ctx.handle, sig.module ?? '', sig.pattern)
       // memoryjs returns address 0 when not found.
       if (result && typeof result === 'number' && result !== 0) {
-        findings.push(buildAobFinding(sig.name, result))
+        findings.push(buildAobFinding(sig.name, toPtr(result)))
       } else if (result && typeof result === 'object' && 'address' in result && (result as { address: number }).address) {
-        findings.push(buildAobFinding(sig.name, (result as { address: number }).address))
+        findings.push(buildAobFinding(sig.name, toPtr((result as { address: number }).address)))
       }
     }
     return findings
