@@ -106,10 +106,6 @@ const api = {
     return ipcRenderer.invoke(IPC_CHANNELS.APP_OPEN_REGISTRY, keyPath)
   },
 
-  deleteSelf: (): Promise<void> => {
-    return ipcRenderer.invoke(IPC_CHANNELS.APP_DELETE_SELF)
-  },
-
   quit: (): Promise<void> => {
     return ipcRenderer.invoke(IPC_CHANNELS.APP_QUIT)
   },

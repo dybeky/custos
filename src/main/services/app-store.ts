@@ -9,7 +9,6 @@ export const appStore = new Store<AppStoreSchema>({
   defaults: {
     settings: {
       language: 'en',
-      deleteAfterUse: false,
       theme: 'tropical'
     }
   }

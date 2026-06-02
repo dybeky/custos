@@ -6,7 +6,6 @@ import { getScannerFactory, ScannerName } from './scanners'
 import { getOsInfo, getTimeoutMultiplier } from './utils/os-utils'
 import { getScannerCapabilities, getSupportedScannerIds, getAllCapabilities } from './services/capability-service'
 import { runScan } from './scan-orchestrator'
-import { scheduleSelfDestruct } from './services/self-destruct'
 import { setupLiveIpcHandlers } from './live-ipc'
 import { getRecentCommits } from './services/github-service'
 import { humanizeCommits } from './services/changelog'
@@ -18,14 +17,12 @@ import { z } from 'zod'
 // Strict schema for partial user settings — rejects unknown properties
 const UserSettingsPartialSchema = z.object({
   language: z.enum(['en', 'ru']).optional(),
-  deleteAfterUse: z.boolean().optional(),
   theme: z.enum(['aurora', 'mono', 'tropical']).optional()
 }).strict()
 
 // Full schema with defaults — used to re-validate persisted settings on read
 const UserSettingsSchema = z.object({
   language: z.enum(['en', 'ru']).default('en'),
-  deleteAfterUse: z.boolean().default(false),
   theme: z.enum(['aurora', 'mono', 'tropical']).default('tropical')
 })
 
@@ -210,12 +207,6 @@ export function setupIpcHandlers(mainWindow: BrowserWindow): void {
     })
 
     return { success: true }
-  })
-
-  // Delete self (for "delete after use" feature)
-  ipcMain.handle(IPC_CHANNELS.APP_DELETE_SELF, async (): Promise<void> => {
-    scheduleSelfDestruct(app.getPath('exe'))
-    app.quit()
   })
 
   // Quit app

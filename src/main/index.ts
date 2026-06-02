@@ -3,7 +3,6 @@ import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import { setupIpcHandlers } from './ipc-handlers'
 import { safeOpenExternal } from './utils/safe-open'
-import { scheduleSelfDestruct } from './services/self-destruct'
 import { logger } from './services/logger'
 import { appStore } from './services/app-store'
 
@@ -90,13 +89,6 @@ app.whenReady().then(() => {
 
 app.on('window-all-closed', () => {
   logger.logShutdown()
-
-  // If deleteAfterUse is enabled, schedule cleanup before quitting
-  const settings = appStore.get('settings')
-  if (settings.deleteAfterUse) {
-    scheduleSelfDestruct(app.getPath('exe'))
-  }
-
   app.quit()
 })
 

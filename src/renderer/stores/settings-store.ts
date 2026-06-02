@@ -7,14 +7,12 @@ let saveDebounceTimer: ReturnType<typeof setTimeout> | null = null
 
 interface SettingsState {
   language: 'en' | 'ru'
-  deleteAfterUse: boolean
   isLoading: boolean
   version: string
   theme: ThemeName
 
   // Actions
   setLanguage: (value: 'en' | 'ru') => void
-  setDeleteAfterUse: (value: boolean) => void
   setVersion: (version: string) => void
   setTheme: (theme: ThemeName) => void
   loadSettings: () => Promise<void>
@@ -23,18 +21,12 @@ interface SettingsState {
 
 export const useSettingsStore = create<SettingsState>((set, get) => ({
   language: 'en',
-  deleteAfterUse: false,
   isLoading: true,
   version: '',
   theme: 'tropical' as ThemeName,
 
   setLanguage: (value) => {
     set({ language: value })
-    get().saveSettings()
-  },
-
-  setDeleteAfterUse: (value) => {
-    set({ deleteAfterUse: value })
     get().saveSettings()
   },
 
@@ -58,7 +50,6 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
 
       set({
         language: settings.language,
-        deleteAfterUse: settings.deleteAfterUse,
         version,
         theme,
         isLoading: false
@@ -82,7 +73,6 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
         const freshState = get()
         await window.electronAPI.setSettings({
           language: freshState.language,
-          deleteAfterUse: freshState.deleteAfterUse,
           theme: freshState.theme
         })
       } catch (error) {

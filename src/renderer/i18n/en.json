@@ -8,12 +8,6 @@
     "version": "Version:",
     "developer": "Developer:",
     "viewOnGitHub": "VIEW ON GITHUB",
-    "dangerZone": "Danger Zone",
-    "deleteAfterUse": "Delete program after use",
-    "deleteAfterUseDesc": "Automatically delete custos when you close it",
-    "deleteProgramNow": "DELETE PROGRAM NOW",
-    "deleteError": "Failed to delete program",
-    "back": "BACK",
     "language": "Language",
     "languageDesc": "Select interface language"
   },
@@ -87,11 +81,6 @@
     "error": "Error",
     "networkUnavailable": "Network unavailable",
     "timeout": "Timeout"
-  },
-  "confirm": {
-    "confirmDelete": "Are you sure you want to delete custos?\n\nThis will close the application and remove all program files.",
-    "confirmDeleteTitle": "Confirm Delete",
-    "deleteFailed": "Failed to delete program:"
   },
   "results": {
     "title": "Results",

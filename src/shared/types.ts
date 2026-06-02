@@ -50,7 +50,6 @@ export interface ScannerInfo {
 // Settings types
 export interface UserSettings {
   language: 'en' | 'ru'
-  deleteAfterUse: boolean
   theme: 'aurora' | 'mono' | 'tropical'
 }
 
@@ -181,7 +180,6 @@ export const IPC_CHANNELS = {
   APP_OPEN_EXTERNAL: 'app:open-external',
   APP_OPEN_PATH: 'app:open-path',
   APP_OPEN_REGISTRY: 'app:open-registry',
-  APP_DELETE_SELF: 'app:delete-self',
   APP_QUIT: 'app:quit',
 
   // Window operations
