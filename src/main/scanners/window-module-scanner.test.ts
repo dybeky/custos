@@ -136,4 +136,18 @@ describe('parseTasklistModules', () => {
     const cheat = entries.filter(e => e.processName === 'cheatengine-x86_64.exe')
     expect(cheat.map(e => e.moduleName)).toContain('cheat_hook.dll')
   })
+
+  it('parses rows whose image name contains spaces (Windows exe names may)', () => {
+    // A cheat author can name an executable with a space to evade a parser that
+    // assumes the image name is a single whitespace-free token.
+    const output = `
+Image Name                     PID Modules
+========================= ======== ============================================
+my game.exe                  4242 ntdll.dll, cheat_hook.dll
+`
+    const entries = parseTasklistModules(output)
+    const mine = entries.filter(e => e.processName === 'my game.exe')
+    expect(mine.map(e => e.moduleName)).toContain('cheat_hook.dll')
+    expect(mine.map(e => e.moduleName)).toContain('ntdll.dll')
+  })
 })

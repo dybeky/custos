@@ -6,6 +6,7 @@ import { getScannerFactory, ScannerName } from './scanners'
 import { getOsInfo, getTimeoutMultiplier } from './utils/os-utils'
 import { getScannerCapabilities, getSupportedScannerIds, getAllCapabilities } from './services/capability-service'
 import { runScan } from './scan-orchestrator'
+import { ScanSession } from './scan-session'
 import { setupLiveIpcHandlers } from './live-ipc'
 import { getRecentCommits } from './services/github-service'
 import { humanizeCommits } from './services/changelog'
@@ -26,8 +27,10 @@ const UserSettingsSchema = z.object({
   theme: z.enum(['aurora', 'mono', 'tropical']).default('tropical')
 })
 
-let isScanning = false
-let scanAbortController: AbortController | null = null
+// Single owner of the in-flight scan's running flag + abort controller, kept in
+// sync so cancellation can't prematurely free the guard and let a second scan
+// start over the still-running one (see ScanSession).
+const scanSession = new ScanSession()
 
 
 export function setupIpcHandlers(mainWindow: BrowserWindow): void {
@@ -72,14 +75,12 @@ export function setupIpcHandlers(mainWindow: BrowserWindow): void {
     if (scannerIds !== undefined && (!Array.isArray(scannerIds) || scannerIds.some(id => typeof id !== 'string'))) {
       throw new Error('Invalid scannerIds: expected an array of strings')
     }
-    if (isScanning) {
+    if (scanSession.isScanning) {
       logger.warn('Scan already in progress')
       throw new Error('Scan already in progress')
     }
 
     logger.info('Scan started', { scannerIds: scannerIds || 'all' })
-    isScanning = true
-    scanAbortController = new AbortController()
     scannerFactory.resetAll()
 
     // Only run scanners supported on the current OS — unsupported ones are skipped
@@ -93,45 +94,47 @@ export function setupIpcHandlers(mainWindow: BrowserWindow): void {
       logger.warn('No scanners are supported on this OS', { os: getOsInfo().displayName })
     }
 
+    // The session stays "in progress" until runScan settles — even after a
+    // SCAN_CANCEL — so a second SCAN_START can't interleave and clobber state.
     try {
-      const results = await runScan({
-        factory: scannerFactory,
-        requestedIds,
-        supportedIds,
-        emit: safeSend,
-        signal: scanAbortController.signal,
-        timeoutMs: SCANNER_TIMEOUT_MS
-      })
+      return await scanSession.run(async (signal) => {
+        const results = await runScan({
+          factory: scannerFactory,
+          requestedIds,
+          supportedIds,
+          emit: safeSend,
+          signal,
+          timeoutMs: SCANNER_TIMEOUT_MS
+        })
 
-      const totalFindings = results.reduce((sum, r) => sum + r.findings.length, 0)
-      logger.info('Scan completed', {
-        totalScanners: results.length,
-        totalFindings,
-        successful: results.filter(r => r.success).length,
-        failed: results.filter(r => !r.success).length
-      })
+        const totalFindings = results.reduce((sum, r) => sum + r.findings.length, 0)
+        logger.info('Scan completed', {
+          totalScanners: results.length,
+          totalFindings,
+          successful: results.filter(r => r.success).length,
+          failed: results.filter(r => !r.success).length
+        })
 
-      safeSend(IPC_CHANNELS.SCAN_COMPLETE, results)
-      return results
+        safeSend(IPC_CHANNELS.SCAN_COMPLETE, results)
+        return results
+      })
     } catch (error) {
       logger.error('Scan failed', error instanceof Error ? error : new Error(String(error)))
       safeSend(IPC_CHANNELS.SCAN_ERROR, {
         message: error instanceof Error ? error.message : 'Unknown error'
       })
       throw error
-    } finally {
-      isScanning = false
-      scanAbortController = null
     }
   })
 
   // Cancel scan
   ipcMain.handle(IPC_CHANNELS.SCAN_CANCEL, async (): Promise<void> => {
-    if (scanAbortController) {
-      scanAbortController.abort()
-    }
+    // Abort + cooperatively cancel, but do NOT clear the running flag here: the
+    // in-flight runScan owns that and clears it in its finally once the
+    // already-started scanners actually unwind. Clearing it now would let an
+    // immediate SCAN_START run concurrently over the shared scanner instances.
+    scanSession.cancel()
     scannerFactory.cancelAll()
-    isScanning = false
   })
 
   // Get settings

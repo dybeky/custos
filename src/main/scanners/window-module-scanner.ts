@@ -86,8 +86,11 @@ export interface ModuleEntry {
 
 // Matches a data row from `tasklist /m`:
 //   <ImageName>   <PID>   <comma-separated modules>
-// Image names never contain spaces; PID is all digits; modules follow.
-const TASKLIST_ROW_RE = /^(\S+)\s+(\d+)\s+(.+)$/
+// The image name may contain spaces (Windows executable names legally can), so
+// it is matched lazily and the PID column is the anchor: the first
+// whitespace-delimited run of digits, followed by the module list. Lazy keeps
+// the trailing column padding out of the captured name.
+const TASKLIST_ROW_RE = /^(.+?)\s+(\d+)\s+(.+)$/
 
 export function parseTasklistModules(stdout: string): ModuleEntry[] {
   const lines = stdout.split('\n')
@@ -101,7 +104,7 @@ export function parseTasklistModules(stdout: string): ModuleEntry[] {
     const match = TASKLIST_ROW_RE.exec(line)
     if (!match) continue
 
-    const processName = match[1]
+    const processName = match[1].trim()
     // match[2] is the PID — already validated as digits by the regex
     const modulePart = match[3]
 

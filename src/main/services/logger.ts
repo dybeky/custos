@@ -22,7 +22,7 @@ interface SystemInfo {
   timestamp: string
 }
 
-class Logger {
+export class Logger {
   private logFilePath: string | null = null
   private hasWrittenHeader = false
   private logBuffer: string[] = []
@@ -159,6 +159,17 @@ LOG ENTRIES:
     if (this.isWriting || this.writeQueue.length === 0) return
     this.isWriting = true
 
+    // Snapshot and clear the queue (and buffer) up front. If a write throws —
+    // e.g. the log destination is read-only or the disk is full — the batch is
+    // dropped rather than left in the queue. Leaving it queued caused the
+    // finally block below to re-enter flushWriteQueue() with the identical
+    // failing state, recursing until the stack overflowed and the process
+    // crashed (taking down the very error we were trying to log).
+    const batch = this.writeQueue.join('')
+    this.writeQueue = []
+    const buffered = this.logBuffer
+    this.logBuffer = []
+
     try {
       // Write header on first write
       if (!this.hasWrittenHeader) {
@@ -166,21 +177,18 @@ LOG ENTRIES:
         this.hasWrittenHeader = true
 
         // Write any buffered entries
-        for (const bufferedEntry of this.logBuffer) {
+        for (const bufferedEntry of buffered) {
           appendFileSync(this.logFilePath!, bufferedEntry, 'utf-8')
         }
-        this.logBuffer = []
       }
 
-      // Batch all queued entries into a single write
-      const batch = this.writeQueue.join('')
-      this.writeQueue = []
       appendFileSync(this.logFilePath!, batch, 'utf-8')
     } catch (err) {
       console.error('Failed to write to log file:', err)
     } finally {
       this.isWriting = false
-      // If new entries were added during write, flush again
+      // Flush again only if NEW entries arrived (queue is non-empty because of
+      // a fresh write, not because this batch failed — that batch was cleared).
       if (this.writeQueue.length > 0) {
         this.flushWriteQueue()
       }
