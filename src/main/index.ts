@@ -1,7 +1,8 @@
-import { app, shell, BrowserWindow } from 'electron'
+import { app, BrowserWindow } from 'electron'
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import { setupIpcHandlers } from './ipc-handlers'
+import { safeOpenExternal } from './utils/safe-open'
 import { scheduleSelfDestruct } from './services/self-destruct'
 import { logger } from './services/logger'
 import { appStore } from './services/app-store'
@@ -37,8 +38,19 @@ function createWindow(): void {
   })
 
   mainWindow.webContents.setWindowOpenHandler((details) => {
-    shell.openExternal(details.url)
+    safeOpenExternal(details.url)
     return { action: 'deny' }
+  })
+
+  // Keep the privileged electronAPI bridge from ever living on a foreign origin.
+  mainWindow.webContents.on('will-navigate', (event, url) => {
+    const allowed =
+      (is.dev && process.env['ELECTRON_RENDERER_URL'] && url.startsWith(process.env['ELECTRON_RENDERER_URL'])) ||
+      url.startsWith('file://')
+    if (!allowed) {
+      event.preventDefault()
+      logger.warn('Blocked in-frame navigation', { url })
+    }
   })
 
   // Setup IPC handlers
