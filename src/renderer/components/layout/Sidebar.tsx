@@ -163,7 +163,7 @@ export function Sidebar() {
 
   return (
     <>
-      <nav className="w-16 min-w-16 bg-panel border-r border-[color:var(--line)] flex flex-col py-4 relative">
+      <nav className="w-16 min-w-16 bg-panel/70 backdrop-blur-xl border-r border-[color:var(--line)] flex flex-col py-4 relative">
         <div className="flex-1">
         {navItems.map((item) => (
           <NavLink

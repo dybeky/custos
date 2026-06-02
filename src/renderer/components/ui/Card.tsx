@@ -7,10 +7,12 @@ interface CardProps extends HTMLMotionProps<'div'> {
   padding?: 'none' | 'sm' | 'md' | 'lg'
 }
 
+// Surfaces are translucent + blurred so the animated aurora behind the app
+// tints them — the UI reads as colourful glass rather than flat black.
 const variants = {
-  default: 'bg-panel border border-[color:var(--line)]',
-  glass: 'bg-panel glow-scan border border-[color:var(--line)]',
-  elevated: 'bg-panel-2 border border-[color:var(--line)] shadow-lg'
+  default: 'bg-panel/70 backdrop-blur-xl border border-[color:var(--line)]',
+  glass: 'bg-panel/60 backdrop-blur-xl glow-scan border border-[color:var(--line)]',
+  elevated: 'bg-panel-2/70 backdrop-blur-xl border border-[color:var(--line)] shadow-lg'
 }
 
 const paddings = {

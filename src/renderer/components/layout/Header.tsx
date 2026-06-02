@@ -30,7 +30,7 @@ export function Header() {
   const handleClose = () => window.electronAPI.close()
 
   return (
-    <header className="h-10 flex items-center justify-between px-4 bg-panel border-b border-[color:var(--line)] select-none"
+    <header className="h-10 flex items-center justify-between px-4 bg-panel/70 backdrop-blur-xl border-b border-[color:var(--line)] select-none"
       style={{ WebkitAppRegion: 'drag' } as React.CSSProperties}>
       {/* Brand wordmark */}
       <div className="flex items-center">
