@@ -1,6 +1,6 @@
 import { app } from 'electron'
 import { isNewer } from './semver'
-import { getLatestRelease, type GithubRelease } from './github-service'
+import { getLatestRelease, REPO, type GithubRelease } from './github-service'
 import { humanizeCommits } from './changelog'
 import type { UpdateInfo } from '../../shared/types'
 
@@ -20,7 +20,7 @@ export function evaluateUpdate(currentVersion: string, release: GithubRelease | 
     updateAvailable,
     currentVersion,
     latestVersion: release.tagName,
-    url: updateAvailable ? release.htmlUrl : null,
+    url: updateAvailable ? `https://github.com/${REPO}/releases/tag/${release.tagName}` : null,
     notes: updateAvailable ? notesFromRelease(release) : []
   }
 }
