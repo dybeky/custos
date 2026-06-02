@@ -22,6 +22,13 @@ const UserSettingsPartialSchema = z.object({
   theme: z.enum(['aurora', 'mono', 'tropical']).optional()
 }).strict()
 
+// Full schema with defaults — used to re-validate persisted settings on read
+const UserSettingsSchema = z.object({
+  language: z.enum(['en', 'ru']).default('en'),
+  deleteAfterUse: z.boolean().default(false),
+  theme: z.enum(['aurora', 'mono', 'tropical']).default('tropical')
+})
+
 let isScanning = false
 let scanAbortController: AbortController | null = null
 
@@ -128,7 +135,13 @@ export function setupIpcHandlers(mainWindow: BrowserWindow): void {
 
   // Get settings
   ipcMain.handle(IPC_CHANNELS.SETTINGS_GET, (): UserSettings => {
-    return appStore.get('settings')
+    const stored = appStore.get('settings')
+    const parsed = UserSettingsSchema.safeParse(stored)
+    if (parsed.success) return parsed.data
+    logger.warn('Stored settings failed validation; using defaults', { error: parsed.error.message })
+    const defaults = UserSettingsSchema.parse({})
+    appStore.set('settings', defaults)
+    return defaults
   })
 
   // Set settings (validated with Zod to reject unknown properties)
