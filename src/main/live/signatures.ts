@@ -122,9 +122,8 @@ export function parseAobPattern(pattern: string): (number | null)[] | null {
     if (token === '??' || token === '?') {
       bytes.push(null)
     } else {
-      const val = parseInt(token, 16)
-      if (isNaN(val) || val < 0 || val > 0xff) return null
-      bytes.push(val)
+      if (!/^[0-9a-fA-F]{2}$/.test(token)) return null
+      bytes.push(parseInt(token, 16))
     }
   }
   return bytes.length > 0 ? bytes : null
