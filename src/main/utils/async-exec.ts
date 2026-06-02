@@ -1,4 +1,4 @@
-import { exec, execFile } from 'child_process'
+import { exec, execFile, spawn } from 'child_process'
 import { promisify } from 'util'
 import { logger } from '../services/logger'
 
@@ -111,13 +111,38 @@ export async function asyncExec(
  * Does NOT throw when `reg query` returns a non-zero exit code due to a missing
  * registry key (mirrors the `2>nul` behaviour of the old shell-based exec calls).
  */
+/**
+ * Spawn-based exec that feeds `input` to the child process via STDIN.
+ * Always resolves (never rejects) with whatever stdout/stderr was produced,
+ * mirroring the lenient behaviour of execFileAsync's non-input path.
+ */
+function execFileWithInput(
+  file: string, args: string[], input: string, timeoutMs: number
+): Promise<{ stdout: string; stderr: string }> {
+  return new Promise((resolve) => {
+    const proc = spawn(file, args, { windowsHide: true })
+    let stdout = ''
+    let stderr = ''
+    const timer = setTimeout(() => { try { proc.kill('SIGKILL') } catch { /* ignore */ } }, timeoutMs)
+    proc.stdout.on('data', (d) => { stdout += d.toString() })
+    proc.stderr.on('data', (d) => { stderr += d.toString() })
+    proc.on('close', () => { clearTimeout(timer); resolve({ stdout, stderr }) })
+    proc.on('error', () => { clearTimeout(timer); resolve({ stdout, stderr }) })
+    proc.stdin.on('error', () => { /* ignore EPIPE if process never started */ })
+    try { proc.stdin.end(input) } catch { /* ignore */ }
+  })
+}
+
 export async function execFileAsync(
   file: string,
   args: string[],
-  opts?: { timeoutMs?: number }
+  opts?: { timeoutMs?: number; input?: string }
 ): Promise<{ stdout: string; stderr: string }> {
   await acquireSlot()
   try {
+    if (opts?.input !== undefined) {
+      return await execFileWithInput(file, args, opts.input, opts.timeoutMs ?? 15000)
+    }
     const result = await execFilePromise(file, args, {
       windowsHide: true,
       encoding: 'utf8',

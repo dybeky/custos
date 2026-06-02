@@ -4,7 +4,7 @@ import { join } from 'path'
 import { homedir } from 'os'
 import { BaseScanner, ScannerEventEmitter } from './base-scanner'
 import { ScanResult } from '../../shared/types'
-import { asyncExec } from '../utils/async-exec'
+import { execFileAsync } from '../utils/async-exec'
 
 // Small batch size to prevent PowerShell hangs
 const BATCH_SIZE = 15
@@ -24,26 +24,29 @@ export class RecentFilesScanner extends BaseScanner {
     if (lnkPaths.length === 0) return results
 
     try {
-      // Build PowerShell script that processes all paths and outputs JSON
-      const pathsArray = lnkPaths.map(p => p.replace(/'/g, "''")).join("','")
+      // Static script: no attacker-influenced data is interpolated. The .lnk paths
+      // arrive on stdin (one per line) so a crafted shortcut name cannot alter the
+      // script body.
       const psScript = `
+$ErrorActionPreference = 'SilentlyContinue'
 $shell = New-Object -ComObject WScript.Shell
-$paths = @('${pathsArray}')
 $results = @{}
-foreach ($p in $paths) {
-  try {
-    $shortcut = $shell.CreateShortcut($p)
-    if ($shortcut.TargetPath) {
-      $results[$p] = $shortcut.TargetPath
-    }
-  } catch {}
+foreach ($p in $input) {
+  $p = $p.Trim()
+  if ($p) {
+    try {
+      $sc = $shell.CreateShortcut($p)
+      if ($sc.TargetPath) { $results[$p] = $sc.TargetPath }
+    } catch {}
+  }
 }
 $results | ConvertTo-Json -Compress
 `
       const encoded = Buffer.from(psScript, 'utf16le').toString('base64')
-      const output = await asyncExec(
-        `powershell -NoProfile -ExecutionPolicy Bypass -EncodedCommand ${encoded}`,
-        { timeout: 8000, maxBuffer: 5 * 1024 * 1024 } // Short timeout to prevent hangs
+      const { stdout: output } = await execFileAsync(
+        'powershell',
+        ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-EncodedCommand', encoded],
+        { timeoutMs: 8000, input: lnkPaths.join('\n') }
       )
 
       // Parse JSON output
