@@ -1,5 +1,33 @@
 import { describe, it, expect } from 'vitest'
-import { isHookedPrologue } from './hook-detector'
+import { isHookedPrologue, exportsValidInTarget } from './hook-detector'
+
+describe('exportsValidInTarget', () => {
+  const exps = [
+    { module: 'ntdll.dll', fn: 'NtOpenProcess', address: 0x7ff800001000n },
+    { module: 'user32.dll', fn: 'GetAsyncKeyState', address: 0x7ff900000500n }
+  ]
+
+  it('keeps exports whose address falls within the matching target module range', () => {
+    const mods = [{ name: 'ntdll.dll', base: 0x7ff800000000, size: 0x200000 }]
+    expect(exportsValidInTarget(exps, mods).map((e) => e.fn)).toEqual(['NtOpenProcess'])
+  })
+
+  it('drops exports whose owning module is not loaded in the target', () => {
+    expect(exportsValidInTarget(exps, [])).toEqual([])
+  })
+
+  it('drops exports whose address is outside the target module range (different base / bitness)', () => {
+    // ntdll loaded at a different base in the target (e.g. 32-bit WoW64): our
+    // 64-bit-resolved address is not within the target's ntdll mapping.
+    const mods = [{ name: 'ntdll.dll', base: 0x10000000, size: 0x200000 }]
+    expect(exportsValidInTarget(exps, mods)).toEqual([])
+  })
+
+  it('matches module names case-insensitively', () => {
+    const mods = [{ name: 'NTDLL.DLL', base: 0x7ff800000000, size: 0x200000 }]
+    expect(exportsValidInTarget(exps, mods).map((e) => e.fn)).toEqual(['NtOpenProcess'])
+  })
+})
 
 describe('isHookedPrologue', () => {
   it('flags an E9 near-jmp trampoline', () => {

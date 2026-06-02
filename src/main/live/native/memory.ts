@@ -180,6 +180,13 @@ export const MEM_PRIVATE = 0x20000
 /**
  * Read `size` bytes from the process at `address`.
  * Returns null when native is unavailable or the read throws.
+ *
+ * CAVEAT: memoryjs.readBuffer does NOT signal a failed ReadProcessMemory — on
+ * failure it returns a `size`-length Buffer of *uninitialised process heap*
+ * rather than null. A non-null result therefore does NOT prove the read
+ * succeeded. Callers must independently confirm the address is mapped/readable
+ * in the target (e.g. it falls inside a module known to be loaded there) before
+ * trusting the bytes.
  */
 export function readBuffer(handle: number, address: number, size: number): Buffer | null {
   if (process.platform !== 'win32') return null

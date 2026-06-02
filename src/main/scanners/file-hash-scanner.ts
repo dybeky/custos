@@ -1,11 +1,12 @@
 import { createHash } from 'crypto'
-import { createReadStream, existsSync, readdirSync, statSync } from 'fs'
+import { createReadStream, existsSync, readdirSync, realpathSync, statSync } from 'fs'
 import { basename, join } from 'path'
 import { homedir, tmpdir } from 'os'
 import { BaseScanner, ScannerEventEmitter } from './base-scanner'
 import { ScanResult } from '../../shared/types'
 import { KeywordMatcher } from '../services/keyword-matcher'
 import { ScanSettings, configService } from '../services/config-service'
+import { isWithin } from '../utils/path-safety'
 
 /** Maximum file size to hash (100 MB). Files larger than this are skipped. */
 const MAX_FILE_SIZE_BYTES = 100 * 1024 * 1024
@@ -92,13 +93,24 @@ export class FileHashScanner extends BaseScanner {
    * into `out`, stopping once MAX_FILES is reached or `this.cancelled` is set.
    */
   private collectFiles(dirs: string[], out: string[]): void {
+    // Shared across roots so a junction from one target into another is only
+    // walked once; each target is its own containment root.
+    const visited = new Set<string>()
     for (const dir of dirs) {
       if (this.cancelled || out.length >= MAX_FILES) break
-      this.walkDir(dir, 0, out)
+      let root: string
+      try {
+        root = realpathSync.native(dir)
+      } catch {
+        continue
+      }
+      if (visited.has(root)) continue
+      visited.add(root)
+      this.walkDir(dir, 0, out, root, visited)
     }
   }
 
-  private walkDir(dir: string, depth: number, out: string[]): void {
+  private walkDir(dir: string, depth: number, out: string[], root: string, visited: Set<string>): void {
     if (depth > MAX_DEPTH) return
     if (this.cancelled || out.length >= MAX_FILES) return
 
@@ -117,7 +129,19 @@ export class FileHashScanner extends BaseScanner {
 
       if (entry.isDirectory()) {
         if (this.excludedDirs.has(entry.name.toLowerCase())) continue
-        this.walkDir(fullPath, depth + 1, out)
+        // Defend against Windows junctions / reparse points (not flagged as
+        // symlinks): skip directories whose real path escapes the target root
+        // or has already been walked (junction loop).
+        let real: string
+        try {
+          real = realpathSync.native(fullPath)
+        } catch {
+          continue
+        }
+        if (visited.has(real)) continue
+        if (!isWithin(root, real)) continue
+        visited.add(real)
+        this.walkDir(fullPath, depth + 1, out, root, visited)
       } else if (entry.isFile()) {
         out.push(fullPath)
       }

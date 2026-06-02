@@ -1,8 +1,9 @@
-import { existsSync, readdirSync } from 'fs'
+import { existsSync, readdirSync, realpathSync } from 'fs'
 import { join } from 'path'
 import { ScanResult, ScanProgress } from '../../shared/types'
 import { KeywordMatcher } from '../services/keyword-matcher'
 import { ScanSettings } from '../services/config-service'
+import { isWithin } from '../utils/path-safety'
 
 /** Hard ceiling on directory recursion regardless of caller-supplied depth. */
 const MAX_SCAN_DEPTH = 12
@@ -56,9 +57,20 @@ export abstract class BaseScanner {
     const results: string[] = []
     if (!existsSync(path)) return results
 
+    // Resolve the scan root's canonical path up front; every descent is checked
+    // against it so a Windows junction / reparse point cannot redirect the walk
+    // outside the intended root.
+    let root: string
+    try {
+      root = realpathSync.native(path)
+    } catch {
+      return results
+    }
+
     // Use synchronous scanning - simpler and more reliable
     const depth = Math.max(0, Math.min(Number.isFinite(maxDepth) ? maxDepth : 0, MAX_SCAN_DEPTH))
-    this.scanFolderSync(path, extensions, depth, 0, results)
+    const visited = new Set<string>([root])
+    this.scanFolderSync(path, extensions, depth, 0, results, root, visited)
     return results
   }
 
@@ -67,7 +79,9 @@ export abstract class BaseScanner {
     extensions: string[],
     maxDepth: number,
     currentDepth: number,
-    results: string[]
+    results: string[],
+    root: string,
+    visited: Set<string>
   ): void {
     if (currentDepth > maxDepth) return
     if (this.cancelled) return
@@ -96,7 +110,20 @@ export abstract class BaseScanner {
 
             // Recurse into subdirectory
             if (currentDepth < maxDepth) {
-              this.scanFolderSync(fullPath, extensions, maxDepth, currentDepth + 1, results)
+              // Resolve the real path to defend against Windows directory
+              // junctions / reparse points (reported as plain directories, not
+              // symlinks): skip entries that escape the scan root or revisit an
+              // already-walked directory (junction loop).
+              let real: string
+              try {
+                real = realpathSync.native(fullPath)
+              } catch {
+                continue
+              }
+              if (visited.has(real)) continue
+              if (!isWithin(root, real)) continue
+              visited.add(real)
+              this.scanFolderSync(fullPath, extensions, maxDepth, currentDepth + 1, results, root, visited)
             }
           } else if (entry.isFile()) {
             // Check if file name matches keywords
