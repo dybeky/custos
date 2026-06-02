@@ -15,7 +15,7 @@
  */
 
 import { IPC_CHANNELS, LiveFinding, LiveContext } from '../../shared/types'
-import { isMemoryNativeAvailable, openGameProcess, close } from './native/memory'
+import { isMemoryNativeAvailable, openGameProcess, close, listModules } from './native/memory'
 import { findGameProcess } from './process-locator'
 import { loadSignatures } from './signatures'
 import { aobDetector } from './detectors/aob-detector'
@@ -85,6 +85,23 @@ export async function runLiveScan(opts: LiveScanOptions): Promise<LiveFinding[]>
       'Failed to open game process',
       `Could not open a handle to ${game.name} (PID ${game.pid}). ` +
       'Ensure Custos is running as Administrator.'
+    )
+    allFindings.push(f)
+    emit(IPC_CHANNELS.LIVE_SCAN_RESULT, f)
+    emit(IPC_CHANNELS.LIVE_SCAN_COMPLETE, allFindings)
+    return allFindings
+  }
+
+  // Guard against PID reuse between locate and open: confirm the opened process
+  // still presents the expected executable name. listModules(pid)[0] is the main
+  // module (the exe itself).
+  const mainModule = listModules(game.pid)[0]
+  const openedName = mainModule?.szModule ?? ''
+  if (openedName && openedName.toLowerCase() !== game.name.toLowerCase()) {
+    close(proc.handle)
+    const f = makeStatusFinding(
+      'Process changed during scan',
+      `The process at PID ${game.pid} is now "${openedName}", not "${game.name}". Aborting to avoid scanning the wrong process.`
     )
     allFindings.push(f)
     emit(IPC_CHANNELS.LIVE_SCAN_RESULT, f)
