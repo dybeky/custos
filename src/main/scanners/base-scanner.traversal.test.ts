@@ -75,24 +75,25 @@ describe('BaseScanner.scanFolder traversal', () => {
   })
 })
 
-// Windows directory junctions are reparse points that fs.Dirent.isSymbolicLink()
-// does NOT flag (they report as plain directories), so the isSymbolicLink() skip
-// in scanFolderSync does not catch them — the realpath + isWithin containment
-// check is what stops them. These create real junctions, so they only run on
-// Windows; junction creation does not require elevation (unlike symlinks).
+// Windows directory junctions are reparse points. On current Node/libuv,
+// readdir({ withFileTypes: true }) reports them as symbolic links, so the
+// isSymbolicLink() skip in scanFolderSync already stops them — exactly like a
+// symlink. The realpath + isWithin containment check is the second layer of
+// defense, covering any reparse point a Node version might instead surface as a
+// plain directory. Either way the invariant is the same: a junction pointing
+// outside the scan root must never leak the target's contents. These create
+// real junctions, so they only run on Windows; junction creation does not
+// require elevation (unlike symlinks).
 describe.runIf(process.platform === 'win32')('BaseScanner.scanFolder junctions', () => {
-  it('treats a junction as a directory but does not descend through one that escapes the root', async () => {
+  it('does not descend through a junction that escapes the scan root', async () => {
     mkdirSync(join(outside, 'cheat-secret'))
     writeFileSync(join(outside, 'cheat-secret', 'cheat.dll'), 'x')
-    // Junction name matches the keyword, so if the walker reaches the directory
-    // branch (i.e. it was NOT skipped as a symlink) the junction itself is found.
     symlinkSync(outside, join(root, 'cheat-link'), 'junction')
 
     const found = await makeScanner().walk(root, 5)
 
-    // Confirms junctions reach the new defense rather than the isSymbolicLink skip.
-    expect(found).toContain(join(root, 'cheat-link'))
-    // realpath('cheat-link') === outside, which is not within root → no descent.
+    // Whether the junction is skipped as a reparse point or stopped by the
+    // realpath + isWithin check, its out-of-root target must never be reached.
     expect(found.some((p) => p.includes('cheat-secret'))).toBe(false)
   })
 
