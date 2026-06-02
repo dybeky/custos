@@ -111,7 +111,9 @@ export function isSuspiciousRegion(
   regionProtect: number,
   execProtections: ReadonlySet<number>
 ): boolean {
-  return regionType === MEM_PRIVATE && execProtections.has(regionProtect)
+  // Protection modifier bits (PAGE_GUARD 0x100, PAGE_NOCACHE 0x200, …) live above
+  // the low byte; mask them off before matching the base protection constant.
+  return regionType === MEM_PRIVATE && execProtections.has(regionProtect & 0xff)
 }
 
 // ── Detector ─────────────────────────────────────────────────────────────────
@@ -158,12 +160,14 @@ export const injectedModuleDetector = {
 
     for (const region of regions) {
       if (isSuspiciousRegion(region.Type, region.Protect, EXEC_PROTECTIONS)) {
+        const writableExec = (region.Protect & 0xff) === 0x40 || (region.Protect & 0xff) === 0x80
         findings.push({
           detectorId: 'injected-module',
           detectorName: 'Injected Module / Manual-Map Scan',
           title: 'Private executable memory region',
-          detail: `MEM_PRIVATE + executable protection at ${formatPtr(toPtr(region.BaseAddress))} (size: ${region.RegionSize} bytes) — possible manual-mapped code`,
-          confidence: 'suspicious'
+          detail: `MEM_PRIVATE + executable protection at ${formatPtr(toPtr(region.BaseAddress))} (size: ${region.RegionSize} bytes)` +
+            (writableExec ? ' — writable+executable, possible manual-mapped code' : ' — executable private page (may be JIT/Mono)'),
+          confidence: writableExec ? 'suspicious' : 'info'
         })
       }
     }
