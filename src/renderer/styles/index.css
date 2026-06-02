@@ -21,7 +21,7 @@
 
 /* ============================================
    SINGLE PALETTE — cool pastels on a deep navy base
-   #D3D3FF lavender · #CEB5FF purple · #8EC1DE sky · #80A8FF blue
+   #FFB3C6 lavender · #FFF48D purple · #FFF48D sky · #FF678B blue
    (data-theme variants all resolve to this one palette)
    ============================================ */
 
@@ -31,10 +31,10 @@
 
 :root {
   --bg:#0d0f1f; --panel:#16182c; --panel-2:#1f2238;
-  --ink:#ecedff; --ink-dim:#9698c0; --scan:#80a8ff; --scan-dim:#8ec1de;
-  --alert:#ff6b83; --amber:#ffc24b;
-  --line:rgba(211,211,255,.1); --line-strong:rgba(211,211,255,.18);
-  --glow:128,168,255;
+  --ink:#ecedff; --ink-dim:#9698c0; --scan:#FF678B; --scan-dim:#FFF48D;
+  --alert:#FF2D55; --amber:#ffc24b;
+  --line:rgba(255,103,139,.1); --line-strong:rgba(255,103,139,.18);
+  --glow:255,103,139;
 }
 html, body { background: var(--bg); color: var(--ink); }
 
@@ -52,24 +52,24 @@ html, body { background: var(--bg); color: var(--ink); }
 [data-theme="mono"],
 [data-theme="tropical"] {
   /* The four pastels */
-  --c-lavender: #D3D3FF;
-  --c-purple: #CEB5FF;
-  --c-sky: #8EC1DE;
-  --c-blue: #80A8FF;
+  --c-lavender: #FFB3C6;
+  --c-purple: #FFF48D;
+  --c-sky: #FFF48D;
+  --c-blue: #FF678B;
 
-  --theme-primary: #80A8FF;
-  --theme-primary-hover: #9cbcff;
-  --theme-primary-muted: rgba(128, 168, 255, 0.12);
-  --theme-accent-1: #CEB5FF;
-  --theme-accent-2: #80A8FF;
-  --theme-glow: rgba(128, 168, 255, 0.35);
+  --theme-primary: #FF678B;
+  --theme-primary-hover: #FF85A3;
+  --theme-primary-muted: rgba(255, 103, 139, 0.12);
+  --theme-accent-1: #FFF48D;
+  --theme-accent-2: #FF678B;
+  --theme-glow: rgba(255, 103, 139, 0.35);
   --theme-bg: #0a0b12;
   --theme-surface: #12131c;
   --theme-elevated: #1b1d2a;
   /* Pastel buttons are light, so button text is the dark base for contrast */
   --theme-text-btn: #0a0b12;
-  --theme-border: rgba(206, 181, 255, 0.1);
-  --theme-border-hover: rgba(206, 181, 255, 0.22);
+  --theme-border: rgba(255, 244, 141, 0.1);
+  --theme-border-hover: rgba(255, 244, 141, 0.22);
 }
 
 /* ============================================
@@ -237,7 +237,7 @@ body {
 
 /* Theme gradient text — sweeps the full pastel palette */
 .theme-gradient-text {
-  background: linear-gradient(90deg, var(--c-lavender), var(--c-purple), var(--c-sky), var(--c-blue), var(--c-lavender));
+  background: linear-gradient(90deg, #FF678B, #FFF48D, #FF678B);
   background-size: 200% auto;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -332,8 +332,8 @@ body {
 }
 
 @keyframes badgeBreathe {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(128, 168, 255, 0.0); }
-  50%      { box-shadow: 0 0 14px 1px rgba(128, 168, 255, 0.45); }
+  0%, 100% { box-shadow: 0 0 0 0 rgba(255, 103, 139, 0.0); }
+  50%      { box-shadow: 0 0 14px 1px rgba(255, 103, 139, 0.45); }
 }
 
 /* Expanding radar ring behind a status dot. Color comes from the element's
@@ -358,7 +358,7 @@ body {
   bottom: 0;
   left: 0;
   width: 28%;
-  background: linear-gradient(100deg, transparent, rgba(206, 181, 255, 0.45), transparent);
+  background: linear-gradient(100deg, transparent, rgba(255, 244, 141, 0.45), transparent);
   animation: badgeSheen 3.8s ease-in-out infinite;
   pointer-events: none;
 }

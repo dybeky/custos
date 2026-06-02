@@ -16,7 +16,7 @@ export function Header() {
   const statusColors = {
     healthy: '#00BFA5',
     warning: '#FFB300',
-    error: '#FF5252'
+    error: '#FF2D55'
   }
 
   const statusTitles = {

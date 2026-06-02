@@ -8,12 +8,12 @@ import type { CapabilityCategory, ScannerCapability, ChangelogGroup } from '../.
 
 // Accent color per changelog group — replaces emojis with quiet semantic color.
 const CHANGELOG_ACCENT: Record<string, string> = {
-  New: '#80A8FF',          // scan blue
+  New: '#FF678B',          // scan blue
   Fixes: '#34D399',        // emerald — something resolved
-  Performance: '#CEB5FF',  // purple
-  Improvements: '#8EC1DE'  // steel blue
+  Performance: '#FFF48D',  // purple
+  Improvements: '#FFF48D'  // steel blue
 }
-const CHANGELOG_ACCENT_DEFAULT = '#80A8FF'
+const CHANGELOG_ACCENT_DEFAULT = '#FF678B'
 
 // Render order + i18n label key for each app-area group.
 const CATEGORY_ORDER: { id: CapabilityCategory; labelKey: string }[] = [
@@ -74,11 +74,11 @@ export function Dashboard() {
           <div className="pointer-events-none absolute inset-0">
             <div
               className="absolute -top-24 -right-16 w-72 h-72 rounded-full blur-3xl opacity-40 animate-blob-1"
-              style={{ background: 'radial-gradient(circle, rgba(206,181,255,0.40), transparent 70%)' }}
+              style={{ background: 'radial-gradient(circle, rgba(255,244,141,0.40), transparent 70%)' }}
             />
             <div
               className="absolute -bottom-24 -left-12 w-72 h-72 rounded-full blur-3xl opacity-30 animate-blob-2"
-              style={{ background: 'radial-gradient(circle, rgba(128,168,255,0.35), transparent 70%)' }}
+              style={{ background: 'radial-gradient(circle, rgba(255,103,139,0.35), transparent 70%)' }}
             />
           </div>
 
@@ -88,16 +88,17 @@ export function Dashboard() {
               <div
                 className="shrink-0 w-14 h-14 rounded-2xl flex items-center justify-center"
                 style={{
-                  background: 'linear-gradient(135deg, rgba(206,181,255,0.15), rgba(128,168,255,0.15))',
-                  boxShadow: '0 0 28px rgba(128,168,255,0.25)',
-                  border: '1px solid rgba(128,168,255,0.2)'
+                  background: 'linear-gradient(135deg, rgba(255,244,141,0.15), rgba(255,103,139,0.15))',
+                  boxShadow: '0 0 28px rgba(255,103,139,0.25)',
+                  border: '1px solid rgba(255,103,139,0.2)'
                 }}
               >
                 <svg className="w-7 h-7" viewBox="0 0 24 24" fill="none">
                   <defs>
                     <linearGradient id="welcomeSword" x1="0" y1="0" x2="24" y2="24">
-                      <stop offset="0%" stopColor="#CEB5FF" />
-                      <stop offset="100%" stopColor="#80A8FF" />
+                      <stop offset="0%" stopColor="#FF678B" />
+                      <stop offset="50%" stopColor="#FFF48D" />
+                      <stop offset="100%" stopColor="#FF678B" />
                     </linearGradient>
                   </defs>
                   {/* Blade */}
@@ -147,7 +148,7 @@ export function Dashboard() {
         <Card className="relative overflow-hidden" transition={{ duration: 0.4, delay: 0.08 }}>
           <div
             className="pointer-events-none absolute -top-10 -right-10 w-40 h-40 rounded-full blur-3xl opacity-30"
-            style={{ background: 'radial-gradient(circle, rgba(142,193,222,0.40), transparent 70%)' }}
+            style={{ background: 'radial-gradient(circle, rgba(255,244,141,0.40), transparent 70%)' }}
           />
           <CardContent className="relative">
             <div className="flex items-center justify-between gap-4">
@@ -155,9 +156,9 @@ export function Dashboard() {
                 <div
                   className="shrink-0 w-12 h-12 rounded-2xl flex items-center justify-center"
                   style={{
-                    background: 'linear-gradient(135deg, rgba(128,168,255,0.15), rgba(206,181,255,0.15))',
-                    boxShadow: '0 0 20px rgba(128,168,255,0.2)',
-                    border: '1px solid rgba(128,168,255,0.2)'
+                    background: 'linear-gradient(135deg, rgba(255,103,139,0.15), rgba(255,244,141,0.15))',
+                    boxShadow: '0 0 20px rgba(255,103,139,0.2)',
+                    border: '1px solid rgba(255,103,139,0.2)'
                   }}
                 >
                   <svg className="w-6 h-6 text-scan" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -185,7 +186,7 @@ export function Dashboard() {
                   <span className="absolute inset-0 rounded-full bg-scan animate-status-ping" aria-hidden="true" />
                   <span
                     className="relative w-1.5 h-1.5 rounded-full bg-scan"
-                    style={{ boxShadow: '0 0 8px rgba(128,168,255,0.6)' }}
+                    style={{ boxShadow: '0 0 8px rgba(255,103,139,0.6)' }}
                   />
                 </span>
                 <span className="relative text-2xs font-bold tracking-wide text-scan">

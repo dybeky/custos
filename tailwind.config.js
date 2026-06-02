@@ -10,9 +10,9 @@ module.exports = {
         'panel-2': '#1f2238',
         ink: '#ecedff',
         'ink-dim': '#9698c0',
-        scan: '#80a8ff',
-        'scan-dim': '#8ec1de',
-        alert: '#ff6b83',
+        scan: '#FF678B',
+        'scan-dim': '#FFF48D',
+        alert: '#FF2D55',
         amber: '#ffc24b',
         // ── Legacy tokens (kept so existing components don't break) ──
         // Deep cool-navy base
@@ -23,20 +23,20 @@ module.exports = {
         },
         // The single pastel accent family — the only palette in the app
         accent: {
-          lavender: '#D3D3FF',
-          purple: '#CEB5FF',
-          sky: '#8EC1DE',
-          blue: '#80A8FF'
+          lavender: '#FFB3C6',
+          purple: '#FFF48D',
+          sky: '#FFF48D',
+          blue: '#FF678B'
         },
         primary: {
-          DEFAULT: '#80A8FF',
-          hover: '#9cbcff',
-          muted: 'rgba(128, 168, 255, 0.12)'
+          DEFAULT: '#FF678B',
+          hover: '#FF85A3',
+          muted: 'rgba(255, 103, 139, 0.12)'
         },
         // Legacy token name, remapped onto the pastel palette
         aurora: {
-          purple: '#CEB5FF',
-          blue: '#80A8FF'
+          purple: '#FFF48D',
+          blue: '#FF678B'
         },
         // Semantic status colors — kept only for scan results & health
         success: {
@@ -44,8 +44,8 @@ module.exports = {
           muted: 'rgba(52, 211, 153, 0.12)'
         },
         error: {
-          DEFAULT: '#FF5C73',
-          muted: 'rgba(255, 92, 115, 0.12)'
+          DEFAULT: '#FF2D55',
+          muted: 'rgba(255, 45, 85, 0.12)'
         },
         warning: {
           DEFAULT: '#FFB84D',
@@ -57,8 +57,8 @@ module.exports = {
           muted: 'rgba(255, 255, 255, 0.4)'
         },
         border: {
-          DEFAULT: 'rgba(206, 181, 255, 0.1)',
-          hover: 'rgba(206, 181, 255, 0.22)'
+          DEFAULT: 'rgba(255, 244, 141, 0.1)',
+          hover: 'rgba(255, 244, 141, 0.22)'
         }
       },
       fontFamily: {
@@ -80,9 +80,9 @@ module.exports = {
       },
       boxShadow: {
         'glass': '0 8px 32px rgba(0, 0, 0, 0.3)',
-        'glow': '0 0 40px -8px rgba(128,168,255,0.35)',
+        'glow': '0 0 40px -8px rgba(255,103,139,0.35)',
         'glow-success': '0 0 20px rgba(52, 211, 153, 0.3)',
-        'glow-purple': '0 0 15px rgba(206, 181, 255, 0.45)'
+        'glow-purple': '0 0 15px rgba(255, 244, 141, 0.45)'
       },
       backdropBlur: {
         'glass': '20px'

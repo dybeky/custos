@@ -44,10 +44,10 @@ export function Settings() {
             <p className="text-sm text-ink-dim mb-4">{t('settings.paletteDesc')}</p>
             <div className="grid grid-cols-4 gap-3">
               {[
-                { hex: '#D3D3FF', name: 'Lavender' },
-                { hex: '#CEB5FF', name: 'Purple' },
-                { hex: '#8EC1DE', name: 'Sky' },
-                { hex: '#80A8FF', name: 'Blue' }
+                { hex: '#FFB3C6', name: 'Lavender' },
+                { hex: '#FFF48D', name: 'Purple' },
+                { hex: '#FFF48D', name: 'Sky' },
+                { hex: '#FF678B', name: 'Blue' }
               ].map((c) => (
                 <div key={c.hex} className="flex flex-col items-center gap-2">
                   <div
