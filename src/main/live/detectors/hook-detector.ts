@@ -1,4 +1,6 @@
-import { listModules, readBuffer } from '../native/memory'
+import { readBuffer } from '../native/memory'
+import { resolveExportAddresses } from '../native/winapi'
+import { formatPtr } from '../native/ptr'
 import type { LiveContext, LiveFinding } from '../../../shared/types'
 
 /**
@@ -23,27 +25,21 @@ export const hookDetector = {
   async run(ctx: LiveContext): Promise<LiveFinding[]> {
     const findings: LiveFinding[] = []
 
-    // Inline-hook check: read the first bytes at each game module's base entry
-    // region and flag trampoline prologues. (Deep per-export + IAT-table walking
-    // is a documented Phase-B stub; this catches base-level inline patches.)
-    for (const mod of listModules(ctx.pid)) {
-      const base = Number(mod.modBaseAddr)
-      if (!base) continue
-      const bytes = readBuffer(ctx.handle, base, 8)
+    // Read the first bytes at each hook-prone export's entry point in the target
+    // process and flag trampoline prologues. System DLLs share a base within a
+    // session, so the address resolved in our process is valid in the target.
+    for (const exp of resolveExportAddresses()) {
+      const bytes = readBuffer(ctx.handle, Number(exp.address), 8)
       if (bytes && isHookedPrologue(bytes)) {
         findings.push({
           detectorId: 'hook',
           detectorName: 'IAT / Inline Hook Check',
           title: 'Possible inline hook',
-          detail: `Trampoline-like prologue at the base of ${mod.szModule} (0x${base.toString(16).toUpperCase()}).`,
+          detail: `Trampoline-like prologue at ${exp.module}!${exp.fn} (${formatPtr(exp.address)}).`,
           confidence: 'suspicious'
         })
       }
     }
-
-    // Phase-B stub: walk the game PE's import table and compare each thunk to the
-    // exporting module's address range to catch IAT redirections. Left for a
-    // follow-up once the inline check is proven on Windows.
 
     return findings
   }
