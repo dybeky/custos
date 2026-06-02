@@ -1,4 +1,4 @@
-import { ipcMain, shell, app, BrowserWindow } from 'electron'
+import { ipcMain, app, BrowserWindow } from 'electron'
 import { IPC_CHANNELS, ScanResult, UserSettings, ScannerInfo, OsInfo, ScannerCapability } from '../shared/types'
 import { logger } from './services/logger'
 import { execFile } from 'child_process'
@@ -12,6 +12,7 @@ import { getRecentCommits } from './services/github-service'
 import { humanizeCommits } from './services/changelog'
 import { checkForUpdate } from './services/updater'
 import { appStore } from './services/app-store'
+import { safeOpenExternal, safeOpenPath } from './utils/safe-open'
 import { z } from 'zod'
 
 // Strict schema for partial user settings — rejects unknown properties
@@ -153,31 +154,14 @@ export function setupIpcHandlers(mainWindow: BrowserWindow): void {
     return app.getVersion()
   })
 
-  // Open external URL - fire and forget for speed
+  // Open external URL - validated against the scheme allowlist
   ipcMain.handle(IPC_CHANNELS.APP_OPEN_EXTERNAL, (_event, url: string): void => {
-    shell.openExternal(url).catch(err =>
-      logger.warn('Failed to open external URL', { url, error: err instanceof Error ? err.message : String(err) })
-    )
+    safeOpenExternal(url)
   })
 
-  // Open path in explorer - fire and forget for speed
+  // Open path in explorer - validated; %ENV% expansion + scheme routing live in safeOpenPath
   ipcMain.handle(IPC_CHANNELS.APP_OPEN_PATH, (_event, path: string): void => {
-    // Expand environment variables first
-    const expandedPath = path.replace(/%([^%]+)%/g, (_, varName) => {
-      return process.env[varName] || ''
-    })
-
-    // Handle special URI schemes AFTER expansion (ms-settings, windowsdefender, etc.)
-    if (expandedPath.includes(':') && !expandedPath.match(/^[A-Z]:\\/i)) {
-      shell.openExternal(expandedPath).catch(err =>
-        logger.warn('Failed to open external path', { path: expandedPath, error: err instanceof Error ? err.message : String(err) })
-      )
-      return
-    }
-
-    shell.openPath(expandedPath).catch(err =>
-      logger.warn('Failed to open path', { path: expandedPath, error: err instanceof Error ? err.message : String(err) })
-    )
+    safeOpenPath(path)
   })
 
   // Open registry key - optimized for speed
