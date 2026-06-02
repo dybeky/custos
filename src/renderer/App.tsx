@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { HashRouter, Routes, Route } from 'react-router-dom'
 import { Header } from './components/layout/Header'
 import { Sidebar } from './components/layout/Sidebar'
+import { AnimatedBackground } from './components/layout/AnimatedBackground'
 import { Dashboard } from './pages/Dashboard'
 import { Scan } from './pages/Scan'
 import { Results } from './pages/Results'
@@ -72,11 +73,13 @@ export function App() {
   return (
     <ErrorBoundary>
       <HashRouter>
-        <div className="h-screen w-screen bg-background text-text-primary flex flex-col overflow-hidden">
+        <div className="h-screen w-screen bg-background text-text-primary flex flex-col overflow-hidden relative">
+          <AnimatedBackground />
           <GamePicker />
           {update && <UpdateModal info={update} onClose={() => setUpdate(null)} />}
           {checkFailed && <UpdateCheckFailedToast onDone={() => setCheckFailed(false)} />}
           {showPromo && <WebsitePromoToast onDone={() => setPromoDone(true)} />}
+          <div className="relative z-10 flex flex-col flex-1 overflow-hidden">
           <Header />
 
           <div className="flex flex-1 overflow-hidden relative z-10">
@@ -93,6 +96,7 @@ export function App() {
                 <Route path="/settings" element={<Settings />} />
               </Routes>
             </main>
+          </div>
           </div>
         </div>
       </HashRouter>

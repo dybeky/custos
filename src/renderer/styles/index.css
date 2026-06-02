@@ -365,7 +365,11 @@ body {
 
 @media (prefers-reduced-motion: reduce) {
   .animate-status-ping,
-  .badge-sheen {
+  .badge-sheen,
+  .animate-blob-1,
+  .animate-blob-2,
+  .animate-blob-3,
+  .animate-blob-4 {
     animation: none;
   }
   .badge-sheen { display: none; }

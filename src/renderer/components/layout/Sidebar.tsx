@@ -169,6 +169,7 @@ export function Sidebar() {
           <NavLink
             key={item.path}
             to={item.path}
+            aria-label={t(item.labelKey)}
             ref={(el) => {
               if (el) itemRefs.current.set(item.path, el)
             }}
@@ -248,13 +249,8 @@ export function Sidebar() {
         </div>
       </nav>
 
-      {/* Tooltip rendered via portal to ensure it's on top */}
-      {hoveredItem && (
-        <Tooltip
-          label={t(navItems.find(item => item.path === hoveredItem)?.labelKey || '')}
-          targetRect={tooltipRect}
-        />
-      )}
+      {/* Page-name tooltips are intentionally omitted — the nav is icon-only.
+          (aria-label on each NavLink keeps it accessible to screen readers.) */}
       {hoveredExternal && (
         <Tooltip
           label={externalLinks.find(link => link.url === hoveredExternal)?.label || ''}
