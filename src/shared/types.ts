@@ -144,6 +144,8 @@ export interface ChangelogGroup { group: string; entries: ChangelogItem[] }
 // Update-check result returned by the UPDATE_CHECK IPC channel
 export interface UpdateInfo {
   updateAvailable: boolean
+  /** True when the update check could not complete (network/rate-limit), as opposed to confirmed up-to-date. */
+  checkFailed: boolean
   currentVersion: string
   latestVersion: string | null
   url: string | null

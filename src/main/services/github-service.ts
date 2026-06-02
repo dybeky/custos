@@ -17,7 +17,7 @@ export interface GithubRelease {
 let _commitsCache: RawCommit[] | undefined
 let _releaseCache: GithubRelease | null | undefined
 
-async function getJson<T>(url: string): Promise<{ ok: boolean; status: number; data: T | null }> {
+export async function getJson<T>(url: string): Promise<{ ok: boolean; status: number; data: T | null }> {
   const controller = new AbortController()
   const timer = setTimeout(() => controller.abort(), TIMEOUT_MS)
   try {
@@ -51,6 +51,22 @@ export async function getLatestRelease(): Promise<GithubRelease | null> {
     ? { tagName: data.tag_name, body: data.body ?? '', htmlUrl: data.html_url, publishedAt: data.published_at }
     : null
   return _releaseCache
+}
+
+export interface ReleaseResult { status: 'ok' | 'error'; release: GithubRelease | null }
+
+export async function getLatestReleaseResult(): Promise<ReleaseResult> {
+  if (_releaseCache !== undefined && _releaseCache !== null) return { status: 'ok', release: _releaseCache }
+  const { ok, status, data } = await getJson<ApiRelease>(`${BASE}/releases/latest`)
+  if (!ok) {
+    logger.debug('release check failed', { status })
+    return { status: 'error', release: null }
+  }
+  const release = data
+    ? { tagName: data.tag_name, body: data.body ?? '', htmlUrl: data.html_url, publishedAt: data.published_at }
+    : null
+  _releaseCache = release
+  return { status: 'ok', release }
 }
 
 /** Test-only cache reset. */

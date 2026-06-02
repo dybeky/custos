@@ -136,7 +136,8 @@
     "title": "Update available",
     "newVersion": "Version {{version}} is available",
     "download": "Download",
-    "later": "Later"
+    "later": "Later",
+    "checkFailed": "Couldn't check for updates — try again later."
   },
   "promo": {
     "title": "Built by 97437",
