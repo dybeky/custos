@@ -147,5 +147,17 @@ describe('VdfParser', () => {
       expect(root.key2).toBe('value2')
       expect((root.nested as Record<string, unknown>).innerKey).toBe('innerValue')
     })
+
+    it('should reject pathologically deep nesting instead of growing unbounded', () => {
+      // 2000 nested "k" { ... blocks — far past any legitimate VDF.
+      const deep = Array.from({ length: 2000 }, () => '"k"\n{').join('\n')
+      expect(() => parser.parseGenericVdf(deep)).toThrow(/nesting depth/i)
+    })
+
+    it('parseGenericVdfSafe converts the depth error into a failed Result', () => {
+      const deep = Array.from({ length: 2000 }, () => '"k"\n{').join('\n')
+      const result = parser.parseGenericVdfSafe(deep)
+      expect(result.success).toBe(false)
+    })
   })
 })

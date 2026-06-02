@@ -25,6 +25,9 @@ export function setupLiveIpcHandlers(mainWindow: BrowserWindow): void {
 
   // ── live:get-status ──────────────────────────────────────────────────────
   ipcMain.handle(IPC_CHANNELS.LIVE_GET_STATUS, (_e, gameId?: GameId): LiveScanStatus => {
+    if (gameId !== undefined && !(gameId in GAMES)) {
+      throw new Error(`Invalid game ID: ${String(gameId)}`)
+    }
     const names = gameId ? GAMES[gameId].processNames : undefined
     const nativeAvailable = isMemoryNativeAvailable()
     const game = nativeAvailable ? findGameProcess(names) : null
@@ -38,6 +41,9 @@ export function setupLiveIpcHandlers(mainWindow: BrowserWindow): void {
 
   // ── live:scan:start ──────────────────────────────────────────────────────
   ipcMain.handle(IPC_CHANNELS.LIVE_SCAN_START, async (_e, gameId?: GameId): Promise<LiveFinding[]> => {
+    if (gameId !== undefined && !(gameId in GAMES)) {
+      throw new Error(`Invalid game ID: ${String(gameId)}`)
+    }
     if (isLiveScanning) {
       logger.warn('Live scan already in progress')
       throw new Error('Live scan already in progress')

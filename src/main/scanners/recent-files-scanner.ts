@@ -189,6 +189,18 @@ $results | ConvertTo-Json -Compress
           }
         }
       }
+
+      // Always settle the progress bar at 100% — even if a timeout/cancel broke
+      // out of the batch loop mid-way — so the UI never sticks at a partial value.
+      if (events?.onProgress) {
+        events.onProgress({
+          scannerName: this.name,
+          currentItem: totalBatches,
+          totalItems: totalBatches,
+          currentPath: 'Resolving shortcuts complete',
+          percentage: 100
+        })
+      }
     }
 
     return this.createSuccessResult(results, startTime)

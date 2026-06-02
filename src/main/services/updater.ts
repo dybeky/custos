@@ -6,7 +6,7 @@ import type { UpdateInfo } from '../../shared/types'
 
 /** Turn a release body (one bullet per line) into humanized changelog groups. */
 function notesFromRelease(rel: GithubRelease): UpdateInfo['notes'] {
-  const lines = rel.body.split('\n').map((l) => l.replace(/^[-*]\s*/, '').trim()).filter(Boolean)
+  const lines = rel.body.split('\n').map((l) => l.replace(/^[-*]\s*/, '').trim()).filter(Boolean).slice(0, 100)
   return humanizeCommits(lines.map((message, i) => ({ message, sha: `${rel.tagName}-${i}`, date: rel.publishedAt })))
 }
 

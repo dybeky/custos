@@ -68,6 +68,10 @@ export function setupIpcHandlers(mainWindow: BrowserWindow): void {
 
   // Start scan
   ipcMain.handle(IPC_CHANNELS.SCAN_START, async (_event, scannerIds?: ScannerName[]): Promise<ScanResult[]> => {
+    // Runtime shape validation — TypeScript types are erased at the IPC boundary.
+    if (scannerIds !== undefined && (!Array.isArray(scannerIds) || scannerIds.some(id => typeof id !== 'string'))) {
+      throw new Error('Invalid scannerIds: expected an array of strings')
+    }
     if (isScanning) {
       logger.warn('Scan already in progress')
       throw new Error('Scan already in progress')
@@ -177,8 +181,9 @@ export function setupIpcHandlers(mainWindow: BrowserWindow): void {
   // Open registry key - optimized for speed
   ipcMain.handle(IPC_CHANNELS.APP_OPEN_REGISTRY, (_event, keyPath: string): { success: boolean; error?: string } => {
 
-    // Validate keyPath
-    if (!keyPath || !/^[A-Za-z0-9\\_\-\s.(){}]+$/.test(keyPath)) {
+    // Validate keyPath. Reject leading/trailing backslashes — a path must be a
+    // hive root followed by backslash-separated segments, never an empty segment.
+    if (!keyPath || !/^[A-Za-z0-9\\_\-\s.(){}]+$/.test(keyPath) || keyPath.startsWith('\\') || keyPath.endsWith('\\')) {
       return { success: false, error: 'Invalid registry key path' }
     }
 
@@ -199,10 +204,17 @@ export function setupIpcHandlers(mainWindow: BrowserWindow): void {
       '/t', 'REG_SZ',
       '/d', expandedKeyPath,
       '/f'
-    ], () => {
+    ], (writeError) => {
+      if (writeError) {
+        logger.debug('Failed to write regedit LastKey', { error: writeError.message })
+      }
       // Step 2: Start regedit after LastKey is written (minimal delay)
       setTimeout(() => {
-        execFile('regedit.exe', () => {})
+        execFile('regedit.exe', (launchError) => {
+          if (launchError) {
+            logger.debug('Failed to launch regedit', { error: launchError.message })
+          }
+        })
       }, 50)
     })
 

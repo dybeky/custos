@@ -34,6 +34,10 @@ function createWindow(): void {
     }
   })
 
+  // Deny every renderer permission request (camera, mic, notifications,
+  // clipboard, etc.). This is a forensic tool; it needs none of them.
+  mainWindow.webContents.session.setPermissionRequestHandler((_wc, _permission, callback) => callback(false))
+
   mainWindow.on('ready-to-show', () => {
     mainWindow?.show()
   })

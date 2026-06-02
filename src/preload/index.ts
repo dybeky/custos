@@ -1,6 +1,7 @@
 import { contextBridge, ipcRenderer } from 'electron'
 import { IPC_CHANNELS, ScanResult, ScanProgress, UserSettings, ScannerInfo, OsInfo, ScannerCapability, ScannerName, LiveFinding, LiveScanStatus } from '../shared/types'
 import type { ChangelogGroup, UpdateInfo } from '../shared/types'
+import type { GameId } from '../shared/games'
 
 export type ScanProgressCallback = (progress: ScanProgress) => void
 export type ScanResultCallback = (result: ScanResult) => void
@@ -126,12 +127,12 @@ const api = {
   // ── Live scan ────────────────────────────────────────────────────────────
 
   /** Get the current live-scan capability status (platform, native, game). */
-  getLiveStatus: (gameId?: string): Promise<LiveScanStatus> => {
+  getLiveStatus: (gameId?: GameId): Promise<LiveScanStatus> => {
     return ipcRenderer.invoke(IPC_CHANNELS.LIVE_GET_STATUS, gameId)
   },
 
   /** Start a live scan. Streams results via onLiveScanResult; returns all findings when done. */
-  startLiveScan: (gameId?: string): Promise<LiveFinding[]> => {
+  startLiveScan: (gameId?: GameId): Promise<LiveFinding[]> => {
     return ipcRenderer.invoke(IPC_CHANNELS.LIVE_SCAN_START, gameId)
   },
 

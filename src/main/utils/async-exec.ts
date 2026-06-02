@@ -49,7 +49,15 @@ function classifyError(error: Error & { code?: string | number; killed?: boolean
 }
 
 /**
- * Simple async exec without process limiter - just run and timeout
+ * Run a command through the shell (cmd.exe), UTF-8 forced, with a timeout and a
+ * global concurrency cap.
+ *
+ * SECURITY: this uses `exec`, which spawns a shell and interprets metacharacters
+ * (`&&`, `|`, `>`, `2>nul`, …). The shell is required for the `chcp 65001` prefix
+ * and the `2>nul` redirects callers rely on. ONLY pass hardcoded command strings.
+ * NEVER interpolate user-, file-, registry-, or network-derived values into the
+ * `command` argument — use `execFileAsync` (no shell, argv array) for anything
+ * involving dynamic input.
  */
 export async function asyncExec(
   command: string,

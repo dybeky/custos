@@ -160,7 +160,10 @@ export const injectedModuleDetector = {
 
     for (const region of regions) {
       if (isSuspiciousRegion(region.Type, region.Protect, EXEC_PROTECTIONS)) {
-        const writableExec = (region.Protect & 0xff) === 0x40 || (region.Protect & 0xff) === 0x80
+        // Only PAGE_EXECUTE_READWRITE (0x40) is truly writable+executable.
+        // PAGE_EXECUTE_WRITECOPY (0x80) is copy-on-write (used by legitimate
+        // shared code sections), so it must not be treated as RWX.
+        const writableExec = (region.Protect & 0xff) === 0x40
         findings.push({
           detectorId: 'injected-module',
           detectorName: 'Injected Module / Manual-Map Scan',

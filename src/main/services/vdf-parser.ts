@@ -245,6 +245,9 @@ export class VdfParser {
    * Parses VDF content into a generic dictionary structure
    */
   parseGenericVdf(vdfContent: string): Record<string, unknown> {
+    // Guard against pathological / malicious deeply-nested VDF blowing the stack
+    // or exhausting memory. Legitimate Steam VDF files nest only a few levels.
+    const MAX_VDF_DEPTH = 64
     const result: Record<string, unknown> = {}
     const stack: Record<string, unknown>[] = [result]
 
@@ -276,6 +279,9 @@ export class VdfParser {
       } else if (matches && matches.length === 1) {
         // Just a key, expecting an object
         const key = matches[0].replace(/"/g, '')
+        if (stack.length >= MAX_VDF_DEPTH) {
+          throw new Error(`VDF nesting depth exceeded ${MAX_VDF_DEPTH}`)
+        }
         const newDict: Record<string, unknown> = {}
         const current = stack[stack.length - 1]
         current[key] = newDict

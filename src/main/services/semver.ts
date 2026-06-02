@@ -25,8 +25,11 @@ function comparePre(a: string[], b: string[]): number {
     const xn = /^\d+$/.test(x)
     const yn = /^\d+$/.test(y)
     if (xn && yn) {
-      const d = parseInt(x, 10) - parseInt(y, 10)
-      if (d !== 0) return d < 0 ? -1 : 1
+      // Direct comparison avoids precision loss from subtracting very large ints.
+      const xv = parseInt(x, 10)
+      const yv = parseInt(y, 10)
+      if (xv > yv) return 1
+      if (xv < yv) return -1
     } else if (x !== y) {
       return x < y ? -1 : 1
     }

@@ -42,12 +42,17 @@ export function LiveScan() {
     }
   }, [selectedGame])
 
+  // Refresh capability/status whenever the selected game changes (fetchStatus
+  // is memoized on selectedGame).
   useEffect(() => {
     fetchStatus()
+  }, [fetchStatus])
+
+  // Tear down any live-scan listeners only on unmount.
+  useEffect(() => {
     return () => {
       clearSubs()
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   const isReady =
@@ -57,6 +62,10 @@ export function LiveScan() {
     status.gameRunning
 
   const handleStartScan = async () => {
+    // Guard against re-entrancy: a second start would orphan the first scan's
+    // listeners (overwriting unsubRef) and leak duplicate handlers.
+    if (phase === 'scanning') return
+
     setFindings([])
     setProgress(null)
     setPhase('scanning')

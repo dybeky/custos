@@ -13,7 +13,7 @@ import type { LiveContext, LiveFinding } from '../../../shared/types'
 export function isHookedPrologue(bytes: Buffer): boolean {
   if (bytes.length === 0) return false
   if (bytes[0] === 0xe9 && bytes.length >= 5) return true
-  if (bytes[0] === 0xff && bytes[1] === 0x25) return true
+  if (bytes[0] === 0xff && bytes.length >= 2 && bytes[1] === 0x25) return true
   if (bytes[0] === 0x68 && bytes.length >= 6 && bytes[5] === 0xc3) return true
   return false
 }
