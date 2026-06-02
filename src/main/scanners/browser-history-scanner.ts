@@ -1,4 +1,4 @@
-import { existsSync, readFileSync } from 'fs'
+import { existsSync, readFileSync, statSync } from 'fs'
 import { copyFile, unlink, readdir } from 'fs/promises'
 import { join } from 'path'
 import { homedir, tmpdir } from 'os'
@@ -21,6 +21,18 @@ interface DatabaseConfig {
   urlColumn: number
   titleColumn?: number
   timeColumn?: number
+}
+
+/** Max history-DB size we will read into memory (256 MB). */
+const MAX_DB_BYTES = 256 * 1024 * 1024
+
+function readFileCapped(p: string): Buffer | null {
+  try {
+    if (statSync(p).size > MAX_DB_BYTES) return null
+    return readFileSync(p)
+  } catch {
+    return null
+  }
 }
 
 let SQL: Awaited<ReturnType<typeof initSqlJs>> | null = null
@@ -277,7 +289,11 @@ export class BrowserHistoryScanner extends BaseScanner {
       await this.copyWithRetry(dbPath, tempPath)
 
       const SQL = await getSql()
-      const fileBuffer = readFileSync(tempPath)
+      const fileBuffer = readFileCapped(tempPath)
+      if (!fileBuffer) {
+        logger.debug(`Skipping ${browserName}/${config.name}: database too large or unreadable`)
+        return results
+      }
       const db = new SQL.Database(fileBuffer)
 
       try {
@@ -406,7 +422,11 @@ export class BrowserHistoryScanner extends BaseScanner {
       await this.copyWithRetry(placesPath, tempPath)
 
       const SQL = await getSql()
-      const fileBuffer = readFileSync(tempPath)
+      const fileBuffer = readFileCapped(tempPath)
+      if (!fileBuffer) {
+        logger.debug(`Skipping Firefox places at ${profilePath}: database too large or unreadable`)
+        return results
+      }
       const db = new SQL.Database(fileBuffer)
 
       try {
@@ -523,7 +543,11 @@ export class BrowserHistoryScanner extends BaseScanner {
       await this.copyWithRetry(formHistoryPath, tempPath)
 
       const SQL = await getSql()
-      const fileBuffer = readFileSync(tempPath)
+      const fileBuffer = readFileCapped(tempPath)
+      if (!fileBuffer) {
+        logger.debug(`Skipping Firefox form history at ${profilePath}: database too large or unreadable`)
+        return results
+      }
       const db = new SQL.Database(fileBuffer)
 
       try {
