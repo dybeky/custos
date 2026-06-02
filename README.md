@@ -36,8 +36,8 @@ Custos is a desktop app that reads those records, looks for fingerprints of know
 
 <table>
 <tr>
-<th align="left">🔍&nbsp;&nbsp;Forensic scan</th>
-<th align="left">⚡&nbsp;&nbsp;Live Scan</th>
+<th align="left">Forensic scan</th>
+<th align="left">Live Scan</th>
 </tr>
 <tr>
 <td valign="top" width="50%">
@@ -63,11 +63,11 @@ Advanced and optional — needs the game open.
 
 > A 30‑second checklist before your first scan.
 
-| | Requirement | Why it matters |
-|:--:|---|---|
-| 🪟 | **Windows only** | Custos reads Windows‑specific artifacts. It won't run on macOS or Linux. |
-| 🛡️ | **Run as Administrator** | The most useful artifacts (Prefetch, BAM, process command lines) are protected. Without admin rights those scanners return "access denied" and you get an incomplete picture. |
-| 🤝 | **Get consent** | Only scan a machine when the player has agreed, or when your server rules clearly require forensic review as a condition of play. |
+| Requirement | Why it matters |
+|---|---|
+| **Windows only** | Custos reads Windows‑specific artifacts. It won't run on macOS or Linux. |
+| **Run as Administrator** | The most useful artifacts (Prefetch, BAM, process command lines) are protected. Without admin rights those scanners return "access denied" and you get an incomplete picture. |
+| **Get consent** | Only scan a machine when the player has agreed, or when your server rules clearly require forensic review as a condition of play. |
 
 ---
 
@@ -86,15 +86,15 @@ That's it — you're ready to scan.
 
 Custos has a slim **icon‑only sidebar** down the left edge. Hover any icon to see its name.
 
-| Icon | Page | What you use it for |
-|:--:|---|---|
-| 🏠 | **Dashboard** | Home screen — app version, what your system supports, and a live changelog. |
-| 🔍 | **Scan** | The main event: runs all forensic scanners with live progress. |
-| ⚡ | **Live Scan** | Advanced — inspects the running game's memory (Windows + game open). |
-| 📋 | **Results** | Review and export findings. A badge shows the total count. |
-| 🧭 | **Manual** | One‑click shortcuts to open Windows folders, registry keys, and references. |
-| 🧰 | **Utilities** | Links to trusted third‑party forensic tools. |
-| ⚙️ | **Settings** | Appearance and app preferences. |
+| Page | What you use it for |
+|---|---|
+| **Dashboard** | Home screen — app version, what your system supports, and a live changelog. |
+| **Scan** | The main event: runs all forensic scanners with live progress. |
+| **Live Scan** | Advanced — inspects the running game's memory (Windows + game open). |
+| **Results** | Review and export findings. A badge shows the total count. |
+| **Manual** | One‑click shortcuts to open Windows folders, registry keys, and references. |
+| **Utilities** | Links to trusted third‑party forensic tools. |
+| **Settings** | Appearance and app preferences. |
 
 ---
 
@@ -109,9 +109,9 @@ This is the core workflow. It takes under a minute.
 **3.** Watch the progress:
 - A **circular indicator** shows overall completion as a percentage.
 - **Every scanner is listed** with its live state:
-  - ⏳ *Pending* — waiting its turn
-  - 🔄 *Active* — currently running
-  - ✅ *Done* — finished (a **count badge** replaces the checkmark when it found something)
+  - **Pending** — waiting its turn
+  - **Active** — currently running
+  - **Done** — finished (a **count badge** replaces the checkmark when it found something)
 
 **4.** When everything finishes, the status reads **Scan Complete** with the total number of findings.
 
@@ -132,12 +132,12 @@ Open the **Results** page after a scan.
 <tr>
 <td width="50%" valign="top">
 
-✅ &nbsp;**Green** — no findings detected.
+**Green** — no findings detected.
 
 </td>
 <td width="50%" valign="top">
 
-🔴 &nbsp;**Red, with a count** — findings exist and deserve a look.
+**Red, with a count** — findings exist and deserve a look.
 
 </td>
 </tr>
@@ -166,10 +166,10 @@ Below the summary, each scanner gets its own **collapsible card**. Click to expa
 For it to be available, **all four** must be true:
 
 ```
-1.  ✅  You're on Windows
-2.  ✅  The native memory module is installed   (see "Native module" below)
-3.  ✅  The game is currently running
-4.  ✅  Custos is running as Administrator
+1.  You're on Windows
+2.  The native memory module is installed   (see "Native module" below)
+3.  The game is currently running
+4.  Custos is running as Administrator
 ```
 
 The page shows a status banner telling you exactly where you stand — *Checking Status*, *Windows Only*, *Native Unavailable*, *Game Not Running*, or **Ready**. When it says **Ready**, start the scan and Custos streams each detector's progress and findings live. Every finding is labeled with a confidence level — **high**, **suspicious**, or **info** — to help you prioritize.
@@ -184,7 +184,7 @@ The page shows a status banner telling you exactly where you stand — *Checking
 A full forensic scan runs **16 scanners**.
 
 <details open>
-<summary><b>📂 The 16 scanners — what each one inspects</b></summary>
+<summary><b>The 16 scanners — what each one inspects</b></summary>
 
 <br/>
 
@@ -216,7 +216,7 @@ A full forensic scan runs **16 scanners**.
 These two pages support hands‑on investigation when you want to look around yourself.
 
 <details>
-<summary><b>🧭 Manual — one‑click shortcuts (6 categories)</b></summary>
+<summary><b>Manual — one‑click shortcuts (6 categories)</b></summary>
 
 <br/>
 
@@ -230,7 +230,7 @@ These two pages support hands‑on investigation when you want to look around yo
 </details>
 
 <details>
-<summary><b>🧰 Utilities — trusted third‑party tools</b></summary>
+<summary><b>Utilities — trusted third‑party tools</b></summary>
 
 <br/>
 
@@ -263,14 +263,14 @@ The **Settings** page currently houses **Appearance** — a showcase of the acce
 - **Findings are leads, not proof.** A trace means "investigate further," never "guilty." Don't ban on a single keyword match.
 - **Get consent.** Only run Custos where the player has agreed, or where your server rules explicitly authorise forensic review as a condition of play.
 - **Respect the law and your jurisdiction.** Informed consent and your local rules come first.
-- **Custos requires Administrator rights** to read protected Windows artifacts. It is intended solely for legitimate moderation of Unturned servers.
+- **Custos requires Administrator rights** to read protected Windows artifacts. It is intended solely for legitimate moderation of game servers.
 
 ---
 
 ## Build from source
 
 <details>
-<summary><b>🛠️ For developers and contributors</b></summary>
+<summary><b>For developers and contributors</b></summary>
 
 <br/>
 
@@ -310,8 +310,8 @@ On non‑Windows hosts you can skip it — Live Scan reports "native unavailable
 
 **Custos** — *guardian · watchman*
 
-Requires Administrator rights to read protected Windows artifacts. Intended solely for legitimate moderation of Unturned servers — use it only on machines where you have the player's informed consent, or where your server rules explicitly authorise forensic review.
+Requires Administrator rights to read protected Windows artifacts. Intended solely for legitimate moderation of game servers — use it only on machines where you have the player's informed consent, or where your server rules explicitly authorise forensic review.
 
-<sub>Made for Unturned server admins · [MIT License](LICENSE)</sub>
+<sub>Made for game server admins · [MIT License](LICENSE)</sub>
 
 </div>
