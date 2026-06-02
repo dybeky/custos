@@ -4,6 +4,9 @@ import { ScanResult, ScanProgress } from '../../shared/types'
 import { KeywordMatcher } from '../services/keyword-matcher'
 import { ScanSettings } from '../services/config-service'
 
+/** Hard ceiling on directory recursion regardless of caller-supplied depth. */
+const MAX_SCAN_DEPTH = 12
+
 export interface ScannerEventEmitter {
   onProgress?: (progress: ScanProgress) => void
 }
@@ -54,7 +57,8 @@ export abstract class BaseScanner {
     if (!existsSync(path)) return results
 
     // Use synchronous scanning - simpler and more reliable
-    this.scanFolderSync(path, extensions, maxDepth, 0, results)
+    const depth = Math.max(0, Math.min(Number.isFinite(maxDepth) ? maxDepth : 0, MAX_SCAN_DEPTH))
+    this.scanFolderSync(path, extensions, depth, 0, results)
     return results
   }
 
