@@ -1,0 +1,88 @@
+<svg width="1280" height="420" viewBox="0 0 1280 420" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Custos — forensic anti-cheat scanner for game servers">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1280" y2="420" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#0d0f1f"/>
+      <stop offset="0.55" stop-color="#121430"/>
+      <stop offset="1" stop-color="#0b0c1a"/>
+    </linearGradient>
+    <radialGradient id="blobPink" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#FF678B" stop-opacity="0.55"/>
+      <stop offset="1" stop-color="#FF678B" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="blobYellow" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#FFF48D" stop-opacity="0.5"/>
+      <stop offset="1" stop-color="#FFF48D" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="blobLav" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#FFB3C6" stop-opacity="0.4"/>
+      <stop offset="1" stop-color="#FFB3C6" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="word" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#FFB3C6"/>
+      <stop offset="0.5" stop-color="#FF678B"/>
+      <stop offset="1" stop-color="#FFF48D"/>
+    </linearGradient>
+    <linearGradient id="shield" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#FFF48D"/>
+      <stop offset="1" stop-color="#FF678B"/>
+    </linearGradient>
+    <filter id="soft" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="55"/>
+    </filter>
+    <filter id="glow" x="-60%" y="-60%" width="220%" height="220%">
+      <feGaussianBlur stdDeviation="6" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+
+  <!-- backdrop -->
+  <rect width="1280" height="420" rx="28" fill="url(#bg)"/>
+
+  <!-- aurora glow blobs -->
+  <g filter="url(#soft)" opacity="0.9">
+    <circle cx="180" cy="120" r="190" fill="url(#blobPink)"/>
+    <circle cx="1120" cy="330" r="210" fill="url(#blobYellow)"/>
+    <circle cx="720" cy="40" r="160" fill="url(#blobLav)"/>
+  </g>
+
+  <!-- hairline border -->
+  <rect x="1" y="1" width="1278" height="418" rx="27" fill="none" stroke="#ecedff" stroke-opacity="0.08"/>
+
+  <!-- emblem: guardian shield + watching eye -->
+  <g transform="translate(150, 210)" filter="url(#glow)">
+    <path d="M0 -86 L70 -58 C70 6 44 64 0 86 C-44 64 -70 6 -70 -58 Z"
+          fill="#0d0f1f" stroke="url(#shield)" stroke-width="5" stroke-linejoin="round"/>
+    <path d="M-46 -6 C-26 -34 26 -34 46 -6 C26 22 -26 22 -46 -6 Z"
+          fill="none" stroke="url(#shield)" stroke-width="5" stroke-linejoin="round"/>
+    <circle cx="0" cy="-6" r="15" fill="url(#shield)"/>
+    <circle cx="5" cy="-11" r="4.5" fill="#0d0f1f"/>
+  </g>
+
+  <!-- wordmark -->
+  <text x="270" y="190" font-family="'Segoe UI', Roboto, system-ui, -apple-system, sans-serif"
+        font-size="116" font-weight="800" letter-spacing="6" fill="url(#word)">CUSTOS</text>
+
+  <!-- tagline -->
+  <text x="274" y="248" font-family="'Segoe UI', Roboto, system-ui, -apple-system, sans-serif"
+        font-size="30" font-weight="500" letter-spacing="0.5" fill="#ecedff" fill-opacity="0.92">A Windows forensic anti-cheat scanner for game servers</text>
+
+  <!-- pill chips -->
+  <g font-family="'Segoe UI', Roboto, system-ui, sans-serif" font-size="20" font-weight="600">
+    <g transform="translate(274, 286)">
+      <rect width="156" height="44" rx="22" fill="#FF678B" fill-opacity="0.14" stroke="#FF678B" stroke-opacity="0.5"/>
+      <text x="78" y="29" text-anchor="middle" fill="#FFB3C6">16 scanners</text>
+    </g>
+    <g transform="translate(444, 286)">
+      <rect width="206" height="44" rx="22" fill="#FFF48D" fill-opacity="0.12" stroke="#FFF48D" stroke-opacity="0.45"/>
+      <text x="103" y="29" text-anchor="middle" fill="#FFF48D">Live memory scan</text>
+    </g>
+    <g transform="translate(664, 286)">
+      <rect width="166" height="44" rx="22" fill="#ecedff" fill-opacity="0.06" stroke="#ecedff" stroke-opacity="0.22"/>
+      <text x="83" y="29" text-anchor="middle" fill="#ecedff" fill-opacity="0.85">Windows · admin</text>
+    </g>
+  </g>
+
+  <!-- latin motto -->
+  <text x="274" y="360" font-family="'Segoe UI', Roboto, system-ui, sans-serif" font-size="17"
+        letter-spacing="4" fill="#9698c0">G U A R D I A N&#160;&#160;·&#160;&#160;W A T C H M A N</text>
+</svg>
