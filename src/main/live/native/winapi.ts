@@ -160,26 +160,33 @@ export function listThreadStartAddresses(pid: number): bigint[] {
   const koffi = loadKoffi()
   if (!api || !koffi) return []
   const out: bigint[] = []
+  let snap: unknown = null
   try {
-    const snap = api.CreateToolhelp32Snapshot(TH32CS_SNAPTHREAD, 0)
+    snap = api.CreateToolhelp32Snapshot(TH32CS_SNAPTHREAD, 0)
+    // INVALID_HANDLE_VALUE is (HANDLE)-1; koffi surfaces it as null or a sentinel.
+    if (!snap) return []
     const te = { dwSize: 28, cntUsage: 0, th32ThreadID: 0, th32OwnerProcessID: 0, tpBasePri: 0, tpDeltaPri: 0, dwFlags: 0 }
     let ok = api.Thread32First(snap, te) as number
     while (ok) {
       if (te.th32OwnerProcessID === pid) {
         const h = api.OpenThread(THREAD_QUERY_INFORMATION, 0, te.th32ThreadID)
         if (h) {
-          const addrBuf = [0n] as bigint[] // koffi writes back an 8-byte uint64
-          const retLen = [0]
-          const status = api.NtQueryInformationThread(h, ThreadQuerySetWin32StartAddress, addrBuf, 8, retLen) as number
-          if (status === 0) out.push(toPtr(addrBuf[0]))
-          api.CloseHandle(h)
+          try {
+            const addrBuf = [0n] as bigint[]
+            const retLen = [0]
+            const status = api.NtQueryInformationThread(h, ThreadQuerySetWin32StartAddress, addrBuf, 8, retLen) as number
+            if (status === 0) out.push(toPtr(addrBuf[0]))
+          } finally {
+            api.CloseHandle(h)
+          }
         }
       }
       ok = api.Thread32Next(snap, te) as number
     }
-    api.CloseHandle(snap)
   } catch {
     return out
+  } finally {
+    if (snap) api.CloseHandle(snap)
   }
   return out
 }
