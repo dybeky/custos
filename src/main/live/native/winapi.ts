@@ -8,6 +8,7 @@
  */
 
 import type { LibraryHandle } from 'koffi'
+import { toPtr } from './ptr'
 
 // KoffiFunction is the return type of LibraryHandle.func()
 type KoffiFunction = ReturnType<LibraryHandle['func']>
@@ -106,7 +107,7 @@ export function checkRemoteDebugger(): boolean {
 // ── Thread start-address enumeration (detector #6) ───────────────────────────
 // Uses CreateToolhelp32Snapshot + Thread32First/Next to list thread IDs for the
 // target PID, then OpenThread + NtQueryInformationThread(ThreadQuerySetWin32StartAddress).
-// Returns the start addresses as numbers. Returns [] when unavailable.
+// Returns the start addresses as bigints. Returns [] when unavailable.
 
 const TH32CS_SNAPTHREAD = 0x00000004
 const THREAD_QUERY_INFORMATION = 0x0040
@@ -144,7 +145,7 @@ function loadThreadApi(): ThreadApi | null {
       Thread32Next: k.func('int __stdcall Thread32Next(void *snap, _Inout_ THREADENTRY32 *te)'),
       OpenThread: k.func('void * __stdcall OpenThread(uint32 access, int inherit, uint32 tid)'),
       CloseHandle: k.func('int __stdcall CloseHandle(void *h)'),
-      NtQueryInformationThread: nt.func('long __stdcall NtQueryInformationThread(void *h, int cls, _Out_ void *info, uint32 len, _Out_ uint32 *ret)'),
+      NtQueryInformationThread: nt.func('long __stdcall NtQueryInformationThread(void *h, int cls, _Out_ uint64 *info, uint32 len, _Out_ uint32 *ret)'),
       THREADENTRY32
     }
   } catch {
@@ -153,12 +154,12 @@ function loadThreadApi(): ThreadApi | null {
   return _threadApi
 }
 
-export function listThreadStartAddresses(pid: number): number[] {
+export function listThreadStartAddresses(pid: number): bigint[] {
   if (process.platform !== 'win32') return []
   const api = loadThreadApi()
   const koffi = loadKoffi()
   if (!api || !koffi) return []
-  const out: number[] = []
+  const out: bigint[] = []
   try {
     const snap = api.CreateToolhelp32Snapshot(TH32CS_SNAPTHREAD, 0)
     const te = { dwSize: 28, cntUsage: 0, th32ThreadID: 0, th32OwnerProcessID: 0, tpBasePri: 0, tpDeltaPri: 0, dwFlags: 0 }
@@ -167,11 +168,10 @@ export function listThreadStartAddresses(pid: number): number[] {
       if (te.th32OwnerProcessID === pid) {
         const h = api.OpenThread(THREAD_QUERY_INFORMATION, 0, te.th32ThreadID)
         if (h) {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const addrBuf: any[] = [0] // koffi will write back an 8-byte (uint64) value; verified on Windows
+          const addrBuf = [0n] as bigint[] // koffi writes back an 8-byte uint64
           const retLen = [0]
           const status = api.NtQueryInformationThread(h, ThreadQuerySetWin32StartAddress, addrBuf, 8, retLen) as number
-          if (status === 0) out.push(Number(addrBuf[0]))
+          if (status === 0) out.push(toPtr(addrBuf[0]))
           api.CloseHandle(h)
         }
       }
