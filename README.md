@@ -4,7 +4,7 @@
 [![CI](https://github.com/dybeky/custos/actions/workflows/ci.yml/badge.svg)](https://github.com/dybeky/custos/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
-**A Windows forensic anti-cheat scanner for Unturned servers.**
+**A Windows forensic anti-cheat scanner for game servers.**
 
 Custos helps server admins answer one question: *does this player's computer show signs that known cheating software was used on it?* It does this by reading the traces Windows leaves behind — even after a program has been deleted.
 
