@@ -137,7 +137,7 @@ export function LiveScan() {
           </div>
           <div>
             <p className="text-sm font-medium text-scan font-display">{t('liveScan.nativeUnavailable')}</p>
-            <p className="text-xs text-ink-dim mt-0.5">{t('liveScan.nativeUnavailableDesc')}</p>
+            <p className="text-xs text-ink-dim mt-0.5">{t('liveScan.nativeUnavailableDesc', { arch: status.arch })}</p>
           </div>
         </div>
       )
