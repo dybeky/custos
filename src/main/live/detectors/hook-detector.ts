@@ -18,6 +18,16 @@ export function isHookedPrologue(bytes: Buffer): boolean {
   return false
 }
 
+/**
+ * The prologue patterns above are x64 instruction encodings, and the
+ * same-base-address assumption only holds when Custos and the target run the
+ * same architecture. On an ARM64 build, system DLLs are ARM64X images whose
+ * code bytes can match these patterns by chance — phantom hook findings.
+ */
+export function isHookCheckSupported(appArch: string): boolean {
+  return appArch === 'x64'
+}
+
 /** A module mapped in the target process, as reported by listModules(). */
 export interface TargetModuleRange {
   name: string
@@ -58,6 +68,16 @@ export const hookDetector = {
   name: 'IAT / Inline Hook Check',
 
   async run(ctx: LiveContext): Promise<LiveFinding[]> {
+    if (!isHookCheckSupported(process.arch)) {
+      return [{
+        detectorId: 'hook',
+        detectorName: 'IAT / Inline Hook Check',
+        title: 'Hook check skipped',
+        detail: `Inline-hook detection uses x64 instruction patterns and is skipped on ${process.arch} builds to avoid false positives.`,
+        confidence: 'info'
+      }]
+    }
+
     const findings: LiveFinding[] = []
 
     const resolved = resolveExportAddresses()

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { isHookedPrologue, exportsValidInTarget } from './hook-detector'
+import { isHookedPrologue, exportsValidInTarget, isHookCheckSupported } from './hook-detector'
 
 describe('exportsValidInTarget', () => {
   const exps = [
@@ -45,5 +45,13 @@ describe('isHookedPrologue', () => {
   })
   it('is false for an empty buffer', () => {
     expect(isHookedPrologue(Buffer.from([]))).toBe(false)
+  })
+})
+
+describe('isHookCheckSupported', () => {
+  it('only supports x64 builds (patterns are x64 instruction encodings)', () => {
+    expect(isHookCheckSupported('x64')).toBe(true)
+    expect(isHookCheckSupported('arm64')).toBe(false)
+    expect(isHookCheckSupported('ia32')).toBe(false)
   })
 })
