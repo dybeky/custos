@@ -36,21 +36,21 @@
 @tailwind utilities;
 
 /* ============================================
-   SINGLE PALETTE — cool pastels on a deep navy base
-   #FFB3C6 lavender · #FFF48D purple · #FFF48D sky · #FF678B blue
+   SINGLE PALETTE — black & white with warm coffee accents
+   #C8A47E caramel · #D9BC9A latte · #B0A696 taupe · #EDE7DE cream
    (data-theme variants all resolve to this one palette)
    ============================================ */
 
 /* ============================================
-   CUSTOSWEB DESIGN TOKENS
+   ESPRESSO DESIGN TOKENS
    ============================================ */
 
 :root {
-  --bg:#0d0f1f; --panel:#16182c; --panel-2:#1f2238;
-  --ink:#ecedff; --ink-dim:#9698c0; --scan:#FF678B; --scan-dim:#FFF48D;
-  --alert:#FF2D55; --amber:#ffc24b;
-  --line:rgba(255,103,139,.1); --line-strong:rgba(255,103,139,.18);
-  --glow:255,103,139;
+  --bg:#0E0C0A; --panel:#171411; --panel-2:#1F1B16;
+  --ink:#EDE7DE; --ink-dim:#A89F93; --scan:#C8A47E; --scan-dim:#B0A696;
+  --alert:#D98E8E; --amber:#D9B380;
+  --line:rgba(237,231,222,.08); --line-strong:rgba(200,164,126,.2);
+  --glow:200,164,126;
 }
 html, body { background: var(--bg); color: var(--ink); }
 
@@ -67,25 +67,25 @@ html, body { background: var(--bg); color: var(--ink); }
 [data-theme="aurora"],
 [data-theme="mono"],
 [data-theme="tropical"] {
-  /* The four pastels */
-  --c-lavender: #FFB3C6;
-  --c-purple: #FFF48D;
-  --c-sky: #FFF48D;
-  --c-blue: #FF678B;
+  /* The four coffee tones */
+  --c-lavender: #D9BC9A;
+  --c-purple: #B0A696;
+  --c-sky: #B0A696;
+  --c-blue: #C8A47E;
 
-  --theme-primary: #FF678B;
-  --theme-primary-hover: #FF85A3;
-  --theme-primary-muted: rgba(255, 103, 139, 0.12);
-  --theme-accent-1: #FFF48D;
-  --theme-accent-2: #FF678B;
-  --theme-glow: rgba(255, 103, 139, 0.35);
-  --theme-bg: #0a0b12;
-  --theme-surface: #12131c;
-  --theme-elevated: #1b1d2a;
-  /* Pastel buttons are light, so button text is the dark base for contrast */
-  --theme-text-btn: #0a0b12;
-  --theme-border: rgba(255, 244, 141, 0.1);
-  --theme-border-hover: rgba(255, 244, 141, 0.22);
+  --theme-primary: #C8A47E;
+  --theme-primary-hover: #D9BC9A;
+  --theme-primary-muted: rgba(200, 164, 126, 0.12);
+  --theme-accent-1: #B0A696;
+  --theme-accent-2: #C8A47E;
+  --theme-glow: rgba(200, 164, 126, 0.25);
+  --theme-bg: #0E0C0A;
+  --theme-surface: #171411;
+  --theme-elevated: #1F1B16;
+  /* Caramel buttons are light, so button text is the dark base for contrast */
+  --theme-text-btn: #0E0C0A;
+  --theme-border: rgba(237, 231, 222, 0.08);
+  --theme-border-hover: rgba(200, 164, 126, 0.25);
 }
 
 /* ============================================
@@ -139,7 +139,7 @@ body {
   letter-spacing: -0.011em;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  background: radial-gradient(80% 50% at 50% -5%, rgba(var(--glow),.1), transparent 60%), var(--bg);
+  background: radial-gradient(80% 50% at 50% -5%, rgba(var(--glow),.06), transparent 60%), var(--bg);
 }
 
 /* Hide scrollbar for Chrome, Safari and Opera */
@@ -250,20 +250,12 @@ body {
   border-color: var(--theme-primary);
 }
 
-/* Theme gradient text — sweeps the full pastel palette */
+/* Theme gradient text — quiet caramel-to-cream, no animation */
 .theme-gradient-text {
-  background: linear-gradient(90deg, #FF678B, #FFF48D, #FF678B);
-  background-size: 200% auto;
+  background: linear-gradient(90deg, #C8A47E, #EDE7DE);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
-  animation: gradientText 3s ease infinite;
-}
-
-@keyframes gradientText {
-  0% { background-position: 0% center; }
-  50% { background-position: 100% center; }
-  100% { background-position: 0% center; }
 }
 
 /* Theme card/surface with border */
@@ -316,7 +308,7 @@ body {
    ============================================ */
 
 .glass {
-  background: rgba(18, 19, 28, 0.5);
+  background: rgba(23, 20, 17, 0.55);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
 }
@@ -347,8 +339,8 @@ body {
 }
 
 @keyframes badgeBreathe {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(255, 103, 139, 0.0); }
-  50%      { box-shadow: 0 0 14px 1px rgba(255, 103, 139, 0.45); }
+  0%, 100% { box-shadow: 0 0 0 0 rgba(200, 164, 126, 0.0); }
+  50%      { box-shadow: 0 0 14px 1px rgba(200, 164, 126, 0.22); }
 }
 
 /* Expanding radar ring behind a status dot. Color comes from the element's
@@ -373,7 +365,7 @@ body {
   bottom: 0;
   left: 0;
   width: 28%;
-  background: linear-gradient(100deg, transparent, rgba(255, 244, 141, 0.45), transparent);
+  background: linear-gradient(100deg, transparent, rgba(237, 231, 222, 0.22), transparent);
   animation: badgeSheen 3.8s ease-in-out infinite;
   pointer-events: none;
 }

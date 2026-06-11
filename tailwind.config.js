@@ -4,61 +4,62 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        // ── Custosweb design-system tokens ──
-        bg: '#0d0f1f',
-        panel: '#16182c',
-        'panel-2': '#1f2238',
-        ink: '#ecedff',
-        'ink-dim': '#9698c0',
-        scan: '#FF678B',
-        'scan-dim': '#FFF48D',
-        alert: '#FF2D55',
-        amber: '#ffc24b',
+        // ── Espresso design-system tokens: black & white with coffee accents ──
+        bg: '#0E0C0A',
+        panel: '#171411',
+        'panel-2': '#1F1B16',
+        ink: '#EDE7DE',
+        'ink-dim': '#A89F93',
+        scan: '#C8A47E',
+        'scan-dim': '#B0A696',
+        alert: '#D98E8E',
+        amber: '#D9B380',
         // ── Legacy tokens (kept so existing components don't break) ──
-        // Deep cool-navy base
+        // Warm near-black base
         background: {
-          DEFAULT: '#0a0b12',
-          surface: '#12131c',
-          elevated: '#1b1d2a'
+          DEFAULT: '#0E0C0A',
+          surface: '#171411',
+          elevated: '#1F1B16'
         },
-        // The single pastel accent family — the only palette in the app
+        // The single coffee accent family — the only palette in the app
         accent: {
-          lavender: '#FFB3C6',
-          purple: '#FFF48D',
-          sky: '#FFF48D',
-          blue: '#FF678B'
+          lavender: '#D9BC9A',
+          purple: '#B0A696',
+          sky: '#B0A696',
+          blue: '#C8A47E'
         },
         primary: {
-          DEFAULT: '#FF678B',
-          hover: '#FF85A3',
-          muted: 'rgba(255, 103, 139, 0.12)'
+          DEFAULT: '#C8A47E',
+          hover: '#D9BC9A',
+          muted: 'rgba(200, 164, 126, 0.12)'
         },
-        // Legacy token name, remapped onto the pastel palette
+        // Legacy token name, remapped onto the coffee palette
         aurora: {
-          purple: '#FFF48D',
-          blue: '#FF678B'
+          purple: '#B0A696',
+          blue: '#C8A47E'
         },
-        // Semantic status colors — kept only for scan results & health
+        // Semantic status colors — kept only for scan results & health,
+        // desaturated so the UI still reads black-and-white-first
         success: {
-          DEFAULT: '#34D399',
-          muted: 'rgba(52, 211, 153, 0.12)'
+          DEFAULT: '#8FBF9F',
+          muted: 'rgba(143, 191, 159, 0.12)'
         },
         error: {
-          DEFAULT: '#FF2D55',
-          muted: 'rgba(255, 45, 85, 0.12)'
+          DEFAULT: '#D98E8E',
+          muted: 'rgba(217, 142, 142, 0.12)'
         },
         warning: {
-          DEFAULT: '#FFB84D',
-          muted: 'rgba(255, 184, 77, 0.12)'
+          DEFAULT: '#D9B380',
+          muted: 'rgba(217, 179, 128, 0.12)'
         },
         text: {
-          primary: 'rgba(255, 255, 255, 0.95)',
-          secondary: 'rgba(255, 255, 255, 0.6)',
-          muted: 'rgba(255, 255, 255, 0.4)'
+          primary: 'rgba(237, 231, 222, 0.95)',
+          secondary: 'rgba(237, 231, 222, 0.6)',
+          muted: 'rgba(237, 231, 222, 0.4)'
         },
         border: {
-          DEFAULT: 'rgba(255, 244, 141, 0.1)',
-          hover: 'rgba(255, 244, 141, 0.22)'
+          DEFAULT: 'rgba(237, 231, 222, 0.08)',
+          hover: 'rgba(200, 164, 126, 0.25)'
         }
       },
       fontFamily: {
@@ -80,9 +81,9 @@ module.exports = {
       },
       boxShadow: {
         'glass': '0 8px 32px rgba(0, 0, 0, 0.3)',
-        'glow': '0 0 40px -8px rgba(255,103,139,0.35)',
-        'glow-success': '0 0 20px rgba(52, 211, 153, 0.3)',
-        'glow-purple': '0 0 15px rgba(255, 244, 141, 0.45)'
+        'glow': '0 0 32px -10px rgba(200, 164, 126, 0.25)',
+        'glow-success': '0 0 20px rgba(143, 191, 159, 0.2)',
+        'glow-purple': '0 0 15px rgba(200, 164, 126, 0.3)'
       },
       backdropBlur: {
         'glass': '20px'
