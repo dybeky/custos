@@ -4,10 +4,10 @@ import { useSettingsStore } from '../stores/settings-store'
 
 // The single brand palette (see index.css design tokens).
 const PALETTE = [
-  { hex: '#FFB3C6', name: 'Lavender' },
-  { hex: '#FFF48D', name: 'Lemon' },
-  { hex: '#FF678B', name: 'Pink' },
-  { hex: '#ffc24b', name: 'Amber' }
+  { hex: '#EDE7DE', name: 'Cream' },
+  { hex: '#C8A47E', name: 'Caramel' },
+  { hex: '#B0A696', name: 'Taupe' },
+  { hex: '#0E0C0A', name: 'Espresso' }
 ]
 
 const LANGUAGES: Array<{ id: 'en' | 'ru'; label: string }> = [

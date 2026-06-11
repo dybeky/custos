@@ -53,12 +53,10 @@ export function App() {
             <span
               className="text-3xl font-bold tracking-wide mb-6 block"
               style={{
-                background: 'linear-gradient(90deg, #FF678B, #FFF48D, #FF678B)',
-                backgroundSize: '200% auto',
+                background: 'linear-gradient(90deg, #C8A47E, #EDE7DE)',
                 WebkitBackgroundClip: 'text',
                 WebkitTextFillColor: 'transparent',
                 backgroundClip: 'text',
-                animation: 'gradientText 3s ease infinite',
               }}
             >
               custos

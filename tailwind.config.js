@@ -89,48 +89,14 @@ module.exports = {
         'glass': '20px'
       },
       animation: {
-        'aurora': 'aurora 20s ease infinite',
         'pulse-slow': 'pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite',
         'fade-in': 'fadeIn 0.3s ease-out',
         'slide-up': 'slideUp 0.3s ease-out',
         'slide-in-right': 'slideInRight 0.3s ease-out',
-        'gradient-text': 'gradientText 3s ease infinite',
-        'gradient-bg': 'gradientBg 8s ease infinite',
-        'gradient-pan': 'gradientPan 24s linear infinite',
-        'gradient-border': 'gradientBorder 3s ease infinite',
         'blob-1': 'blob1 20s ease-in-out infinite',
-        'blob-2': 'blob2 25s ease-in-out infinite',
-        'blob-3': 'blob3 18s ease-in-out infinite',
-        'blob-4': 'blob4 22s ease-in-out infinite'
+        'blob-2': 'blob2 25s ease-in-out infinite'
       },
       keyframes: {
-        aurora: {
-          '0%, 100%': { transform: 'translate(0, 0) scale(1)' },
-          '25%': { transform: 'translate(10%, 10%) scale(1.1)' },
-          '50%': { transform: 'translate(-5%, 5%) scale(0.95)' },
-          '75%': { transform: 'translate(-10%, -10%) scale(1.05)' }
-        },
-        gradientText: {
-          '0%': { backgroundPosition: '0% center' },
-          '50%': { backgroundPosition: '100% center' },
-          '100%': { backgroundPosition: '0% center' }
-        },
-        gradientBg: {
-          '0%': { backgroundPosition: '0% 50%' },
-          '50%': { backgroundPosition: '100% 50%' },
-          '100%': { backgroundPosition: '0% 50%' }
-        },
-        // Seamless one-direction pan: shifts by exactly one full gradient
-        // period, so 0% and 100% frames are identical — endless, no reverse.
-        gradientPan: {
-          '0%': { backgroundPosition: '0% 50%' },
-          '100%': { backgroundPosition: '200% 50%' }
-        },
-        gradientBorder: {
-          '0%': { backgroundPosition: '0% center' },
-          '50%': { backgroundPosition: '100% center' },
-          '100%': { backgroundPosition: '0% center' }
-        },
         blob1: {
           '0%, 100%': { transform: 'translate(0, 0) scale(1)' },
           '25%': { transform: 'translate(100px, -80px) scale(1.1)' },
@@ -142,18 +108,6 @@ module.exports = {
           '25%': { transform: 'translate(-80px, 100px) scale(0.95)' },
           '50%': { transform: 'translate(40px, -60px) scale(1.05)' },
           '75%': { transform: 'translate(-60px, -40px) scale(1)' }
-        },
-        blob3: {
-          '0%, 100%': { transform: 'translate(0, 0) scale(1)' },
-          '25%': { transform: 'translate(60px, -40px) scale(1.05)' },
-          '50%': { transform: 'translate(-30px, 80px) scale(0.9)' },
-          '75%': { transform: 'translate(-50px, -30px) scale(1.1)' }
-        },
-        blob4: {
-          '0%, 100%': { transform: 'translate(0, 0) scale(1)' },
-          '25%': { transform: 'translate(-50px, 50px) scale(0.9)' },
-          '50%': { transform: 'translate(70px, -30px) scale(1.1)' },
-          '75%': { transform: 'translate(30px, 60px) scale(0.95)' }
         },
         fadeIn: {
           '0%': { opacity: '0' },
