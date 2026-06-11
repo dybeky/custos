@@ -30,7 +30,9 @@ export const threadDetector = {
           detectorName: 'Thread Start-Address Check',
           title: 'Thread starting outside any module',
           detail: `A thread starts at ${formatPtr(addr)}, which is not inside any loaded module — possible injected/manual-mapped code.`,
-          confidence: 'suspicious'
+          confidence: 'suspicious',
+          i18nKey: 'threadOutsideModule',
+          params: { address: formatPtr(addr) }
         })
       }
     }

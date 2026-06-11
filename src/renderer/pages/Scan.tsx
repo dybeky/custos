@@ -3,7 +3,9 @@ import { useTranslation } from 'react-i18next'
 import { Card, CardContent } from '../components/ui/Card'
 import { Button } from '../components/ui/Button'
 import { CircularProgress } from '../components/ui/Progress'
+import { InfoTip } from '../components/ui/InfoTip'
 import { useScanStore } from '../stores/scan-store'
+import { featureName, featureHelp } from '../utils/feature-i18n'
 
 export function Scan() {
   const { t } = useTranslation()
@@ -115,12 +117,13 @@ export function Scan() {
             </div>
 
             {/* Status Text */}
-            <h2 className="text-xl font-semibold text-ink font-display mb-2">
+            <h2 className="text-xl font-semibold text-ink font-display mb-2 inline-flex items-center gap-2">
               {status === 'scanning'
                 ? t('scan.scanning')
                 : status === 'completed'
                 ? t('scan.scanComplete')
                 : t('scan.readyToScan')}
+              <InfoTip title={t('scan.title')} text={t('help.scanPage')} />
             </h2>
             <p className="text-ink-dim mb-6">
               {status === 'scanning' && progress
@@ -178,12 +181,16 @@ export function Scan() {
                           <span className="text-xs">{index + 1}</span>
                         )}
                       </div>
-                      <div className="flex-1 min-w-0">
-                        <p className={`text-sm font-medium truncate ${
+                      <div className="flex-1 min-w-0 flex items-center gap-1.5">
+                        <p className={`text-sm font-medium truncate min-w-0 ${
                           isActive ? 'text-scan' : isCompleted ? 'text-ink-dim' : 'text-ink-dim/60'
                         }`}>
-                          {scanner.name}
+                          {featureName(t, scanner.id, scanner.name)}
                         </p>
+                        <InfoTip
+                          title={featureName(t, scanner.id, scanner.name)}
+                          text={featureHelp(t, scanner.id, scanner.description)}
+                        />
                       </div>
                       <span className={`text-xs ${
                         isCompleted ? 'text-scan' : isActive ? 'text-scan' : 'text-ink-dim/60'

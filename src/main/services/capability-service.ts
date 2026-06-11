@@ -130,13 +130,19 @@ export function resolveCapability(
 ): ScannerCapability {
   let supported = req.platforms.includes(os.platform)
   let reason: string | undefined
+  let reasonKey: 'platform' | 'build' | undefined
+  let reasonParams: Record<string, string | number> | undefined
 
   if (!supported) {
     reason = `Not available on ${os.name} — requires ${req.requirement}`
+    reasonKey = 'platform'
+    reasonParams = { os: os.name, requirement: req.requirement }
   } else if (req.minWindowsBuild && os.platform === 'windows' && os.build < req.minWindowsBuild) {
     supported = false
     reason = `Requires ${req.requirement} (build ${req.minWindowsBuild}+)`
+    reasonKey = 'build'
+    reasonParams = { requirement: req.requirement, build: req.minWindowsBuild }
   }
 
-  return { ...base, supported, requirement: req.requirement, reason }
+  return { ...base, supported, requirement: req.requirement, reason, reasonKey, reasonParams }
 }

@@ -2,12 +2,15 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Card, CardContent } from '../components/ui/Card'
 import { Button } from '../components/ui/Button'
+import { InfoTip } from '../components/ui/InfoTip'
 import type { LiveFinding, LiveScanStatus } from '../../shared/types'
 import { useGameStore } from '../stores/game-store'
+import { detectorName, detectorHelp } from '../utils/feature-i18n'
 
 type ScanPhase = 'idle' | 'scanning' | 'done'
 
 interface LiveProgress {
+  detectorId: string
   detectorName: string
   current: number
   total: number
@@ -72,6 +75,7 @@ export function LiveScan() {
 
     const unsubProgress = window.electronAPI.onLiveScanProgress(p => {
       setProgress({
+        detectorId: p.detectorId,
         detectorName: p.detectorName,
         current: p.current,
         total: p.total,
@@ -203,6 +207,21 @@ export function LiveScan() {
       ? t('liveScan.confidenceSuspicious')
       : t('liveScan.confidenceInfo')
 
+    const localizedDetector = detectorName(t, finding.detectorId, finding.detectorName)
+
+    // Localized title/detail via the finding's i18n key, falling back to the
+    // English strings produced in the main process. detectorError interpolates
+    // the detector name, which the main process only knows in English.
+    const params = finding.i18nKey === 'detectorError'
+      ? { ...finding.params, name: localizedDetector }
+      : finding.params
+    const title = finding.i18nKey
+      ? t(`liveFindings.${finding.i18nKey}.title`, { ...params, defaultValue: finding.title })
+      : finding.title
+    const detail = finding.i18nKey
+      ? t(`liveFindings.${finding.i18nKey}.detail`, { ...params, defaultValue: finding.detail })
+      : finding.detail
+
     return (
       <div
         key={`${finding.detectorId}-${index}`}
@@ -215,10 +234,11 @@ export function LiveScan() {
               <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-2xs font-medium font-display ${chipClass}`}>
                 {chipLabel}
               </span>
-              <span className="text-xs text-ink-dim">{finding.detectorName}</span>
+              <span className="text-xs text-ink-dim">{localizedDetector}</span>
+              <InfoTip title={localizedDetector} text={detectorHelp(t, finding.detectorId)} />
             </div>
-            <p className={`text-sm font-medium font-display ${titleClass}`}>{finding.title}</p>
-            <p className="text-xs text-ink-dim mt-1 break-all">{finding.detail}</p>
+            <p className={`text-sm font-medium font-display ${titleClass}`}>{title}</p>
+            <p className="text-xs text-ink-dim mt-1 break-all">{detail}</p>
           </div>
         </div>
       </div>
@@ -264,18 +284,19 @@ export function LiveScan() {
             </div>
 
             {/* Title */}
-            <h2 className="text-xl font-semibold text-ink font-display mb-1">
+            <h2 className="text-xl font-semibold text-ink font-display mb-1 inline-flex items-center gap-2">
               {phase === 'scanning'
                 ? t('liveScan.scanning')
                 : phase === 'done'
                 ? t('liveScan.scanComplete')
                 : t('liveScan.title')}
+              <InfoTip title={t('liveScan.title')} text={t('help.liveScanPage')} />
             </h2>
 
             {/* Subtitle */}
             <p className="text-sm text-ink-dim mb-6">
               {phase === 'scanning' && progress
-                ? `${progress.detectorName} — ${Math.round(progress.percentage)}%`
+                ? `${detectorName(t, progress.detectorId, progress.detectorName)} — ${Math.round(progress.percentage)}%`
                 : phase === 'done'
                 ? highCount > 0
                   ? `${highCount} ${t('liveScan.highThreats')}, ${suspiciousCount} ${t('liveScan.suspicious')}`

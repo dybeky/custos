@@ -37,13 +37,20 @@ export interface LiveScanOptions {
 // Detectors enabled in phase 1 + phase 7 (in run order)
 const DETECTORS = [aobDetector, injectedModuleDetector, monoDetector, threadDetector, selfIntegrityDetector, hookDetector]
 
-function makeStatusFinding(title: string, detail: string): LiveFinding {
+function makeStatusFinding(
+  title: string,
+  detail: string,
+  i18nKey?: string,
+  params?: Record<string, string | number>
+): LiveFinding {
   return {
     detectorId: 'orchestrator',
     detectorName: 'Live Scan',
     title,
     detail,
-    confidence: 'info'
+    confidence: 'info',
+    i18nKey,
+    params
   }
 }
 
@@ -61,12 +68,15 @@ export async function runLiveScan(opts: LiveScanOptions): Promise<LiveFinding[]>
           `load in this ${process.arch} build. ` +
           (process.arch === 'arm64'
             ? 'If this persists, run the x64 build (custos-x64.exe) on Windows 11 ARM, where it works under emulation.'
-            : 'Try re-downloading the latest release.')
+            : 'Try re-downloading the latest release.'),
+          process.arch === 'arm64' ? 'nativeUnavailableArm64' : 'nativeUnavailableX64',
+          { arch: process.arch }
         )
       : makeStatusFinding(
           'Native module unavailable (Windows only)',
           'Live memory scanning requires the memoryjs native addon, which is only ' +
-          'available on Windows. Run Custos on a Windows machine to use this feature.'
+          'available on Windows. Run Custos on a Windows machine to use this feature.',
+          'nativeUnavailableNonWin'
         )
     allFindings.push(f)
     emit(IPC_CHANNELS.LIVE_SCAN_RESULT, f)
@@ -80,7 +90,8 @@ export async function runLiveScan(opts: LiveScanOptions): Promise<LiveFinding[]>
     const f = makeStatusFinding(
       'Game not running — start it and rescan',
       'The live scanner could not find a running game process. ' +
-      'Launch your game and click "Live Scan" again.'
+      'Launch your game and click "Live Scan" again.',
+      'gameNotRunning'
     )
     allFindings.push(f)
     emit(IPC_CHANNELS.LIVE_SCAN_RESULT, f)
@@ -94,7 +105,9 @@ export async function runLiveScan(opts: LiveScanOptions): Promise<LiveFinding[]>
     const f = makeStatusFinding(
       'Failed to open game process',
       `Could not open a handle to ${game.name} (PID ${game.pid}). ` +
-      'Ensure Custos is running as Administrator.'
+      'Ensure Custos is running as Administrator.',
+      'openProcessFailed',
+      { name: game.name, pid: game.pid }
     )
     allFindings.push(f)
     emit(IPC_CHANNELS.LIVE_SCAN_RESULT, f)
@@ -111,7 +124,9 @@ export async function runLiveScan(opts: LiveScanOptions): Promise<LiveFinding[]>
     close(proc.handle)
     const f = makeStatusFinding(
       'Process changed during scan',
-      `The process at PID ${game.pid} is now "${openedName}", not "${game.name}". Aborting to avoid scanning the wrong process.`
+      `The process at PID ${game.pid} is now "${openedName}", not "${game.name}". Aborting to avoid scanning the wrong process.`,
+      'processChanged',
+      { pid: game.pid, opened: openedName, expected: game.name }
     )
     allFindings.push(f)
     emit(IPC_CHANNELS.LIVE_SCAN_RESULT, f)
@@ -152,7 +167,9 @@ export async function runLiveScan(opts: LiveScanOptions): Promise<LiveFinding[]>
           detectorName: detector.name,
           title: `Detector error: ${detector.name}`,
           detail: errMsg,
-          confidence: 'info'
+          confidence: 'info',
+          i18nKey: 'detectorError',
+          params: { name: detector.name }
         }]
       }
 

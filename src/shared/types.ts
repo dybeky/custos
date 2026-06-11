@@ -87,7 +87,11 @@ export interface ScannerCapability {
   description: string
   supported: boolean
   requirement: string   // human-readable requirement, e.g. "Windows" or "Windows 10 1709+"
-  reason?: string        // why it is unavailable on this system
+  reason?: string        // why it is unavailable on this system (English fallback)
+  /** i18n key suffix for `reason` ('platform' | 'build') — renderer translates via capability.<key>. */
+  reasonKey?: 'platform' | 'build'
+  /** Interpolation params for `reasonKey` (os, requirement, build). */
+  reasonParams?: Record<string, string | number>
   category: CapabilityCategory  // which app area / tab this check belongs to
 }
 
@@ -108,6 +112,14 @@ export interface LiveFinding {
   detail: string
   /** Confidence level — drives colour coding in the renderer. */
   confidence: LiveFindingConfidence
+  /**
+   * Finding kind for localization — the renderer looks up
+   * liveFindings.<i18nKey>.title/.detail with `params`, falling back to the
+   * English title/detail above when the key (or a sub-key) is missing.
+   */
+  i18nKey?: string
+  /** Interpolation params for i18nKey (addresses, module names, sizes…). */
+  params?: Record<string, string | number>
 }
 
 /** Status object returned by LIVE_GET_STATUS. */

@@ -32,7 +32,8 @@ export const monoDetector = {
         detectorName: 'Mono Debugger-Agent Check',
         title: 'Mono soft-debugger agent enabled',
         detail: 'The game was launched with --debugger-agent=, which lets a managed debugger attach. Common when developing/loading cheats.',
-        confidence: 'high'
+        confidence: 'high',
+        i18nKey: 'monoDebuggerAgent'
       })
     }
 
@@ -43,7 +44,9 @@ export const monoDetector = {
           detectorName: 'Mono Debugger-Agent Check',
           title: 'Mono runtime from suspicious path',
           detail: `${mod.szModule} loaded from ${mod.szExePath}.`,
-          confidence: 'suspicious'
+          confidence: 'suspicious',
+          i18nKey: 'monoSuspiciousPath',
+          params: { module: mod.szModule ?? '', path: mod.szExePath ?? '' }
         })
       }
     }

@@ -1,5 +1,6 @@
 import { ReactNode, useEffect, useRef, useId } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
+import { useTranslation } from 'react-i18next'
 import { cn } from '../../utils/cn'
 
 interface ModalProps {
@@ -27,6 +28,7 @@ export function Modal({
   showCloseButton = true,
   'aria-describedby': ariaDescribedBy
 }: ModalProps) {
+  const { t } = useTranslation()
   const modalRef = useRef<HTMLDivElement>(null)
   const previousActiveElement = useRef<HTMLElement | null>(null)
   const titleId = useId()
@@ -125,7 +127,7 @@ export function Modal({
                 {showCloseButton && (
                   <button
                     onClick={onClose}
-                    aria-label="Close modal"
+                    aria-label={t('general.close')}
                     className="p-1 rounded-lg text-ink-dim hover:text-ink hover:bg-panel-2 transition-colors"
                   >
                     <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
