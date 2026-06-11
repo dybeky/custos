@@ -29,7 +29,10 @@ function makeWindowsOs(build: number): OsInfo {
     edition: '',
     version: build.toString(),
     displayName: `WINDOWS · ${build}`,
-    isWindows11: build >= 22000
+    isWindows11: build >= 22000,
+    arch: 'x64',
+    appArch: 'x64',
+    isEmulated: false
   }
 }
 
@@ -43,7 +46,10 @@ function makeMacOs(): OsInfo {
     edition: 'Sequoia',
     version: '15.0',
     displayName: 'MACOS SEQUOIA · 15.0',
-    isWindows11: false
+    isWindows11: false,
+    arch: 'x64',
+    appArch: 'x64',
+    isEmulated: false
   }
 }
 
@@ -57,7 +63,10 @@ function makeLinuxOs(): OsInfo {
     edition: '',
     version: '6.1.0',
     displayName: 'LINUX 6.1.0',
-    isWindows11: false
+    isWindows11: false,
+    arch: 'x64',
+    appArch: 'x64',
+    isEmulated: false
   }
 }
 

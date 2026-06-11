@@ -3,6 +3,7 @@ import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import { setupIpcHandlers } from './ipc-handlers'
 import { safeOpenExternal } from './utils/safe-open'
+import { getOsInfo } from './utils/os-utils'
 import { logger } from './services/logger'
 import { appStore } from './services/app-store'
 
@@ -73,6 +74,10 @@ app.whenReady().then(() => {
   // Initialize logger
   logger.init()
   logger.logStartup()
+
+  // Warm the OS/arch caches now (one short reg.exe query on Windows) so the
+  // first IPC call never pays for it.
+  getOsInfo()
 
   // Set app user model id for Windows
   electronApp.setAppUserModelId('com.custos.app')
