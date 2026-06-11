@@ -6,10 +6,10 @@
 
 <br/>
 
-[![GitHub release](https://img.shields.io/github/v/release/dybeky/custos?style=for-the-badge&color=FF678B&labelColor=0d0f1f)](https://github.com/dybeky/custos/releases)
-[![CI](https://img.shields.io/github/actions/workflow/status/dybeky/custos/ci.yml?style=for-the-badge&color=FFF48D&labelColor=0d0f1f&label=CI)](https://github.com/dybeky/custos/actions/workflows/ci.yml)
-[![Platform](https://img.shields.io/badge/platform-Windows-FFB3C6?style=for-the-badge&labelColor=0d0f1f)](https://github.com/dybeky/custos/releases)
-[![License: MIT](https://img.shields.io/badge/license-MIT-9698c0?style=for-the-badge&labelColor=0d0f1f)](LICENSE)
+[![GitHub release](https://img.shields.io/github/v/release/dybeky/custos?style=for-the-badge&color=C8A47E&labelColor=0E0C0A)](https://github.com/dybeky/custos/releases)
+[![CI](https://img.shields.io/github/actions/workflow/status/dybeky/custos/ci.yml?style=for-the-badge&color=D9BC9A&labelColor=0E0C0A&label=CI)](https://github.com/dybeky/custos/actions/workflows/ci.yml)
+[![Platform](https://img.shields.io/badge/platform-Windows%20x64%20%7C%20ARM64-B0A696?style=for-the-badge&labelColor=0E0C0A)](https://github.com/dybeky/custos/releases)
+[![License: MIT](https://img.shields.io/badge/license-MIT-A89F93?style=for-the-badge&labelColor=0E0C0A)](LICENSE)
 
 <br/>
 
@@ -74,11 +74,20 @@ Advanced and optional — needs the game open.
 ## Install Custos
 
 1. Open the releases page → **[github.com/dybeky/custos/releases](https://github.com/dybeky/custos/releases)**
-2. Download the latest installer.
-3. **Right‑click the installer → “Run as administrator.”**
-4. Launch Custos and **pick a game** when prompted (Unturned is supported today; Counter‑Strike 2 is marked *coming soon*).
+2. Download the portable build that matches the PC's processor — no installation needed:
+
+   | File | For |
+   |---|---|
+   | **`custos-x64.exe`** | Regular Intel/AMD PCs — the right choice for almost everyone. |
+   | **`custos-arm64.exe`** | Windows-on-ARM devices (e.g. Snapdragon laptops). |
+
+3. Run the file. Custos asks for **Administrator rights automatically** (a standard Windows UAC prompt) — it needs them to read protected artifacts like Prefetch and BAM.
+4. **Pick a game** when prompted (Unturned is supported today; Counter‑Strike 2 is marked *coming soon*).
 
 That's it — you're ready to scan.
+
+> [!TIP]
+> Not sure which build you grabbed? If the x64 build runs on an ARM PC, the Dashboard shows a **"Running under emulation"** notice with a link to the right file.
 
 ---
 
@@ -94,7 +103,7 @@ Custos has a slim **icon‑only sidebar** down the left edge. Hover any icon to 
 | **Results** | Review and export findings. A badge shows the total count. |
 | **Manual** | One‑click shortcuts to open Windows folders, registry keys, and references. |
 | **Utilities** | Links to trusted third‑party forensic tools. |
-| **Settings** | Appearance and app preferences. |
+| **Settings** | Language (English / Русский) and appearance. |
 
 ---
 
@@ -116,6 +125,9 @@ This is the core workflow. It takes under a minute.
 **4.** When everything finishes, the status reads **Scan Complete** with the total number of findings.
 
 **5.** Head to **Results** to review what was found.
+
+> [!TIP]
+> **Not sure what a scanner does?** Hover the small **ⓘ icon** next to any scanner name — on the Scan, Results, Live Scan, and Utilities pages — for a plain‑language explanation of what it inspects and why it matters.
 
 > [!TIP]
 > **Need to stop early?** Click **Cancel Scan** at any time. Custos stops cleanly and never leaves a scan stuck running. Scanners run in smart batches with a built‑in time limit, so one slow scanner can't freeze the whole run.
@@ -248,7 +260,10 @@ Clicking a tool opens its official download page in your browser:
 
 ## Settings
 
-The **Settings** page currently houses **Appearance** — a showcase of the accent colours the interface uses. Custos also ships with English and Russian language support.
+The **Settings** page has two sections:
+
+- **Language** — switch the entire interface between **English** and **Русский** instantly. Every page, scanner description, tooltip, and live‑scan finding is fully translated.
+- **Appearance** — Custos uses a single black‑and‑white palette with warm coffee accents; this section shows the brand colours.
 
 > [!NOTE]
 > Earlier versions had a “Danger Zone” that could delete the app after a scan. That feature has been **removed** — Custos no longer deletes itself or any of your files.
@@ -286,8 +301,11 @@ npm install
 # development mode (hot-reload)
 npm run dev
 
-# production build for Windows
+# production build for Windows (x64 portable)
 npm run package:win
+
+# Windows-on-ARM portable
+npm run package:win:arm64
 ```
 
 - **Requirements:** Node.js 20+. The final packaged build needs a Windows environment (or a `windows-latest` CI runner).
