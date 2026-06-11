@@ -13,43 +13,48 @@ const VM_GUEST_PROCESSES: Record<string, string[]> = {
   Wine: ['winedevice.exe']
 }
 
+// Resolve the real Windows directory — works on any system drive and on
+// Windows-on-ARM (where the app may run emulated but SystemRoot is real).
+const SYSTEM_ROOT = process.env.SystemRoot ?? process.env.windir ?? 'C:\\Windows'
+const sys32 = (rel: string): string => `${SYSTEM_ROOT}\\System32\\${rel}`
+
 // VM Guest drivers (only present INSIDE VM)
 const VM_GUEST_DRIVERS: Record<string, string[]> = {
   VMware: [
-    'C:\\Windows\\System32\\drivers\\vmci.sys',
-    'C:\\Windows\\System32\\drivers\\vmmouse.sys',
-    'C:\\Windows\\System32\\drivers\\vmhgfs.sys',
-    'C:\\Windows\\System32\\drivers\\vmusbmouse.sys',
-    'C:\\Windows\\System32\\drivers\\vmx_svga.sys',
-    'C:\\Windows\\System32\\drivers\\vmxnet.sys'
+    sys32('drivers\\vmci.sys'),
+    sys32('drivers\\vmmouse.sys'),
+    sys32('drivers\\vmhgfs.sys'),
+    sys32('drivers\\vmusbmouse.sys'),
+    sys32('drivers\\vmx_svga.sys'),
+    sys32('drivers\\vmxnet.sys')
   ],
   VirtualBox: [
-    'C:\\Windows\\System32\\drivers\\VBoxGuest.sys',
-    'C:\\Windows\\System32\\drivers\\VBoxMouse.sys',
-    'C:\\Windows\\System32\\drivers\\VBoxSF.sys',
-    'C:\\Windows\\System32\\drivers\\VBoxVideo.sys',
-    'C:\\Windows\\System32\\VBoxControl.exe',
-    'C:\\Windows\\System32\\VBoxTray.exe'
+    sys32('drivers\\VBoxGuest.sys'),
+    sys32('drivers\\VBoxMouse.sys'),
+    sys32('drivers\\VBoxSF.sys'),
+    sys32('drivers\\VBoxVideo.sys'),
+    sys32('VBoxControl.exe'),
+    sys32('VBoxTray.exe')
   ],
   'QEMU/KVM': [
-    'C:\\Windows\\System32\\drivers\\vioscsi.sys',
-    'C:\\Windows\\System32\\drivers\\viostor.sys',
-    'C:\\Windows\\System32\\drivers\\vioinput.sys',
-    'C:\\Windows\\System32\\drivers\\vioser.sys',
-    'C:\\Windows\\System32\\drivers\\balloon.sys'
+    sys32('drivers\\vioscsi.sys'),
+    sys32('drivers\\viostor.sys'),
+    sys32('drivers\\vioinput.sys'),
+    sys32('drivers\\vioser.sys'),
+    sys32('drivers\\balloon.sys')
   ],
   Parallels: [
-    'C:\\Windows\\System32\\drivers\\prl_fs.sys',
-    'C:\\Windows\\System32\\drivers\\prl_pv32.sys',
-    'C:\\Windows\\System32\\drivers\\prl_boot.sys'
+    sys32('drivers\\prl_fs.sys'),
+    sys32('drivers\\prl_pv32.sys'),
+    sys32('drivers\\prl_boot.sys')
   ],
   Xen: [
-    'C:\\Windows\\System32\\drivers\\xenbus.sys',
-    'C:\\Windows\\System32\\drivers\\xenvbd.sys',
-    'C:\\Windows\\System32\\drivers\\xenvif.sys'
+    sys32('drivers\\xenbus.sys'),
+    sys32('drivers\\xenvbd.sys'),
+    sys32('drivers\\xenvif.sys')
   ],
   Sandboxie: [
-    'C:\\Windows\\System32\\drivers\\SbieDrv.sys'
+    sys32('drivers\\SbieDrv.sys')
   ]
 }
 
