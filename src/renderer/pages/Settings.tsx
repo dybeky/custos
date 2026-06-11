@@ -1,8 +1,23 @@
 import { useTranslation } from 'react-i18next'
 import { Card, CardHeader, CardTitle, CardContent } from '../components/ui/Card'
+import { useSettingsStore } from '../stores/settings-store'
+
+// The single brand palette (see index.css design tokens).
+const PALETTE = [
+  { hex: '#FFB3C6', name: 'Lavender' },
+  { hex: '#FFF48D', name: 'Lemon' },
+  { hex: '#FF678B', name: 'Pink' },
+  { hex: '#ffc24b', name: 'Amber' }
+]
+
+const LANGUAGES: Array<{ id: 'en' | 'ru'; label: string }> = [
+  { id: 'en', label: 'English' },
+  { id: 'ru', label: 'Русский' }
+]
 
 export function Settings() {
   const { t } = useTranslation()
+  const { language, setLanguage } = useSettingsStore()
 
   return (
     <div className="flex-1 p-6 overflow-y-auto">
@@ -13,6 +28,31 @@ export function Settings() {
           <p className="text-ink-dim mt-1">{t('settings.subtitle')}</p>
         </div>
 
+        {/* Language */}
+        <Card className="mb-4">
+          <CardHeader>
+            <CardTitle>{t('settings.language')}</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-ink-dim mb-4">{t('settings.languageDesc')}</p>
+            <div className="flex gap-3">
+              {LANGUAGES.map((lang) => (
+                <button
+                  key={lang.id}
+                  onClick={() => setLanguage(lang.id)}
+                  className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors border ${
+                    language === lang.id
+                      ? 'bg-scan/10 text-scan border-scan/40'
+                      : 'text-ink-dim border-[color:var(--line)] hover:text-ink hover:bg-panel-2'
+                  }`}
+                >
+                  {lang.label}
+                </button>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+
         {/* Appearance — single palette showcase */}
         <Card className="mb-4">
           <CardHeader>
@@ -21,12 +61,7 @@ export function Settings() {
           <CardContent>
             <p className="text-sm text-ink-dim mb-4">{t('settings.paletteDesc')}</p>
             <div className="grid grid-cols-4 gap-3">
-              {[
-                { hex: '#FFB3C6', name: 'Lavender' },
-                { hex: '#FFF48D', name: 'Purple' },
-                { hex: '#FFF48D', name: 'Sky' },
-                { hex: '#FF678B', name: 'Blue' }
-              ].map((c) => (
+              {PALETTE.map((c) => (
                 <div key={c.name} className="flex flex-col items-center gap-2">
                   <div
                     className="w-full h-12 rounded-xl border border-[color:var(--line)]"
