@@ -82,7 +82,8 @@
     "noReleases": "No releases found on GitHub",
     "error": "Error",
     "networkUnavailable": "Network unavailable",
-    "timeout": "Timeout"
+    "timeout": "Timeout",
+    "dismiss": "Dismiss"
   },
   "results": {
     "title": "Results",
