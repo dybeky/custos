@@ -1,6 +1,7 @@
 import { release } from 'os'
 import { execFileSync } from 'child_process'
 import { logger } from '../services/logger'
+import { getArchInfo } from './arch-utils'
 
 export type OsPlatform = 'windows' | 'macos' | 'linux' | 'unknown'
 
@@ -16,8 +17,14 @@ export interface OsInfo {
   name: string           // Marketing family, e.g. "Windows 11" or "macOS"
   edition: string         // Feature update / codename, e.g. "24H2" or "Tahoe"
   version: string         // Human version string, e.g. "11 24H2" or "26.5"
-  displayName: string     // UPPERCASE label for the UI, e.g. "WINDOWS 11 · 24H2"
+  displayName: string     // UPPERCASE label for the UI, e.g. "WINDOWS 11 24H2 · 26100 · ARM64"
   isWindows11: boolean
+  /** Real OS CPU architecture ('x64' | 'arm64' | 'ia32' | 'unknown'). */
+  arch: string
+  /** Architecture this Custos binary was built for. */
+  appArch: string
+  /** True when the app runs under emulation (e.g. x64 build on Windows-on-ARM). */
+  isEmulated: boolean
 }
 
 interface RawVersion {
@@ -172,8 +179,11 @@ export function getOsInfo(): OsInfo {
     const edition = getWindowsVersionName(v.build)
     const name = isWin11 ? 'Windows 11' : 'Windows 10'
     const version = `${isWin11 ? '11' : '10'}${edition ? ` ${edition}` : ''}`
-    // Always surface the exact build number, e.g. "WINDOWS 11 24H2 · 26100"
+    // Always surface the exact build number and real OS architecture,
+    // e.g. "WINDOWS 11 24H2 · 26100 · ARM64"
     const label = edition ? `${name} ${edition}` : name
+    const archInfo = getArchInfo()
+    const archLabel = archInfo.osArch === 'unknown' ? '' : ` · ${archInfo.osArch}`
     cachedOsInfo = {
       platform,
       major: v.major,
@@ -182,8 +192,11 @@ export function getOsInfo(): OsInfo {
       name,
       edition,
       version,
-      displayName: (v.build ? `${label} · ${v.build}` : label).toUpperCase(),
-      isWindows11: isWin11
+      displayName: `${v.build ? `${label} · ${v.build}` : label}${archLabel}`.toUpperCase(),
+      isWindows11: isWin11,
+      arch: archInfo.osArch,
+      appArch: archInfo.appArch,
+      isEmulated: archInfo.isEmulated
     }
     return cachedOsInfo
   }
@@ -193,6 +206,7 @@ export function getOsInfo(): OsInfo {
     const edition = getMacEdition(v.major, v.minor)
     const name = 'macOS'
     const version = v.major === 10 ? `${v.major}.${v.minor}.${v.build}` : `${v.major}.${v.minor}`
+    const archInfo = getArchInfo()
     cachedOsInfo = {
       platform,
       major: v.major,
@@ -202,13 +216,17 @@ export function getOsInfo(): OsInfo {
       edition,
       version,
       displayName: (edition ? `macOS ${edition} · ${version}` : `macOS ${version}`).toUpperCase(),
-      isWindows11: false
+      isWindows11: false,
+      arch: archInfo.osArch,
+      appArch: archInfo.appArch,
+      isEmulated: false
     }
     return cachedOsInfo
   }
 
   // Linux / unknown
   const kernel = release()
+  const archInfo = getArchInfo()
   cachedOsInfo = {
     platform,
     major: parseInt(kernel.split('.')[0], 10) || 0,
@@ -218,7 +236,10 @@ export function getOsInfo(): OsInfo {
     edition: '',
     version: kernel,
     displayName: (platform === 'linux' ? `Linux ${kernel}` : 'Unknown OS').toUpperCase(),
-    isWindows11: false
+    isWindows11: false,
+    arch: archInfo.osArch,
+    appArch: archInfo.appArch,
+    isEmulated: false
   }
   return cachedOsInfo
 }

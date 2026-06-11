@@ -64,8 +64,14 @@ export interface OsInfo {
   name: string          // "Windows 11" or "macOS"
   edition: string       // "24H2" or "Tahoe"
   version: string       // "11 24H2" or "26.5"
-  displayName: string   // UPPERCASE label, e.g. "WINDOWS 11 · 24H2"
+  displayName: string   // UPPERCASE label, e.g. "WINDOWS 11 24H2 · 26100 · ARM64"
   isWindows11: boolean
+  /** Real OS CPU architecture ('x64' | 'arm64' | 'ia32' | 'unknown'). */
+  arch: string
+  /** Architecture this Custos binary was built for. */
+  appArch: string
+  /** True when the app runs under emulation (e.g. x64 build on Windows-on-ARM). */
+  isEmulated: boolean
 }
 
 // Backward-compatible alias (renderer previously imported WindowsVersionInfo)
