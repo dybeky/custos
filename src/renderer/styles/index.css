@@ -374,9 +374,7 @@ body {
   .animate-status-ping,
   .badge-sheen,
   .animate-blob-1,
-  .animate-blob-2,
-  .animate-blob-3,
-  .animate-blob-4 {
+  .animate-blob-2 {
     animation: none;
   }
   .badge-sheen { display: none; }

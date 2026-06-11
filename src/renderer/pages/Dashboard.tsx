@@ -1,19 +1,22 @@
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import type { TFunction } from 'i18next'
 import { Card, CardContent } from '../components/ui/Card'
+import { InfoTip } from '../components/ui/InfoTip'
 import { useAppHealthStore } from '../stores/app-health-store'
 import { useGameStore } from '../stores/game-store'
 import { GAMES } from '../../shared/games'
+import { featureName, featureDesc, featureHelp } from '../utils/feature-i18n'
 import type { CapabilityCategory, ScannerCapability, ChangelogGroup } from '../../shared/types'
 
 // Accent color per changelog group — replaces emojis with quiet semantic color.
 const CHANGELOG_ACCENT: Record<string, string> = {
-  New: '#FF678B',          // scan blue
-  Fixes: '#34D399',        // emerald — something resolved
-  Performance: '#FFF48D',  // purple
-  Improvements: '#FFF48D'  // steel blue
+  New: '#C8A47E',          // caramel — the primary accent
+  Fixes: '#8FBF9F',        // sage — something resolved
+  Performance: '#B0A696',  // taupe
+  Improvements: '#B0A696'  // taupe
 }
-const CHANGELOG_ACCENT_DEFAULT = '#FF678B'
+const CHANGELOG_ACCENT_DEFAULT = '#C8A47E'
 
 // Render order + i18n label key for each app-area group.
 const CATEGORY_ORDER: { id: CapabilityCategory; labelKey: string }[] = [
@@ -74,11 +77,11 @@ export function Dashboard() {
           <div className="pointer-events-none absolute inset-0">
             <div
               className="absolute -top-24 -right-16 w-72 h-72 rounded-full blur-3xl opacity-40 animate-blob-1"
-              style={{ background: 'radial-gradient(circle, rgba(255,244,141,0.40), transparent 70%)' }}
+              style={{ background: 'radial-gradient(circle, rgba(217,188,154,0.22), transparent 70%)' }}
             />
             <div
               className="absolute -bottom-24 -left-12 w-72 h-72 rounded-full blur-3xl opacity-30 animate-blob-2"
-              style={{ background: 'radial-gradient(circle, rgba(255,103,139,0.35), transparent 70%)' }}
+              style={{ background: 'radial-gradient(circle, rgba(200,164,126,0.20), transparent 70%)' }}
             />
           </div>
 
@@ -88,17 +91,17 @@ export function Dashboard() {
               <div
                 className="shrink-0 w-14 h-14 rounded-2xl flex items-center justify-center"
                 style={{
-                  background: 'linear-gradient(135deg, rgba(255,244,141,0.15), rgba(255,103,139,0.15))',
-                  boxShadow: '0 0 28px rgba(255,103,139,0.25)',
-                  border: '1px solid rgba(255,103,139,0.2)'
+                  background: 'linear-gradient(135deg, rgba(217,188,154,0.12), rgba(200,164,126,0.12))',
+                  boxShadow: '0 0 28px rgba(200,164,126,0.18)',
+                  border: '1px solid rgba(200,164,126,0.2)'
                 }}
               >
                 <svg className="w-7 h-7" viewBox="0 0 24 24" fill="none">
                   <defs>
                     <linearGradient id="welcomeSword" x1="0" y1="0" x2="24" y2="24">
-                      <stop offset="0%" stopColor="#FF678B" />
-                      <stop offset="50%" stopColor="#FFF48D" />
-                      <stop offset="100%" stopColor="#FF678B" />
+                      <stop offset="0%" stopColor="#C8A47E" />
+                      <stop offset="50%" stopColor="#D9BC9A" />
+                      <stop offset="100%" stopColor="#C8A47E" />
                     </linearGradient>
                   </defs>
                   {/* Blade */}
@@ -148,7 +151,7 @@ export function Dashboard() {
         <Card className="relative overflow-hidden" transition={{ duration: 0.4, delay: 0.08 }}>
           <div
             className="pointer-events-none absolute -top-10 -right-10 w-40 h-40 rounded-full blur-3xl opacity-30"
-            style={{ background: 'radial-gradient(circle, rgba(255,244,141,0.40), transparent 70%)' }}
+            style={{ background: 'radial-gradient(circle, rgba(217,188,154,0.22), transparent 70%)' }}
           />
           <CardContent className="relative">
             <div className="flex items-center justify-between gap-4">
@@ -156,9 +159,9 @@ export function Dashboard() {
                 <div
                   className="shrink-0 w-12 h-12 rounded-2xl flex items-center justify-center"
                   style={{
-                    background: 'linear-gradient(135deg, rgba(255,103,139,0.15), rgba(255,244,141,0.15))',
-                    boxShadow: '0 0 20px rgba(255,103,139,0.2)',
-                    border: '1px solid rgba(255,103,139,0.2)'
+                    background: 'linear-gradient(135deg, rgba(200,164,126,0.12), rgba(217,188,154,0.12))',
+                    boxShadow: '0 0 20px rgba(200,164,126,0.2)',
+                    border: '1px solid rgba(200,164,126,0.2)'
                   }}
                 >
                   <svg className="w-6 h-6 text-scan" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -186,7 +189,7 @@ export function Dashboard() {
                   <span className="absolute inset-0 rounded-full bg-scan animate-status-ping" aria-hidden="true" />
                   <span
                     className="relative w-1.5 h-1.5 rounded-full bg-scan"
-                    style={{ boxShadow: '0 0 8px rgba(255,103,139,0.6)' }}
+                    style={{ boxShadow: '0 0 8px rgba(200,164,126,0.5)' }}
                   />
                 </span>
                 <span className="relative text-2xs font-bold tracking-wide text-scan">
@@ -219,7 +222,7 @@ export function Dashboard() {
                         className="text-2xs font-bold tracking-[0.18em] uppercase font-display"
                         style={{ color: accent }}
                       >
-                        {group.group}
+                        {t(`changelogGroups.${group.group}`, { defaultValue: group.group })}
                       </h3>
                       <span className="text-2xs font-semibold tabular-nums text-ink-dim/60">
                         {group.entries.length}
@@ -334,10 +337,17 @@ export function Dashboard() {
 interface CapabilityChipProps {
   cap: ScannerCapability
   ready: boolean
-  t: (key: string) => string
+  t: TFunction
 }
 
 function CapabilityChip({ cap, ready, t }: CapabilityChipProps) {
+  const name = featureName(t, cap.id, cap.name)
+  const desc = featureDesc(t, cap.id, cap.description)
+  const help = featureHelp(t, cap.id, cap.description)
+  const reason = cap.reasonKey
+    ? t(`capability.${cap.reasonKey}`, { ...cap.reasonParams, defaultValue: cap.reason ?? '' })
+    : cap.reason
+
   return (
     <div
       className={`flex items-start gap-2.5 rounded-xl border px-3 py-2.5 transition-colors ${
@@ -345,7 +355,6 @@ function CapabilityChip({ cap, ready, t }: CapabilityChipProps) {
           ? 'border-scan/20 bg-scan/5'
           : 'border-[color:var(--line)] bg-panel-2/40'
       }`}
-      title={ready ? cap.description : cap.reason || cap.description}
     >
       <div
         className={`mt-0.5 w-5 h-5 rounded-md flex items-center justify-center shrink-0 ${
@@ -363,11 +372,14 @@ function CapabilityChip({ cap, ready, t }: CapabilityChipProps) {
         )}
       </div>
       <div className="min-w-0 flex-1">
-        <p className={`text-sm font-medium truncate ${ready ? 'text-ink' : 'text-ink-dim'}`}>
-          {cap.name}
-        </p>
+        <div className="flex items-center gap-1.5">
+          <p className={`text-sm font-medium truncate ${ready ? 'text-ink' : 'text-ink-dim'}`}>
+            {name}
+          </p>
+          <InfoTip title={name} text={ready ? help : reason || help || desc} />
+        </div>
         <p className="text-[11px] text-ink-dim truncate">
-          {ready ? t('dashboard.ready') : cap.reason || t('dashboard.unavailable')}
+          {ready ? t('dashboard.ready') : reason || t('dashboard.unavailable')}
         </p>
       </div>
     </div>

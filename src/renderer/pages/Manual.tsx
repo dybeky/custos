@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Card } from '../components/ui/Card'
+import { InfoTip } from '../components/ui/InfoTip'
 
 const ERROR_TOAST_MS = 6000
 
@@ -9,6 +10,8 @@ type ActionType = 'path' | 'registry' | 'external'
 
 interface ManualItem {
   label: string
+  /** Optional i18n key — proper nouns (Steam, AppData…) stay untranslated. */
+  labelKey?: string
   hint?: string
   target: string
 }
@@ -17,6 +20,8 @@ interface ManualCategory {
   id: string
   titleKey: string
   descKey?: string
+  /** i18n key of the long explanation shown in the category InfoTip. */
+  helpKey: string
   icon: React.ReactNode
   accent: string
   action: ActionType
@@ -74,25 +79,27 @@ export function Manual() {
     {
       id: 'systemTools',
       titleKey: 'manual.systemTools',
+      helpKey: 'help.manual.systemTools',
       icon: toolIcon,
-      accent: '#FF678B',
+      accent: '#C8A47E',
       action: 'path',
       showHint: true,
       items: [
-        { label: 'Data Usage', hint: 'ms-settings:datausage', target: 'ms-settings:datausage' },
-        { label: 'Windows Defender', hint: 'windowsdefender:', target: 'windowsdefender:' }
+        { label: 'Data Usage', labelKey: 'manual.dataUsage', hint: 'ms-settings:datausage', target: 'ms-settings:datausage' },
+        { label: 'Windows Defender', labelKey: 'manual.windowsDefender', hint: 'windowsdefender:', target: 'windowsdefender:' }
       ]
     },
     {
       id: 'folders',
       titleKey: 'manual.folders',
+      helpKey: 'help.manual.folders',
       icon: folderIcon,
-      accent: '#FFF48D',
+      accent: '#B0A696',
       action: 'path',
       showHint: true,
       items: [
-        { label: 'Videos', hint: '%USERPROFILE%\\Videos', target: '%USERPROFILE%\\Videos' },
-        { label: 'Downloads', hint: '%USERPROFILE%\\Downloads', target: '%USERPROFILE%\\Downloads' },
+        { label: 'Videos', labelKey: 'manual.videos', hint: '%USERPROFILE%\\Videos', target: '%USERPROFILE%\\Videos' },
+        { label: 'Downloads', labelKey: 'manual.downloads', hint: '%USERPROFILE%\\Downloads', target: '%USERPROFILE%\\Downloads' },
         { label: 'AppData', hint: '%APPDATA%', target: '%APPDATA%' },
         { label: 'LocalAppData', hint: '%LOCALAPPDATA%', target: '%LOCALAPPDATA%' },
         { label: 'Prefetch', hint: 'C:\\Windows\\Prefetch', target: 'C:\\Windows\\Prefetch' },
@@ -102,8 +109,9 @@ export function Manual() {
     {
       id: 'games',
       titleKey: 'manual.games',
+      helpKey: 'help.manual.games',
       icon: gameIcon,
-      accent: '#FFF48D',
+      accent: '#B0A696',
       action: 'path',
       showHint: true,
       items: [
@@ -114,8 +122,9 @@ export function Manual() {
     {
       id: 'registry',
       titleKey: 'manual.registry',
+      helpKey: 'help.manual.registry',
       icon: registryIcon,
-      accent: '#FF678B',
+      accent: '#C8A47E',
       action: 'registry',
       grid: true,
       items: [
@@ -134,8 +143,9 @@ export function Manual() {
       id: 'telegram',
       titleKey: 'manual.telegramCheatBots',
       descKey: 'manual.telegramBotsDesc',
+      helpKey: 'help.manual.telegram',
       icon: telegramIcon,
-      accent: '#FFF48D',
+      accent: '#B0A696',
       action: 'external',
       items: [
         { label: '@undeadsellerbot', target: 'https://t.me/undeadsellerbot' },
@@ -146,8 +156,9 @@ export function Manual() {
       id: 'resources',
       titleKey: 'manual.additionalResources',
       descKey: 'manual.additionalResourcesDesc',
+      helpKey: 'help.manual.resources',
       icon: globeIcon,
-      accent: '#FFB3C6',
+      accent: '#D9BC9A',
       action: 'external',
       showHint: true,
       items: [
@@ -201,7 +212,10 @@ export function Manual() {
                   {cat.icon}
                 </span>
                 <div className="flex-1 min-w-0">
-                  <h3 className="text-sm font-semibold text-ink leading-tight font-display">{t(cat.titleKey)}</h3>
+                  <div className="flex items-center gap-1.5">
+                    <h3 className="text-sm font-semibold text-ink leading-tight font-display">{t(cat.titleKey)}</h3>
+                    <InfoTip title={t(cat.titleKey)} text={t(cat.helpKey)} />
+                  </div>
                   {cat.descKey && (
                     <p className="text-2xs text-ink-dim mt-0.5 truncate">{t(cat.descKey)}</p>
                   )}
@@ -237,7 +251,9 @@ export function Manual() {
                     </span>
                     {/* Text */}
                     <span className="flex-1 min-w-0">
-                      <span className="block text-sm text-ink truncate">{item.label}</span>
+                      <span className="block text-sm text-ink truncate">
+                        {item.labelKey ? t(item.labelKey) : item.label}
+                      </span>
                       {cat.showHint && item.hint && (
                         <span className="block text-2xs text-ink-dim font-mono truncate mt-0.5">{item.hint}</span>
                       )}

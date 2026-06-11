@@ -5,12 +5,12 @@ import type { UpdateInfo } from '../../shared/types'
 
 // Accent color per changelog group — keeps the emoji-free changelog readable.
 const ACCENT: Record<string, string> = {
-  New: '#FF678B',
-  Fixes: '#34D399',
-  Performance: '#FFF48D',
-  Improvements: '#FFF48D'
+  New: '#C8A47E',
+  Fixes: '#8FBF9F',
+  Performance: '#B0A696',
+  Improvements: '#B0A696'
 }
-const ACCENT_DEFAULT = '#FF678B'
+const ACCENT_DEFAULT = '#C8A47E'
 
 export function UpdateModal({ info, onClose }: { info: UpdateInfo; onClose: () => void }) {
   const { t } = useTranslation()
