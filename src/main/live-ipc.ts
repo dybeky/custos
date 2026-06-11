@@ -34,6 +34,7 @@ export function setupLiveIpcHandlers(mainWindow: BrowserWindow): void {
     return {
       nativeAvailable,
       platform: process.platform,
+      arch: process.arch,
       gameRunning: game !== null,
       gameName: game?.name
     }

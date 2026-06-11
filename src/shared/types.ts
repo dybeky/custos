@@ -116,6 +116,8 @@ export interface LiveScanStatus {
   nativeAvailable: boolean
   /** process.platform value from the main process. */
   platform: string
+  /** Architecture of this Custos binary (process.arch), for support messaging. */
+  arch: string
   /** True when the Unturned game process was found running. */
   gameRunning: boolean
   /** Name of the game process if found (e.g. "Unturned.exe"). */

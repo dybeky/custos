@@ -145,7 +145,7 @@
     "windowsOnly": "Windows only",
     "windowsOnlyDesc": "Live memory scanning is Windows-only",
     "nativeUnavailable": "Native module not available",
-    "nativeUnavailableDesc": "Native module unavailable — build on Windows to enable",
+    "nativeUnavailableDesc": "The live-scan native module didn't load in this {{arch}} build",
     "gameNotRunning": "Unturned is not running",
     "gameNotRunningDesc": "Start the game, then scan",
     "gameDetected": "Unturned detected — ready to scan",

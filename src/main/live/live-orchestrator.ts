@@ -53,11 +53,21 @@ export async function runLiveScan(opts: LiveScanOptions): Promise<LiveFinding[]>
 
   // ── 1. Native availability ────────────────────────────────────────────────
   if (!isMemoryNativeAvailable()) {
-    const f = makeStatusFinding(
-      'Native module unavailable (Windows only)',
-      'Live memory scanning requires the memoryjs native addon, which is only ' +
-      'available on Windows. Run Custos on a Windows machine to use this feature.'
-    )
+    const onWindows = process.platform === 'win32'
+    const f = onWindows
+      ? makeStatusFinding(
+          `Native module unavailable (${process.arch} build)`,
+          'Live memory scanning requires the memoryjs native addon, which did not ' +
+          `load in this ${process.arch} build. ` +
+          (process.arch === 'arm64'
+            ? 'If this persists, run the x64 build (custos-x64.exe) on Windows 11 ARM, where it works under emulation.'
+            : 'Try re-downloading the latest release.')
+        )
+      : makeStatusFinding(
+          'Native module unavailable (Windows only)',
+          'Live memory scanning requires the memoryjs native addon, which is only ' +
+          'available on Windows. Run Custos on a Windows machine to use this feature.'
+        )
     allFindings.push(f)
     emit(IPC_CHANNELS.LIVE_SCAN_RESULT, f)
     emit(IPC_CHANNELS.LIVE_SCAN_COMPLETE, allFindings)
