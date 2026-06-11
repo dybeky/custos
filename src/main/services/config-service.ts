@@ -199,10 +199,10 @@ class ConfigService {
       },
       paths: {
         windows: {
-          prefetchPath: 'C:\\Windows\\Prefetch',
-          windowsPath: 'C:\\Windows',
-          programFilesX86: 'C:\\Program Files (x86)',
-          programFiles: 'C:\\Program Files'
+          prefetchPath: `${process.env.SystemRoot ?? 'C:\\Windows'}\\Prefetch`,
+          windowsPath: process.env.SystemRoot ?? 'C:\\Windows',
+          programFilesX86: process.env['ProgramFiles(x86)'] ?? 'C:\\Program Files (x86)',
+          programFiles: process.env.ProgramFiles ?? 'C:\\Program Files'
         },
         steam: {
           additionalDrives: ['D:', 'E:', 'F:', 'G:'],
