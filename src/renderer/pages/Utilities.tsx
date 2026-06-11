@@ -1,9 +1,13 @@
 import { useTranslation } from 'react-i18next'
 import { Card, CardContent } from '../components/ui/Card'
 import { Button } from '../components/ui/Button'
+import { InfoTip } from '../components/ui/InfoTip'
+import { featureHelp } from '../utils/feature-i18n'
 
 interface Utility {
   name: string
+  /** Capability/feature id — keys the InfoTip explanation (features.<id>.help). */
+  featureId: string
   descKey: string
   url: string
   icon: React.ReactNode
@@ -20,6 +24,7 @@ const iconProps = {
 const utilities: Utility[] = [
   {
     name: 'LastActivityView',
+    featureId: 'tool-lastactivityview',
     descKey: 'utilities.lastActivityViewDesc',
     url: 'https://www.nirsoft.net/utils/computer_activity_view.html',
     icon: (
@@ -30,6 +35,7 @@ const utilities: Utility[] = [
   },
   {
     name: 'USBDeview',
+    featureId: 'tool-usbdeview',
     descKey: 'utilities.usbDeviewDesc',
     url: 'https://www.nirsoft.net/utils/usb_devices_view.html',
     icon: (
@@ -40,6 +46,7 @@ const utilities: Utility[] = [
   },
   {
     name: 'Everything',
+    featureId: 'tool-everything',
     descKey: 'utilities.everythingDesc',
     url: 'https://www.voidtools.com/',
     icon: (
@@ -50,6 +57,7 @@ const utilities: Utility[] = [
   },
   {
     name: 'System Informer',
+    featureId: 'tool-systeminformer',
     descKey: 'utilities.systemInformerDesc',
     url: 'https://systeminformer.sourceforge.io/',
     icon: (
@@ -61,6 +69,7 @@ const utilities: Utility[] = [
   },
   {
     name: 'ShellBag Analyzer & Cleaner',
+    featureId: 'tool-shellbaganalyzer',
     descKey: 'utilities.shellbagAnalyzerDesc',
     url: 'https://privazer.com/en/download-shellbag-analyzer-shellbag-cleaner.php',
     icon: (
@@ -102,9 +111,12 @@ export function Utilities() {
                       {utility.icon}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <h3 className="text-lg font-semibold text-ink mb-1">
-                        {utility.name}
-                      </h3>
+                      <div className="flex items-center gap-2 mb-1">
+                        <h3 className="text-lg font-semibold text-ink">
+                          {utility.name}
+                        </h3>
+                        <InfoTip title={utility.name} text={featureHelp(t, utility.featureId)} />
+                      </div>
                       <p className="text-sm text-ink-dim mb-4">
                         {t(utility.descKey)}
                       </p>

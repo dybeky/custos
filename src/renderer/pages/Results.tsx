@@ -3,7 +3,9 @@ import { useTranslation } from 'react-i18next'
 import { AnimatePresence, motion } from 'framer-motion'
 import { Card, CardContent } from '../components/ui/Card'
 import { Button } from '../components/ui/Button'
+import { InfoTip } from '../components/ui/InfoTip'
 import { useScanStore } from '../stores/scan-store'
+import { SCANNER_NAME_TO_ID, featureName, featureHelp } from '../utils/feature-i18n'
 
 export function Results() {
   const { t } = useTranslation()
@@ -14,10 +16,11 @@ export function Results() {
   const handleExport = () => {
     const content = results
       .map(r => {
-        const header = `=== ${r.scannerName} ===`
+        const id = SCANNER_NAME_TO_ID[r.scannerName]
+        const header = `=== ${id ? featureName(t, id, r.scannerName) : r.scannerName} ===`
         const findings = r.findings.length > 0
           ? r.findings.join('\n')
-          : 'No findings'
+          : t('results.noFindings')
         return `${header}\n${findings}`
       })
       .join('\n\n')
@@ -112,7 +115,12 @@ export function Results() {
           </Card>
         ) : (
           <div className="space-y-3">
-            {results.map((result, index) => (
+            {results.map((result, index) => {
+              const scannerId = SCANNER_NAME_TO_ID[result.scannerName]
+              const scannerLabel = scannerId
+                ? featureName(t, scannerId, result.scannerName)
+                : result.scannerName
+              return (
               <div
                 key={result.scannerName}
                 className="animate-fade-in"
@@ -139,7 +147,12 @@ export function Results() {
                           )}
                         </div>
                         <div>
-                          <p className="text-sm font-medium text-ink">{result.scannerName}</p>
+                          <div className="flex items-center gap-1.5">
+                            <p className="text-sm font-medium text-ink">{scannerLabel}</p>
+                            {scannerId && (
+                              <InfoTip title={scannerLabel} text={featureHelp(t, scannerId)} />
+                            )}
+                          </div>
                           <p className="text-xs text-ink-dim">
                             {result.duration}ms
                           </p>
@@ -180,7 +193,8 @@ export function Results() {
                   </CardContent>
                 </Card>
               </div>
-            ))}
+              )
+            })}
           </div>
         )}
       </div>

@@ -15,7 +15,9 @@ export function buildAobFinding(name: string, address: bigint): LiveFinding {
     detectorName: 'AOB Memory Signature Scan',
     title: 'Cheat signature found in memory',
     detail: `Signature "${name}" matched at ${formatPtr(address)}.`,
-    confidence: 'high'
+    confidence: 'high',
+    i18nKey: 'aobMatch',
+    params: { name, address: formatPtr(address) }
   }
 }
 

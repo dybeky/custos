@@ -47,6 +47,10 @@ const CHEAT_KEYWORDS: string[] = [
 export interface ModuleClassification {
   suspicious: boolean
   reason: string
+  /** Localization key suffix (liveFindings.<key>) for the reason. */
+  i18nKey?: string
+  /** Interpolation params matching i18nKey. */
+  params?: Record<string, string | number>
 }
 
 /**
@@ -72,25 +76,45 @@ export function classifyModule(
 
   // Known-bad denylist — high confidence
   if (denylist.has(lowerName)) {
-    return { suspicious: true, reason: `Module "${moduleName}" is on the denylist` }
+    return {
+      suspicious: true,
+      reason: `Module "${moduleName}" is on the denylist`,
+      i18nKey: 'moduleDenylist',
+      params: { module: moduleName }
+    }
   }
 
   // Cheat keyword in module name — high confidence
   for (const kw of CHEAT_KEYWORDS) {
     if (lowerName.includes(kw)) {
-      return { suspicious: true, reason: `Module name contains cheat keyword "${kw}": ${moduleName}` }
+      return {
+        suspicious: true,
+        reason: `Module name contains cheat keyword "${kw}": ${moduleName}`,
+        i18nKey: 'moduleKeyword',
+        params: { keyword: kw, module: moduleName }
+      }
     }
   }
 
   // No path → manual-map or reflective inject did not register the module name
   if (!lowerPath || lowerPath === lowerName) {
-    return { suspicious: true, reason: `Module "${moduleName}" has no on-disk path (possible manual map)` }
+    return {
+      suspicious: true,
+      reason: `Module "${moduleName}" has no on-disk path (possible manual map)`,
+      i18nKey: 'moduleNoPath',
+      params: { module: moduleName }
+    }
   }
 
   // Suspicious path fragment
   for (const frag of SUSPICIOUS_PATH_FRAGMENTS) {
     if (lowerPath.includes(frag)) {
-      return { suspicious: true, reason: `Module loaded from suspicious path: ${modulePath}` }
+      return {
+        suspicious: true,
+        reason: `Module loaded from suspicious path: ${modulePath}`,
+        i18nKey: 'moduleSuspiciousPath',
+        params: { path: modulePath }
+      }
     }
   }
 
@@ -150,7 +174,9 @@ export const injectedModuleDetector = {
           detectorName: 'Injected Module / Manual-Map Scan',
           title: 'Suspicious module detected',
           detail: classification.reason,
-          confidence
+          confidence,
+          i18nKey: classification.i18nKey,
+          params: classification.params
         })
       }
     }
@@ -170,7 +196,9 @@ export const injectedModuleDetector = {
           title: 'Private executable memory region',
           detail: `MEM_PRIVATE + executable protection at ${formatPtr(toPtr(region.BaseAddress))} (size: ${region.RegionSize} bytes)` +
             (writableExec ? ' — writable+executable, possible manual-mapped code' : ' — executable private page (may be JIT/Mono)'),
-          confidence: writableExec ? 'suspicious' : 'info'
+          confidence: writableExec ? 'suspicious' : 'info',
+          i18nKey: writableExec ? 'privateExecRwx' : 'privateExecJit',
+          params: { address: formatPtr(toPtr(region.BaseAddress)), size: region.RegionSize }
         })
       }
     }

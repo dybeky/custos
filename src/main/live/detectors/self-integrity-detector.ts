@@ -34,7 +34,8 @@ export const selfIntegrityDetector = {
         title: 'Debugger detected (IsDebuggerPresent)',
         detail:
           'A debugger is attached to the Custos process. This may indicate an attempt to analyse or tamper with the scanner.',
-        confidence: 'high'
+        confidence: 'high',
+        i18nKey: 'debuggerPresent'
       })
     }
 
@@ -46,7 +47,8 @@ export const selfIntegrityDetector = {
         title: 'Remote debugger detected (CheckRemoteDebuggerPresent)',
         detail:
           'CheckRemoteDebuggerPresent returned true for the Custos process. A kernel-level or cross-process debugger may be attached.',
-        confidence: 'high'
+        confidence: 'high',
+        i18nKey: 'remoteDebugger'
       })
     }
 

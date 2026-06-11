@@ -74,7 +74,9 @@ export const hookDetector = {
         detectorName: 'IAT / Inline Hook Check',
         title: 'Hook check skipped',
         detail: `Inline-hook detection uses x64 instruction patterns and is skipped on ${process.arch} builds to avoid false positives.`,
-        confidence: 'info'
+        confidence: 'info',
+        i18nKey: 'hookSkippedArch',
+        params: { arch: process.arch }
       }]
     }
 
@@ -101,7 +103,8 @@ export const hookDetector = {
         detectorName: 'IAT / Inline Hook Check',
         title: 'Hook check skipped',
         detail: 'Could not enumerate the target process modules, so export addresses could not be validated against it. Skipped to avoid false positives.',
-        confidence: 'info'
+        confidence: 'info',
+        i18nKey: 'hookSkippedModules'
       })
       return findings
     }
@@ -119,7 +122,9 @@ export const hookDetector = {
           detectorName: 'IAT / Inline Hook Check',
           title: 'Possible inline hook',
           detail: `Trampoline-like prologue at ${exp.module}!${exp.fn} (${formatPtr(exp.address)}).`,
-          confidence: 'suspicious'
+          confidence: 'suspicious',
+          i18nKey: 'inlineHook',
+          params: { module: exp.module, fn: exp.fn, address: formatPtr(exp.address) }
         })
       }
     }
