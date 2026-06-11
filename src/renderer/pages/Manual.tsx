@@ -164,6 +164,10 @@ export function Manual() {
     else if (action === 'registry') {
       const result = await window.electronAPI.openRegistry(target)
       if (!result.success) {
+        // Clear again here (not just at run() start): two rapid failures both
+        // resolve after their run() guards ran, so the first timer would
+        // otherwise survive and dismiss this toast early.
+        clearTimeout(errorTimer.current)
         setRegistryError(true)
         errorTimer.current = setTimeout(() => setRegistryError(false), ERROR_TOAST_MS)
       }

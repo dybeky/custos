@@ -40,6 +40,7 @@ export function Settings() {
                 <button
                   key={lang.id}
                   onClick={() => setLanguage(lang.id)}
+                  aria-pressed={language === lang.id}
                   className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors border ${
                     language === lang.id
                       ? 'bg-scan/10 text-scan border-scan/40'

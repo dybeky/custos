@@ -256,7 +256,7 @@ export function Dashboard() {
                 </div>
                 <div>
                   <p className="text-sm font-medium text-amber font-display">{t('dashboard.emulatedTitle')}</p>
-                  <p className="text-xs text-ink-dim mt-0.5">{t('dashboard.emulatedDesc', { arch: osInfo.arch })}</p>
+                  <p className="text-xs text-ink-dim mt-0.5">{t('dashboard.emulatedDesc', { arch: osInfo.arch, appArch: osInfo.appArch })}</p>
                 </div>
               </div>
             </CardContent>
