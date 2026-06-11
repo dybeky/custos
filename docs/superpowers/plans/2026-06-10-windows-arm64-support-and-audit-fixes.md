@@ -12,6 +12,7 @@
 - `process-scanner.ts` "unguarded JSON.parse" — already inside try/catch (line 86–119).
 - `scheduled-tasks-scanner.ts` CSV locale fragility — parser already handles quoted fields and uses locale-independent `\`-prefix task-name detection; schtasks CSV column *order* is locale-independent.
 - BAM/shellbags `completed++` "race" — single-threaded event loop; increments happen synchronously at callback start. Semantics are "started count", which is acceptable progress UX. No fix.
+- `process-scanner.ts` tasklist CSV (spec §6 second bullet) — the `/"([^"]+)","(\d+)"/` extraction is structural (quoted name + numeric PID), not column-name-dependent; tasklist CSV field order is locale-independent. No fix.
 - VM-scanner "silent registry failures" — reg.exe uses exit code 1 for both key-not-found and access-denied, and its stderr is localized, so the two can't be distinguished reliably; the app already requires admin (requestedExecutionLevel), making access-denied unlikely. BAM drive-mapping already logs a warning when both fallbacks fail. No fix.
 - Theme picker in Settings — the pink/yellow reskin intentionally collapsed all `data-theme` variants to a single palette (`index.css`: "data-theme variants all resolve to this one palette"). Do not add a theme picker.
 

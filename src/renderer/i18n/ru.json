@@ -82,7 +82,8 @@
     "noReleases": "Релизы на GitHub не найдены",
     "error": "Ошибка",
     "networkUnavailable": "Сеть недоступна",
-    "timeout": "Тайм-аут"
+    "timeout": "Тайм-аут",
+    "dismiss": "Закрыть"
   },
   "results": {
     "title": "Результаты",

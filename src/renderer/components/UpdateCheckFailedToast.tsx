@@ -25,7 +25,7 @@ export function UpdateCheckFailedToast({ onDone }: { onDone: () => void }) {
         >
           <div className="p-3 flex items-start justify-between gap-2">
             <p className="text-xs text-ink-dim">{t('update.checkFailed')}</p>
-            <button onClick={() => setOpen(false)} aria-label="Dismiss" className="text-ink-dim hover:text-ink">
+            <button onClick={() => setOpen(false)} aria-label={t('general.dismiss')} className="text-ink-dim hover:text-ink">
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
               </svg>
