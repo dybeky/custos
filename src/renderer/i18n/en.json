@@ -3,7 +3,7 @@
     "title": "Settings",
     "subtitle": "Configure custos preferences",
     "appearance": "Appearance",
-    "paletteDesc": "Custos uses a single pastel palette throughout the interface.",
+    "paletteDesc": "Custos uses a single black-and-white palette with warm coffee accents throughout the interface.",
     "about": "About",
     "version": "Version:",
     "developer": "Developer:",
@@ -35,6 +35,16 @@
     "emulatedTitle": "Running under emulation",
     "emulatedDesc": "This PC is {{arch}}, but you're running the {{appArch}} build. Download custos-{{arch}}.exe for full speed."
   },
+  "changelogGroups": {
+    "New": "New",
+    "Fixes": "Fixes",
+    "Performance": "Performance",
+    "Improvements": "Improvements"
+  },
+  "capability": {
+    "platform": "Not available on {{os}} — requires {{requirement}}",
+    "build": "Requires {{requirement}} (build {{build}}+)"
+  },
   "scan": {
     "title": "Scan",
     "startScan": "START SCAN",
@@ -62,6 +72,7 @@
     "additionalResources": "Additional Resources",
     "additionalResourcesDesc": "Websites where cheats are commonly sold",
     "dataUsage": "Data Usage",
+    "windowsDefender": "Windows Defender",
     "videos": "Videos",
     "downloads": "Downloads",
     "registryKeyNotFound": "Registry key does not exist on this system"
@@ -83,7 +94,10 @@
     "error": "Error",
     "networkUnavailable": "Network unavailable",
     "timeout": "Timeout",
-    "dismiss": "Dismiss"
+    "dismiss": "Dismiss",
+    "close": "Close",
+    "loading": "Loading",
+    "moreInfo": "More info"
   },
   "results": {
     "title": "Results",
@@ -96,7 +110,8 @@
     "exportResults": "EXPORT RESULTS",
     "exportJSON": "EXPORT JSON",
     "runScanToSee": "Run a scan to see results",
-    "noResultsYet": "No results yet"
+    "noResultsYet": "No results yet",
+    "noFindings": "No findings"
   },
   "header": {
     "allSystemsOk": "All systems OK",
@@ -162,5 +177,268 @@
     "noThreatsFound": "No live threats detected",
     "noLiveThreats": "No live threats detected",
     "noLiveThreatsDesc": "The process memory appears clean"
+  },
+  "features": {
+    "appdata": {
+      "name": "AppData Scanner",
+      "desc": "Scanning AppData folders by keywords",
+      "help": "Searches the Roaming and Local AppData folders for files and folders whose names match known cheat keywords. Many cheat loaders unpack their files or store configs here."
+    },
+    "prefetch": {
+      "name": "Prefetch Scanner",
+      "desc": "Scanning Windows Prefetch folder",
+      "help": "Reads C:\\Windows\\Prefetch, where Windows records every program launch. Reveals cheats that were executed in the past — even if the files were deleted afterwards."
+    },
+    "recentfiles": {
+      "name": "Recent Files Scanner",
+      "desc": "Scanning recently accessed files",
+      "help": "Checks the Windows recent-files list for documents and executables the user opened recently, including files that have since been removed."
+    },
+    "gamefolder": {
+      "name": "Game Folder Scanner",
+      "desc": "Scanning game installation directories",
+      "help": "Inspects the game installation folder for foreign files: injected DLLs, modified configs, or leftover cheat files."
+    },
+    "registry": {
+      "name": "Registry Scanner",
+      "desc": "Registry search by keywords (MuiCache, AppSwitched, ShowJumpView)",
+      "help": "Searches forensic registry keys (MuiCache, AppSwitched, ShowJumpView) where Windows logs the names of programs that ran. These traces survive file deletion."
+    },
+    "browserhistory": {
+      "name": "Browser History Scanner",
+      "desc": "Deep search of browser history and caches by keywords",
+      "help": "Deep-searches the history and caches of installed browsers for visits to cheat sites, downloads, and related keywords."
+    },
+    "process": {
+      "name": "Process Scanner",
+      "desc": "Scanning running processes with paths and command lines",
+      "help": "Lists all running processes with their full paths and command lines and matches them against cheat keywords — catches software that is active right now."
+    },
+    "steam": {
+      "name": "Steam Scanner",
+      "desc": "Scanning Steam accounts and folders",
+      "help": "Examines Steam on this PC: which accounts have logged in, and whether suspicious files are present inside the Steam directory."
+    },
+    "amcache": {
+      "name": "Amcache Scanner",
+      "desc": "Scanning Amcache for program execution history",
+      "help": "Parses the Amcache hive, where Windows keeps a record of executed programs with paths and timestamps — even for files that no longer exist."
+    },
+    "bam": {
+      "name": "BAM/DAM Scanner",
+      "desc": "Scanning Background Activity Moderator for execution history",
+      "help": "Reads the Background Activity Moderator (BAM/DAM), a Windows service that tracks which programs each user ran recently."
+    },
+    "shellbags": {
+      "name": "Shellbags Scanner",
+      "desc": "Scanning Shellbags for folder access history",
+      "help": "Analyzes ShellBag registry data, which records every folder ever opened in Explorer — exposes cheat folders even after they were deleted."
+    },
+    "vm": {
+      "name": "VM Scanner",
+      "desc": "Detection of virtual machines and sandbox environments",
+      "help": "Detects whether Custos is running inside a virtual machine or sandbox — a common trick to present a clean PC during a screen check."
+    },
+    "dnscache": {
+      "name": "DNS Cache Scanner",
+      "desc": "Scanning Windows DNS cache for suspicious domain resolutions",
+      "help": "Inspects the Windows DNS cache for recently resolved cheat-related domains — shows which sites this PC contacted since the last reboot."
+    },
+    "scheduledtasks": {
+      "name": "Scheduled Tasks Scanner",
+      "desc": "Scanning Windows Task Scheduler for suspicious persistence entries",
+      "help": "Scans the Windows Task Scheduler for suspicious entries that relaunch cheat software or keep it persistent across reboots."
+    },
+    "filehash": {
+      "name": "File Hash Scanner",
+      "desc": "SHA-256 hashing of Downloads/Desktop/Temp against known cheat hashes",
+      "help": "Computes SHA-256 hashes of files in Downloads, Desktop and Temp and compares them against a database of known cheat hashes — catches renamed files."
+    },
+    "windowmodule": {
+      "name": "Window & Module Scanner",
+      "desc": "Scans process window titles and loaded modules against the keyword list",
+      "help": "Matches the window titles and loaded modules of running processes against the keyword list — finds cheats hiding behind renamed executables."
+    },
+    "manual-shortcuts": {
+      "name": "Folder & settings shortcuts",
+      "desc": "Open Windows folders and settings pages",
+      "help": "One-click shortcuts to the Windows folders and settings pages most commonly checked during a manual review."
+    },
+    "manual-registry": {
+      "name": "Registry shortcuts",
+      "desc": "Jump to forensic registry keys in regedit",
+      "help": "Opens regedit directly at forensic registry keys so you can inspect program-execution traces yourself."
+    },
+    "manual-links": {
+      "name": "Reference links",
+      "desc": "Open Telegram and marketplace reference links",
+      "help": "Quick links to Telegram bots and marketplaces where cheats are sold — useful for checking whether the user has interacted with them."
+    },
+    "tool-lastactivityview": {
+      "name": "LastActivityView",
+      "desc": "Computer activity log viewer",
+      "help": "NirSoft tool that builds a timeline of computer activity: program launches, opened files, and system events."
+    },
+    "tool-usbdeview": {
+      "name": "USBDeview",
+      "desc": "Connected USB device history",
+      "help": "NirSoft tool that lists every USB device ever connected to this PC — helps spot flash drives used to carry cheats."
+    },
+    "tool-everything": {
+      "name": "Everything",
+      "desc": "Instant file-name search",
+      "help": "Instant file-name search across all NTFS drives — far faster and more complete than Windows search."
+    },
+    "tool-systeminformer": {
+      "name": "System Informer",
+      "desc": "Advanced process viewer",
+      "help": "Advanced process viewer (formerly Process Hacker): inspect threads, loaded modules, handles and memory of running processes."
+    },
+    "tool-shellbaganalyzer": {
+      "name": "ShellBag Analyzer",
+      "desc": "ShellBag inspection & cleanup",
+      "help": "Inspects and cleans ShellBag data — the folder-browsing traces Explorer leaves in the registry."
+    },
+    "export-csv": {
+      "name": "CSV export",
+      "desc": "Export scan results as CSV",
+      "help": "Saves all scan findings to a text file for sharing or archiving."
+    },
+    "export-json": {
+      "name": "JSON export",
+      "desc": "Export scan results as JSON",
+      "help": "Saves the full scan report as machine-readable JSON."
+    }
+  },
+  "detectors": {
+    "aob": {
+      "name": "AOB Memory Signature Scan",
+      "help": "Scans the game process memory for byte signatures (AOB patterns) of known cheats."
+    },
+    "injected-module": {
+      "name": "Injected Module / Manual-Map Scan",
+      "help": "Looks for DLLs injected into the game: denylisted names, modules without an on-disk path (manual mapping), suspicious load paths, and private executable memory regions."
+    },
+    "mono": {
+      "name": "Mono Debugger-Agent Check",
+      "help": "Checks whether the Mono runtime was started with a debugger agent or loaded from an unusual path — a common pattern for Unturned cheat loaders."
+    },
+    "thread-start": {
+      "name": "Thread Start-Address Check",
+      "help": "Verifies that every thread in the game starts inside a legitimately loaded module; threads starting in raw memory indicate injected code."
+    },
+    "self-integrity": {
+      "name": "Self-Integrity Check",
+      "help": "Makes sure Custos itself is not being debugged or tampered with during the scan."
+    },
+    "hook": {
+      "name": "IAT / Inline Hook Check",
+      "help": "Reads the prologues of hook-prone WinAPI exports inside the game process to spot inline hooks and trampolines installed by cheats."
+    },
+    "orchestrator": {
+      "name": "Live Scan",
+      "help": "Status messages from the live-scan engine."
+    }
+  },
+  "liveFindings": {
+    "aobMatch": {
+      "title": "Cheat signature found in memory",
+      "detail": "Signature \"{{name}}\" matched at {{address}}."
+    },
+    "hookSkippedArch": {
+      "title": "Hook check skipped",
+      "detail": "Inline-hook detection uses x64 instruction patterns and is skipped on {{arch}} builds to avoid false positives."
+    },
+    "hookSkippedModules": {
+      "title": "Hook check skipped",
+      "detail": "Could not enumerate the target process modules, so export addresses could not be validated against it. Skipped to avoid false positives."
+    },
+    "inlineHook": {
+      "title": "Possible inline hook",
+      "detail": "Trampoline-like prologue at {{module}}!{{fn}} ({{address}})."
+    },
+    "moduleDenylist": {
+      "title": "Suspicious module detected",
+      "detail": "Module \"{{module}}\" is on the denylist"
+    },
+    "moduleKeyword": {
+      "title": "Suspicious module detected",
+      "detail": "Module name contains cheat keyword \"{{keyword}}\": {{module}}"
+    },
+    "moduleNoPath": {
+      "title": "Suspicious module detected",
+      "detail": "Module \"{{module}}\" has no on-disk path (possible manual map)"
+    },
+    "moduleSuspiciousPath": {
+      "title": "Suspicious module detected",
+      "detail": "Module loaded from suspicious path: {{path}}"
+    },
+    "privateExecRwx": {
+      "title": "Private executable memory region",
+      "detail": "MEM_PRIVATE + executable protection at {{address}} (size: {{size}} bytes) — writable+executable, possible manual-mapped code"
+    },
+    "privateExecJit": {
+      "title": "Private executable memory region",
+      "detail": "MEM_PRIVATE + executable protection at {{address}} (size: {{size}} bytes) — executable private page (may be JIT/Mono)"
+    },
+    "monoDebuggerAgent": {
+      "title": "Mono soft-debugger agent enabled",
+      "detail": "The game was launched with --debugger-agent=, which lets a managed debugger attach. Common when developing/loading cheats."
+    },
+    "monoSuspiciousPath": {
+      "title": "Mono runtime from suspicious path",
+      "detail": "{{module}} loaded from {{path}}."
+    },
+    "threadOutsideModule": {
+      "title": "Thread starting outside any module",
+      "detail": "A thread starts at {{address}}, which is not inside any loaded module — possible injected/manual-mapped code."
+    },
+    "debuggerPresent": {
+      "title": "Debugger detected (IsDebuggerPresent)",
+      "detail": "A debugger is attached to the Custos process. This may indicate an attempt to analyse or tamper with the scanner."
+    },
+    "remoteDebugger": {
+      "title": "Remote debugger detected (CheckRemoteDebuggerPresent)",
+      "detail": "CheckRemoteDebuggerPresent returned true for the Custos process. A kernel-level or cross-process debugger may be attached."
+    },
+    "nativeUnavailableArm64": {
+      "title": "Native module unavailable ({{arch}} build)",
+      "detail": "Live memory scanning requires the memoryjs native addon, which did not load in this {{arch}} build. If this persists, run the x64 build (custos-x64.exe) on Windows 11 ARM, where it works under emulation."
+    },
+    "nativeUnavailableX64": {
+      "title": "Native module unavailable ({{arch}} build)",
+      "detail": "Live memory scanning requires the memoryjs native addon, which did not load in this {{arch}} build. Try re-downloading the latest release."
+    },
+    "nativeUnavailableNonWin": {
+      "title": "Native module unavailable (Windows only)",
+      "detail": "Live memory scanning requires the memoryjs native addon, which is only available on Windows. Run Custos on a Windows machine to use this feature."
+    },
+    "gameNotRunning": {
+      "title": "Game not running — start it and rescan",
+      "detail": "The live scanner could not find a running game process. Launch your game and click \"Live Scan\" again."
+    },
+    "openProcessFailed": {
+      "title": "Failed to open game process",
+      "detail": "Could not open a handle to {{name}} (PID {{pid}}). Ensure Custos is running as Administrator."
+    },
+    "processChanged": {
+      "title": "Process changed during scan",
+      "detail": "The process at PID {{pid}} is now \"{{opened}}\", not \"{{expected}}\". Aborting to avoid scanning the wrong process."
+    },
+    "detectorError": {
+      "title": "Detector error: {{name}}"
+    }
+  },
+  "help": {
+    "scanPage": "Runs all forensic scanners against this PC: file system, registry, execution history (Prefetch, Amcache, BAM), processes, Steam, DNS cache and more. Results appear on the Results tab.",
+    "liveScanPage": "Attaches to the running game process and scans its memory in real time: cheat signatures, injected modules, suspicious threads and hooks. Run it while the game is open.",
+    "manual": {
+      "systemTools": "Opens Windows settings pages for a quick manual look — for example, Data Usage shows which apps used the network recently.",
+      "folders": "Folders where cheats are typically stored or leave traces. Look for recently changed files and suspicious executables.",
+      "games": "Game and Steam installation folders — check for foreign DLLs and recently modified files.",
+      "registry": "Forensic registry keys where Windows logs program execution. Each button opens regedit at the exact key.",
+      "telegram": "Cheats are often sold through these Telegram bots. Opening a bot in the user's Telegram can reveal whether they have interacted with it.",
+      "resources": "Marketplaces where cheats are commonly sold. Review purchase history together with the user if needed."
+    }
   }
 }
