@@ -2,6 +2,7 @@ import { ipcMain, app, BrowserWindow } from 'electron'
 import { IPC_CHANNELS, ScanResult, UserSettings, ScannerInfo, OsInfo, ScannerCapability } from '../shared/types'
 import { logger } from './services/logger'
 import { execFile } from 'child_process'
+import { promisify } from 'util'
 import { getScannerFactory, ScannerName } from './scanners'
 import { getOsInfo, getTimeoutMultiplier } from './utils/os-utils'
 import { getScannerCapabilities, getSupportedScannerIds, getAllCapabilities } from './services/capability-service'
@@ -14,6 +15,8 @@ import { checkForUpdate } from './services/updater'
 import { appStore } from './services/app-store'
 import { safeOpenExternal, safeOpenPath } from './utils/safe-open'
 import { z } from 'zod'
+
+const execFileP = promisify(execFile)
 
 // Strict schema for partial user settings — rejects unknown properties
 const UserSettingsPartialSchema = z.object({
@@ -181,16 +184,13 @@ export function setupIpcHandlers(mainWindow: BrowserWindow): void {
     safeOpenPath(path)
   })
 
-  // Open registry key - optimized for speed
-  ipcMain.handle(IPC_CHANNELS.APP_OPEN_REGISTRY, (_event, keyPath: string): { success: boolean; error?: string } => {
-
+  ipcMain.handle(IPC_CHANNELS.APP_OPEN_REGISTRY, async (_event, keyPath: string): Promise<{ success: boolean; error?: string }> => {
     // Validate keyPath. Reject leading/trailing backslashes — a path must be a
     // hive root followed by backslash-separated segments, never an empty segment.
     if (!keyPath || !/^[A-Za-z0-9\\_\-\s.(){}]+$/.test(keyPath) || keyPath.startsWith('\\') || keyPath.endsWith('\\')) {
       return { success: false, error: 'Invalid registry key path' }
     }
 
-    // Expand HKCU to full form
     const expandedKeyPath = keyPath
       .replace(/^HKCU\\/i, 'HKEY_CURRENT_USER\\')
       .replace(/^HKLM\\/i, 'HKEY_LOCAL_MACHINE\\')
@@ -198,29 +198,29 @@ export function setupIpcHandlers(mainWindow: BrowserWindow): void {
       .replace(/^HKCR\\/i, 'HKEY_CLASSES_ROOT\\')
       .replace(/^HKCC\\/i, 'HKEY_CURRENT_CONFIG\\')
 
-    // Fire and forget - write LastKey and start regedit without waiting
-    // Step 1: Write LastKey (async, don't wait)
-    execFile('reg', [
-      'add',
-      'HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Applets\\Regedit',
-      '/v', 'LastKey',
-      '/t', 'REG_SZ',
-      '/d', expandedKeyPath,
-      '/f'
-    ], (writeError) => {
-      if (writeError) {
-        logger.debug('Failed to write regedit LastKey', { error: writeError.message })
-      }
-      // Step 2: Start regedit after LastKey is written (minimal delay)
-      setTimeout(() => {
-        execFile('regedit.exe', (launchError) => {
-          if (launchError) {
-            logger.debug('Failed to launch regedit', { error: launchError.message })
-          }
-        })
-      }, 50)
-    })
+    try {
+      // Point regedit's "last opened key" at the target, then launch it.
+      await execFileP('reg', [
+        'add',
+        'HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Applets\\Regedit',
+        '/v', 'LastKey',
+        '/t', 'REG_SZ',
+        '/d', expandedKeyPath,
+        '/f'
+      ], { timeout: 5000, windowsHide: true })
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : String(error)
+      logger.debug('Failed to write regedit LastKey', { error: msg })
+      return { success: false, error: 'Could not prepare regedit' }
+    }
 
+    // regedit stays open until the user closes it, so only spawn errors are
+    // observable — report those, otherwise assume the launch succeeded.
+    execFile('regedit.exe', (launchError) => {
+      if (launchError) {
+        logger.debug('Failed to launch regedit', { error: launchError.message })
+      }
+    })
     return { success: true }
   })
 
