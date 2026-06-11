@@ -1,3 +1,54 @@
+/* MuseoModerno — brand font, Latin only. Cyrillic falls back to Inter below. */
+@font-face {
+  font-family: 'MuseoModerno';
+  font-style: normal;
+  font-weight: 100;
+  font-display: swap;
+  src: url('../assets/fonts/MuseoModerno-Thin.ttf') format('truetype');
+}
+@font-face {
+  font-family: 'MuseoModerno';
+  font-style: normal;
+  font-weight: 200;
+  font-display: swap;
+  src: url('../assets/fonts/MuseoModerno-ExtraLight.ttf') format('truetype');
+}
+@font-face {
+  font-family: 'MuseoModerno';
+  font-style: normal;
+  font-weight: 300;
+  font-display: swap;
+  src: url('../assets/fonts/MuseoModerno-Light.ttf') format('truetype');
+}
+@font-face {
+  font-family: 'MuseoModerno';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('../assets/fonts/MuseoModerno-Regular.ttf') format('truetype');
+}
+@font-face {
+  font-family: 'MuseoModerno';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url('../assets/fonts/MuseoModerno-Medium.ttf') format('truetype');
+}
+@font-face {
+  font-family: 'MuseoModerno';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('../assets/fonts/MuseoModerno-Bold.ttf') format('truetype');
+}
+@font-face {
+  font-family: 'MuseoModerno';
+  font-style: normal;
+  font-weight: 800;
+  font-display: swap;
+  src: url('../assets/fonts/MuseoModerno-ExtraBold.ttf') format('truetype');
+}
+
 @font-face {
   font-family: 'Inter';
   font-style: normal;
@@ -54,7 +105,7 @@
 }
 html, body { background: var(--bg); color: var(--ink); }
 
-.font-display { letter-spacing: -0.02em; font-weight: 600; }
+.font-display { letter-spacing: .01em; font-weight: 600; }
 .font-mono { font-variant-numeric: tabular-nums; }
 .glow-scan { box-shadow: 0 0 0 1px var(--line-strong), 0 0 40px -8px rgba(var(--glow),.35); }
 .text-glow { text-shadow: 0 0 24px rgba(var(--glow),.45); }
@@ -135,8 +186,9 @@ html, body { background: var(--bg); color: var(--ink); }
 
 /* Font smoothing + base body styles */
 body {
-  font-family: 'Inter', system-ui, -apple-system, sans-serif;
-  letter-spacing: -0.011em;
+  /* MuseoModerno has no Cyrillic glyphs, so Russian text falls through to Inter */
+  font-family: 'MuseoModerno', 'Inter', system-ui, -apple-system, sans-serif;
+  letter-spacing: 0;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   background: radial-gradient(80% 50% at 50% -5%, rgba(var(--glow),.06), transparent 60%), var(--bg);
