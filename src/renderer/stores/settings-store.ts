@@ -1,4 +1,5 @@
 import { create } from 'zustand'
+import i18n from '../i18n'
 
 export type ThemeName = 'aurora' | 'mono' | 'tropical'
 
@@ -27,6 +28,7 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
 
   setLanguage: (value) => {
     set({ language: value })
+    i18n.changeLanguage(value)
     get().saveSettings()
   },
 
@@ -48,8 +50,11 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
         : 'tropical'
       document.documentElement.setAttribute('data-theme', theme)
 
+      const language = settings.language === 'ru' ? 'ru' : 'en'
+      i18n.changeLanguage(language)
+
       set({
-        language: settings.language,
+        language,
         version,
         theme,
         isLoading: false
