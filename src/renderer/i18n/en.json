@@ -33,7 +33,7 @@
     "changelogEmpty": "Couldn't load the changelog right now.",
     "autoDetected": "Auto-detected for your system",
     "emulatedTitle": "Running under emulation",
-    "emulatedDesc": "This PC is {{arch}}, but you're running the x64 build. Download custos-{{arch}}.exe for full speed."
+    "emulatedDesc": "This PC is {{arch}}, but you're running the {{appArch}} build. Download custos-{{arch}}.exe for full speed."
   },
   "scan": {
     "title": "Scan",
