@@ -1,5 +1,9 @@
+import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { motion, AnimatePresence } from 'framer-motion'
 import { Card } from '../components/ui/Card'
+
+const ERROR_TOAST_MS = 6000
 
 type ActionType = 'path' | 'registry' | 'external'
 
@@ -61,6 +65,10 @@ const chevron = (
 
 export function Manual() {
   const { t } = useTranslation()
+  const [registryError, setRegistryError] = useState(false)
+  const errorTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
+
+  useEffect(() => () => clearTimeout(errorTimer.current), [])
 
   const categories: ManualCategory[] = [
     {
@@ -149,10 +157,17 @@ export function Manual() {
     }
   ]
 
-  const run = (action: ActionType, target: string) => {
+  const run = async (action: ActionType, target: string) => {
+    clearTimeout(errorTimer.current)
+    setRegistryError(false)
     if (action === 'path') window.electronAPI.openPath(target)
-    else if (action === 'registry') window.electronAPI.openRegistry(target)
-    else window.electronAPI.openExternal(target)
+    else if (action === 'registry') {
+      const result = await window.electronAPI.openRegistry(target)
+      if (!result.success) {
+        setRegistryError(true)
+        errorTimer.current = setTimeout(() => setRegistryError(false), ERROR_TOAST_MS)
+      }
+    } else window.electronAPI.openExternal(target)
   }
 
   return (
@@ -231,6 +246,28 @@ export function Manual() {
           ))}
         </div>
       </div>
+
+      {/* Registry failure toast */}
+      <AnimatePresence>
+        {registryError && (
+          <motion.div
+            initial={{ opacity: 0, x: 40, y: 10 }}
+            animate={{ opacity: 1, x: 0, y: 0 }}
+            exit={{ opacity: 0, x: 40 }}
+            transition={{ type: 'spring', stiffness: 300, damping: 26 }}
+            className="fixed bottom-4 right-4 z-[60] w-72 rounded-xl bg-panel border border-[color:var(--line-strong)] shadow-lg overflow-hidden"
+          >
+            <div className="p-3 flex items-start justify-between gap-2">
+              <p className="text-xs text-ink-dim">{t('manual.registryKeyNotFound')}</p>
+              <button onClick={() => setRegistryError(false)} aria-label="Dismiss" className="text-ink-dim hover:text-ink">
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   )
 }
