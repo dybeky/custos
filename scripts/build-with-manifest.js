@@ -28,8 +28,11 @@ if (!fs.existsSync(icon)) {
 
 // Find rcedit
 let rcedit;
-const globalRcedit = path.join(process.env.APPDATA || '', 'npm/node_modules/rcedit/bin/rcedit-x64.exe');
-const localRcedit = path.join(__dirname, '../node_modules/rcedit/bin/rcedit-x64.exe');
+// rcedit-x64.exe runs on x64 hosts; the x86 rcedit.exe runs everywhere else
+// (including Windows-on-ARM via built-in x86 emulation).
+const rceditBin = process.arch === 'x64' ? 'rcedit-x64.exe' : 'rcedit.exe';
+const globalRcedit = path.join(process.env.APPDATA || '', `npm/node_modules/rcedit/bin/${rceditBin}`);
+const localRcedit = path.join(__dirname, `../node_modules/rcedit/bin/${rceditBin}`);
 
 if (fs.existsSync(localRcedit)) {
   rcedit = localRcedit;
