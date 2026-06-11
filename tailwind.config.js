@@ -62,8 +62,8 @@ module.exports = {
         }
       },
       fontFamily: {
-        display: ['MuseoModerno', 'system-ui', 'sans-serif'],
-        body: ['MuseoModerno', 'system-ui', 'sans-serif'],
+        display: ['Inter', 'system-ui', 'sans-serif'],
+        body: ['Inter', 'system-ui', 'sans-serif'],
         sans: ['Inter', 'system-ui', 'sans-serif'],
         mono: ['JetBrains Mono', 'monospace']
       },
