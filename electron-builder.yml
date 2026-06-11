@@ -24,12 +24,13 @@ win:
     - target: portable
       arch:
         - x64
+        - arm64
   icon: resources/icon.ico
   requestedExecutionLevel: requireAdministrator
   signAndEditExecutable: false
 
 portable:
-  artifactName: custos.exe
+  artifactName: custos-${arch}.exe
   requestExecutionLevel: admin
 
 extraResources:

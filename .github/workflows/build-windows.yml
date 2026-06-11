@@ -4,6 +4,10 @@ on:
 jobs:
   package:
     runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        arch: [x64, arm64]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -11,9 +15,10 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
-      - run: npm run package:win
+      - run: npm run build
+      - run: npx electron-builder --win --${{ matrix.arch }}
       - uses: actions/upload-artifact@v4
         with:
-          name: custos-windows-portable
-          path: release/custos.exe
+          name: custos-windows-${{ matrix.arch }}
+          path: release/custos-${{ matrix.arch }}.exe
           if-no-files-found: error
