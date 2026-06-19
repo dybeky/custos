@@ -4,6 +4,8 @@ import { logger } from './services/logger'
 import { execFile } from 'child_process'
 import { promisify } from 'util'
 import { getScannerFactory, ScannerName } from './scanners'
+import { analyze } from './intel/risk-engine'
+import { osMetaFromOsInfo, makeScanId } from './intel/report-context'
 import { getOsInfo, getTimeoutMultiplier } from './utils/os-utils'
 import { getScannerCapabilities, getSupportedScannerIds, getAllCapabilities } from './services/capability-service'
 import { runScan } from './scan-orchestrator'
@@ -72,6 +74,9 @@ export function setupIpcHandlers(mainWindow: BrowserWindow): void {
   // Timeout per scanner — adaptive based on Windows version
   const SCANNER_TIMEOUT_MS = Math.round(30000 * getTimeoutMultiplier())
 
+  // Static for Phase 1; the signature-service supplies a real version in a later phase.
+  const SIGNATURE_VERSION = 'bundled-1'
+
   // Start scan
   ipcMain.handle(IPC_CHANNELS.SCAN_START, async (_event, scannerIds?: ScannerName[]): Promise<ScanResult[]> => {
     // Runtime shape validation — TypeScript types are erased at the IPC boundary.
@@ -99,6 +104,7 @@ export function setupIpcHandlers(mainWindow: BrowserWindow): void {
 
     // The session stays "in progress" until runScan settles — even after a
     // SCAN_CANCEL — so a second SCAN_START can't interleave and clobber state.
+    const scanStartedAt = Date.now()
     try {
       return await scanSession.run(async (signal) => {
         const results = await runScan({
@@ -118,6 +124,18 @@ export function setupIpcHandlers(mainWindow: BrowserWindow): void {
           failed: results.filter(r => !r.success).length
         })
 
+        const report = analyze(results, {
+          scanId: makeScanId(scanStartedAt),
+          scannedAt: new Date(scanStartedAt).toISOString(),
+          durationMs: Date.now() - scanStartedAt,
+          appVersion: app.getVersion(),
+          signatureVersion: SIGNATURE_VERSION,
+          gameId: null,
+          os: osMetaFromOsInfo(getOsInfo()),
+          findKeyword: (value: string) => scannerFactory.getKeywordMatcher().findKeyword(value),
+          suppression: { whitelistedSignatures: [], dismissedFindingIds: [] }
+        })
+        safeSend(IPC_CHANNELS.SCAN_REPORT, report)
         safeSend(IPC_CHANNELS.SCAN_COMPLETE, results)
         return results
       })
