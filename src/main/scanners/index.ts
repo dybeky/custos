@@ -70,6 +70,10 @@ export class ScannerFactory {
     return this.scanners.get(name)
   }
 
+  getKeywordMatcher(): KeywordMatcher {
+    return this.keywordMatcher
+  }
+
   getAllScanners(): BaseScanner[] {
     return Array.from(this.scanners.values())
   }
