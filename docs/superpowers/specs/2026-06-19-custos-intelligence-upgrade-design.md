@@ -24,6 +24,8 @@ The engineering is strong (near-textbook Electron security, disciplined TypeScri
 Turn the collector into an **intelligence engine** wrapped in a **moderator workflow**.
 
 - **Conservative by design.** Verdict scoring requires corroboration. A lone keyword match stays low. The product never says "guilty" — it ranks leads. This matches Custos's own "findings are leads, not proof" ethos.
+- **Raw scanner output is evidence, never an accusation.** A scanner string is only *input* to the verdict engine. Nothing a scanner emits, on its own, constitutes a conclusion about a person. Only the engine produces a graded judgement, and even "critical" means "investigate now," not "guilty." This is stated in code comments on the engine boundary and in the export/verdict copy.
+- **Severity and confidence are independent axes.** *Severity* = how serious this evidence **type** is if genuine (a known-cheat hash is critical; a VM hint is info). *Confidence* = how sure we are this particular trace is a **real** cheat artifact (a lone string match is low; the same signature corroborated across several artifacts is high). A finding can be high-severity yet low-confidence. The verdict weighs both, and only high-confidence evidence can drive the band upward.
 - **Centralize the intelligence.** Scanners keep emitting `string[]`. A single pure engine enriches and scores. This keeps all 16 scanners untouched and puts the smarts in one unit-tested module.
 - **Backward compatible at each step.** `ScanResult` keeps `findings: string[]`. New structure is additive. Typecheck + tests stay green at every phase gate.
 - **No fabricated data.** We build the hash/AOB ingestion pipeline and expand keyword coverage, but real cheat hashes/AOB signatures are data the maintainer supplies (and remote updates deliver). We will not invent hashes.
@@ -57,10 +59,15 @@ The `ScanReport` is the new central artifact. It is produced once per scan by a 
 Additive. Existing `ScanResult`, `ScanProgress`, `LiveFinding` stay.
 
 ```ts
+// Two independent axes (see §2): severity = impact-if-real, confidence = certainty-it's-real.
 export type Severity = 'critical' | 'high' | 'medium' | 'low' | 'info'
+export type Confidence = 'high' | 'medium' | 'low'
+
+// Trust level of a known-file-hash signature (see §8). Only 'verified' can drive a critical verdict alone.
+export type HashTrust = 'verified' | 'community'
 
 export type FindingCategory =
-  | 'hash'        // known-cheat file hash (near-proof)
+  | 'hash'        // known-cheat file hash
   | 'execution'   // evidence a keyword-named binary ran (BAM, Amcache, Prefetch)
   | 'runtime'     // currently running / loaded (process, window/module)
   | 'persistence' // scheduled tasks etc.
@@ -70,16 +77,30 @@ export type FindingCategory =
   | 'context'     // steam, shellbags — supporting context
   | 'environment' // VM/sandbox indicators (context only, not a cheat)
 
+// Explainability primitive: every upgrade/downgrade carries a reason (see §2, point 3).
+export interface ScoreReason {
+  code: string                 // stable id, e.g. 'corroboration' | 'verified-hash' | 'lone-match' | 'community-hash-uncorroborated' | 'environment-only'
+  direction: 'up' | 'down' | 'neutral'
+  text: string                 // English, human-readable; renderer localizes via code+params
+  signature?: string
+  params?: Record<string, string | number>
+}
+
 export interface AnalyzedFinding {
   id: string                 // stable: hash(scannerId + ':' + value)
   scannerId: ScannerName
   value: string              // the raw evidence string shown today
-  severity: Severity         // after classification + correlation boost
-  baseSeverity: Severity     // before correlation, for transparency
   category: FindingCategory
   matched: string | null     // the keyword/hash/signature that matched, if any
+  hashTrust?: HashTrust      // when category === 'hash' (see §8): 'verified' | 'community'
+  severity: Severity         // after correlation; impact-if-real
+  baseSeverity: Severity     // before correlation, for transparency
+  confidence: Confidence     // after correlation; certainty-it's-real
+  baseConfidence: Confidence // before correlation, for transparency
   correlationId: string | null  // links findings that share a signature
-  dismissed?: boolean        // triage state (Phase 3), persisted
+  reasons: ScoreReason[]     // why severity/confidence moved from base → final
+  dismissed?: boolean        // triage: marked reviewed/false-positive (from SuppressionState)
+  whitelisted?: boolean      // triage: signature marked not-a-cheat (from SuppressionState)
 }
 
 export interface Correlation {
@@ -88,7 +109,8 @@ export interface Correlation {
   categories: FindingCategory[]   // distinct categories it appeared in
   scannerIds: ScannerName[]       // distinct scanners it appeared in
   strength: number                // = distinct category count
-  severity: Severity              // correlation-derived severity
+  severity: Severity              // correlation-derived
+  confidence: Confidence          // corroboration raises confidence
 }
 
 export type VerdictBand = 'clean' | 'low' | 'medium' | 'high' | 'critical'
@@ -96,13 +118,22 @@ export type VerdictBand = 'clean' | 'low' | 'medium' | 'high' | 'critical'
 export interface Verdict {
   score: number              // 0–100, conservative
   band: VerdictBand
-  rationale: string          // one-line, English; renderer localizes via key+params
+  rationale: string          // one-line summary, English; renderer localizes via key+params
   rationaleKey?: string
   rationaleParams?: Record<string, string | number>
+  reasons: ScoreReason[]     // ordered explanation of every upgrade/downgrade that set the band
+}
+
+// Triage state — defined now, persisted in Phase 2, surfaced in the UI in Phase 3.
+// The engine accepts it as input from the first phase so suppression is honoured immediately.
+export interface SuppressionState {
+  whitelistedSignatures: string[]  // signatures the moderator marked as not-a-cheat (case-insensitive)
+  dismissedFindingIds: string[]    // specific findings marked reviewed/false-positive
 }
 
 export interface ScanReportMeta {
   appVersion: string
+  engineVersion: string      // RISK_ENGINE_VERSION at analysis time — keeps history/diff comparisons meaningful across scoring changes (see §6)
   scannedAt: string          // ISO
   durationMs: number
   gameId: GameId | null
@@ -116,7 +147,7 @@ export interface ScanReport {
   id: string                 // stable scan id (timestamp-derived, passed in — no Date.now in pure code)
   meta: ScanReportMeta
   verdict: Verdict
-  findings: AnalyzedFinding[]   // flat, all scanners, enriched + sorted by severity
+  findings: AnalyzedFinding[]   // flat, all scanners, enriched + sorted by (severity, confidence)
   correlations: Correlation[]
   scanners: Array<{ id: ScannerName; name: string; success: boolean; error?: string; durationMs: number; count: number }>
   contentHash?: string       // SHA-256 of canonical body, for tamper-evidence (Phase 5)
@@ -127,7 +158,7 @@ export interface ScanReport {
 
 A pure module: `analyze(results: ScanResult[], ctx: AnalyzeContext): ScanReport`. No I/O, no clock (timestamps/ids passed in), fully unit-testable. `ctx` carries the keyword matcher, the scanner policy, signature version, OS/game/version meta, and the set of dismissed finding ids / whitelisted signatures.
 
-### 5.1 Classification
+### 5.1 Classification (severity = impact-if-real)
 
 For each raw finding string of each scanner:
 
@@ -135,7 +166,7 @@ For each raw finding string of each scanner:
 
 | Scanner(s) | Category | Base severity | Rationale |
 |---|---|---|---|
-| `filehash` | hash | **critical** | a known-cheat hash is near-proof |
+| `filehash` | hash | **critical** (verified) / high (community) | a *verified* known-cheat hash is near-proof; a *community* hash is strong but unvetted (see §5.3, §8) |
 | `bam`, `amcache`, `prefetch` | execution | high | a keyword-named binary actually ran |
 | `process`, `windowmodule` | runtime | high | running/loaded right now |
 | `scheduledtasks` | persistence | high | kept alive across reboots |
@@ -145,31 +176,35 @@ For each raw finding string of each scanner:
 | `steam`, `shellbags` | context | low | supporting context only |
 | `vm` | environment | info | environment signal, not a cheat itself |
 
-2. **Matched signature** via `keywordMatcher.findKeyword(value)` (already returns the matched keyword, `keyword-matcher.ts:64`). Hash-scanner findings are recognized as hash matches. `matched` may be `null` (e.g. VM/context findings with no keyword) — those keep base severity and never drive a high verdict.
+2. **Matched signature** via `keywordMatcher.findKeyword(value)` (already returns the matched keyword, `keyword-matcher.ts:64`). File-hash findings carry the matched hash + its `hashTrust`. `matched` may be `null` (e.g. VM/context findings with no keyword).
 
-### 5.2 Correlation (the intelligence)
+### 5.2 Base confidence & correlation (confidence = certainty-it's-real)
 
-Group findings by `matched` signature. For each group spanning ≥2 **distinct categories**, create a `Correlation`. Strength = distinct category count.
+Confidence starts low and is *earned* by corroboration — this is the core of the conservative bias.
 
-- strength ≥ 3 → correlation severity **critical**, boost member findings to at least high
-- strength = 2 → correlation severity **high**, boost members to at least medium-high
-- strength = 1 → no boost; members keep base severity
+- **Base confidence** = **low** for any single lone match (one finding, one category), regardless of its severity. A verified hash is the one exception: base confidence **high** (it is a content match, not a name coincidence). A community hash starts at **medium**.
+- **Correlation:** group findings by `matched` signature. For each group spanning ≥ 2 **distinct categories**, create a `Correlation` (strength = distinct category count):
+  - strength ≥ 3 → confidence **high**; member findings' confidence raised to high, severity to at least high.
+  - strength = 2 → confidence **medium**; members raised to at least medium severity / medium confidence.
+  - strength = 1 → no boost; members keep base severity and **low** confidence.
 
-This is what makes "undead in Prefetch + BAM + AppData" read as one high-confidence signal instead of three coincidences.
+Every boost records a `ScoreReason` on the affected findings (e.g. `{code:'corroboration', direction:'up', text:"corroborated across execution, file, network", signature:'undead'}`). This is what makes "undead in Prefetch + BAM + AppData" read as one high-confidence signal rather than three coincidences — and it is fully explainable per finding.
 
-### 5.3 Verdict (conservative)
+### 5.3 Verdict (conservative, explainable)
 
-- **critical** — any `hash` finding, **or** any correlation with strength ≥ 3.
-- **high** — any correlation with strength ≥ 2, **or** a runtime/execution finding whose signature also appears as a file finding.
-- **medium** — multiple independent medium findings (≥ 3 distinct signatures), no corroboration.
+The band can only be raised by **high-confidence** evidence:
+
+- **critical** — a **verified** `hash` finding, **or** any correlation of strength ≥ 3 (high confidence).
+- **high** — any correlation of strength ≥ 2 (medium confidence), **or** a runtime/execution finding whose signature also appears as a file finding, **or** a **community** hash that is corroborated by ≥ 1 other category.
+- **medium** — several independent medium findings (≥ 3 distinct signatures) with no corroboration, **or** a lone community hash (uncorroborated → capped here, never critical).
 - **low** — one or two lone medium/low findings.
 - **clean** — no findings, or only `environment`/`context` with no keyword match.
 
-Score (0–100) is a normalized weighted sum mapped onto the bands; conservative weights keep lone findings well below the high threshold. `rationale` names the driving evidence ("3 artifacts corroborate signature 'undead'").
+Score (0–100) is a conservative normalized weighted sum mapped onto the bands; lone findings stay well below the high threshold. The `Verdict.reasons[]` array records every upgrade/downgrade in order (`verified-hash`, `corroboration`, `community-hash-uncorroborated`, `lone-match`, `environment-only`, …) with human-readable text, and `rationale` is the one-line summary of the dominant reason. **Suppression** (`SuppressionState`): whitelisted signatures and dismissed finding ids are excluded from the verdict computation entirely (they still appear in the finding list, flagged, for transparency).
 
 ### 5.4 Wiring
 
-`ipc-handlers` builds the `ScanReport` after `runScan` resolves and emits it on a new `SCAN_REPORT` channel (in addition to existing per-scanner `SCAN_RESULT` events, which stay for live progress). Renderer `scan-store` holds the report; derived counts come from it.
+`ipc-handlers` builds the `ScanReport` after `runScan` resolves — stamping `meta.engineVersion = RISK_ENGINE_VERSION` and `meta.signatureVersion` — and emits it on a new `SCAN_REPORT` channel (in addition to the existing per-scanner `SCAN_RESULT` events, which stay for live progress). Renderer `scan-store` holds the report; derived counts come from it. The engine itself is pure: scan id, `scannedAt`, `engineVersion`, and `SuppressionState` are all passed in via `AnalyzeContext` (no `Date.now()`/`Math.random()` inside).
 
 ## 6. Persistence, history & diff (`src/main/services/history-service.ts`)
 
@@ -179,7 +214,7 @@ electron-store is kept for settings; full reports are too large for one JSON blo
 - A compact **index** (`history-index.json`) holds `{ id, scannedAt, gameId, band, score, caseLabel, findingCount }` per scan for fast listing.
 - A retention cap (default 100, configurable in Settings) prunes oldest.
 - IPC: `HISTORY_LIST`, `HISTORY_GET`, `HISTORY_DELETE`, `HISTORY_CLEAR`.
-- **Diff:** `diffReports(prev, next)` (pure, tested) classifies each finding id/signature as `new | resolved | unchanged`. The History/Results UI shows "N new since last scan of this case."
+- **Diff:** `diffReports(prev, next)` (pure, tested) classifies each finding id/signature as `new | resolved | unchanged`. The History/Results UI shows "N new since last scan of this case." When `prev.meta.engineVersion !== next.meta.engineVersion`, the diff surfaces a notice that scoring logic changed between runs, so a band/severity delta may reflect an engine update rather than new evidence — `engineVersion` on every report is what keeps cross-time comparisons honest.
 - **Case identity:** `caseLabel`/`caseNote` are editable on Results and saved into the report; the export and history list key off them.
 
 New page: **History** (sidebar entry) — list of past scans with band, score, case label, date; open one to view its full report (reuses the Results renderer in read-only mode); delete; compare to another run of the same case.
@@ -198,9 +233,10 @@ New page: **History** (sidebar entry) — list of past scans with band, score, c
 - Bundled `resources/*.json` remain the baseline.
 - On launch (and on demand from Settings), fetch a signed-by-version signature bundle from a pinned GitHub raw/release URL, reusing the existing `getJson` helper (timeout + abort + Zod, `github-service.ts:32`).
 - Schema gains `version` + `updatedAt`; keyword entries gain optional `severity`/`category`/`game` metadata (back-compat: plain strings still valid). Validated with Zod; a malformed/remote payload is rejected and the baseline is kept — remote data can never break scanning.
+- **Hash trust (per your point 5).** `HashTrust = 'verified' | 'community'`. The hashes schema moves from a bare `sha256: string[]` to entries that carry trust: `{ sha256, trust, label? }`. **Provenance sets the default for legacy bare lists:** a *bundled* bare list is treated as `verified` (it ships in the maintainer-curated binary); a *remote* bare list defaults to `community`. An explicit `trust` field always wins. Only `verified` hashes can drive a `critical` verdict on their own; `community` hashes are high-severity but require corroboration to escalate the band (enforced in §5.3).
 - Cache the newest valid bundle to `userData`; effective set = max(version) of bundled/cached/fetched.
 - Surface "Signatures vX · updated Y" + a **Check now** button in Settings and on the Dashboard.
-- Expand bundled keyword coverage; wire the hash/AOB pipeline so the maintainer (or a remote bundle) can populate `hashes.json`/`signatures.json` without an app release. **No fabricated hashes.**
+- Expand bundled keyword coverage; wire the hash/AOB pipeline so the maintainer (or a remote bundle) can populate `hashes.json`/`signatures.json` without an app release. **No fabricated hashes** — verified hashes are supplied by the maintainer; the pipeline and trust model are what we build.
 
 ## 9. Credible export (Phase 5)
 
@@ -231,10 +267,17 @@ Enrich `.txt` and full-`ScanReport` `.json` export:
 
 ## 12. Testing strategy
 
-- **risk-engine**: pure, table-driven unit tests — classification per scanner, correlation strength thresholds, conservative verdict boundaries (lone match stays low; 3-way corroboration → critical; hash → critical), dismissed/whitelisted suppression.
+- **risk-engine**: pure, table-driven unit tests —
+  - classification per scanner (category + base severity);
+  - **two-axis correctness**: a lone high-severity name match stays **low confidence**; corroboration raises confidence not just severity;
+  - correlation strength thresholds (1 / 2 / ≥3 → low / medium / high confidence);
+  - **conservative verdict boundaries**: lone match → low band; 3-way corroboration → critical; **verified** hash alone → critical; **community** hash alone → capped at medium, escalates only when corroborated;
+  - **explainability**: every upgrade/downgrade emits a `ScoreReason` with the expected `code`/`direction`; `Verdict.reasons` ordering;
+  - **suppression**: whitelisted signatures and dismissed finding ids are excluded from the verdict but still present (flagged) in the finding list;
+  - **determinism**: identical input ⇒ identical output (ids/timestamps injected; no clock/RNG).
 - **diffReports**: new/resolved/unchanged across report pairs.
 - **history-service**: index round-trip, retention pruning, delete/clear (temp dir).
-- **signature-service**: bundled fallback, version-max selection, Zod rejection of malformed remote payloads, back-compat with plain-string keyword entries.
+- **signature-service**: bundled fallback, version-max selection, Zod rejection of malformed remote payloads, back-compat with plain-string keyword entries, and **hash-trust defaulting by provenance** (bundled bare list → `verified`; remote bare list → `community`; explicit `trust` wins).
 - **export**: content-hash stability + tamper detection.
 - Existing 251 tests must stay green; typecheck clean; CI (typecheck → lint → test → build) unchanged.
 
