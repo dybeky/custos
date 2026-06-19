@@ -1,5 +1,5 @@
 import { contextBridge, ipcRenderer } from 'electron'
-import { IPC_CHANNELS, ScanResult, ScanProgress, UserSettings, ScannerInfo, OsInfo, ScannerCapability, ScannerName, LiveFinding, LiveScanStatus } from '../shared/types'
+import { IPC_CHANNELS, ScanResult, ScanProgress, UserSettings, ScannerInfo, OsInfo, ScannerCapability, ScannerName, LiveFinding, LiveScanStatus, ScanReport } from '../shared/types'
 import type { ChangelogGroup, UpdateInfo } from '../shared/types'
 import type { GameId } from '../shared/games'
 
@@ -7,6 +7,7 @@ export type ScanProgressCallback = (progress: ScanProgress) => void
 export type ScanResultCallback = (result: ScanResult) => void
 export type ScanCompleteCallback = (results: ScanResult[]) => void
 export type ScanErrorCallback = (error: { message: string }) => void
+export type ScanReportCallback = (report: ScanReport) => void
 
 // Live-scan callback types
 export type LiveScanResultCallback = (finding: LiveFinding) => void
@@ -56,6 +57,14 @@ const api = {
     }
     ipcRenderer.on(IPC_CHANNELS.SCAN_COMPLETE, listener)
     return () => ipcRenderer.removeListener(IPC_CHANNELS.SCAN_COMPLETE, listener)
+  },
+
+  onScanReport: (callback: ScanReportCallback): (() => void) => {
+    const listener = (_event: Electron.IpcRendererEvent, report: ScanReport): void => {
+      callback(report)
+    }
+    ipcRenderer.on(IPC_CHANNELS.SCAN_REPORT, listener)
+    return () => ipcRenderer.removeListener(IPC_CHANNELS.SCAN_REPORT, listener)
   },
 
   onScanError: (callback: ScanErrorCallback): (() => void) => {
