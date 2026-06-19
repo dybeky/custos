@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { classifyFindings } from './risk-engine'
+import { classifyFindings, correlate } from './risk-engine'
 import type { ScanResult } from '../../shared/types'
 
 function result(scannerName: string, findings: string[], success = true): ScanResult {
@@ -45,5 +45,47 @@ describe('classifyFindings', () => {
     const a = classifyFindings([result('AppData Scanner', ['undead'])], findKeyword)
     const b = classifyFindings([result('AppData Scanner', ['undead'])], findKeyword)
     expect(a[0].id).toBe(b[0].id)
+  })
+})
+
+describe('correlate', () => {
+  // Build classified findings for one signature spread across N scanners/categories.
+  function findingsFor(signature: string, scanners: string[]) {
+    return classifyFindings(
+      scanners.map(s => result(s, [`x ${signature} y`])),
+      () => signature
+    )
+  }
+
+  it('does not correlate a signature confined to one category', () => {
+    // appdata + recentfiles are both category 'file' → single category, no correlation
+    const { correlations, findings } = correlate(findingsFor('undead', ['AppData Scanner', 'Recent Files Scanner']))
+    expect(correlations).toHaveLength(0)
+    expect(findings.every(f => f.confidence === 'low')).toBe(true)
+  })
+
+  it('correlates across 2 distinct categories → medium confidence', () => {
+    const { correlations, findings } = correlate(findingsFor('undead', ['AppData Scanner', 'BAM/DAM Scanner']))
+    expect(correlations).toHaveLength(1)
+    expect(correlations[0].strength).toBe(2)
+    expect(correlations[0].confidence).toBe('medium')
+    expect(findings.every(f => f.confidence === 'medium')).toBe(true)
+    expect(findings.every(f => f.reasons.some(r => r.code === 'corroboration'))).toBe(true)
+  })
+
+  it('correlates across 3+ distinct categories → high confidence and ≥ high severity', () => {
+    const { correlations, findings } = correlate(
+      findingsFor('undead', ['AppData Scanner', 'BAM/DAM Scanner', 'DNS Cache Scanner'])
+    )
+    expect(correlations[0].strength).toBe(3)
+    expect(correlations[0].confidence).toBe('high')
+    expect(findings.every(f => f.confidence === 'high')).toBe(true)
+    expect(findings.every(f => f.severity === 'high' || f.severity === 'critical')).toBe(true)
+  })
+
+  it('does not mutate the input array elements', () => {
+    const input = findingsFor('undead', ['AppData Scanner', 'BAM/DAM Scanner'])
+    correlate(input)
+    expect(input.every(f => f.confidence === 'low')).toBe(true)
   })
 })
