@@ -1,9 +1,11 @@
 import { createHash } from 'crypto'
 import type {
-  ScanResult, AnalyzedFinding, HashTrust, Confidence, Correlation, Severity, ScoreReason, Verdict, VerdictBand
+  ScanResult, AnalyzedFinding, HashTrust, Confidence, Correlation, Severity, ScoreReason,
+  Verdict, VerdictBand, ScanReport, SuppressionState, ScannerName
 } from '../../shared/types'
+import type { GameId } from '../../shared/games'
 import { scannerIdFromDisplayName } from '../../shared/scanners-meta'
-import { SCANNER_POLICY, DEFAULT_POLICY } from './scanner-policy'
+import { SCANNER_POLICY, DEFAULT_POLICY, RISK_ENGINE_VERSION } from './scanner-policy'
 
 function findingId(scannerId: string, value: string): string {
   return createHash('sha1').update(`${scannerId}\n${value}`).digest('hex').slice(0, 16)
@@ -177,4 +179,68 @@ export function computeVerdict(findings: AnalyzedFinding[], correlations: Correl
   }
 
   return { score: BAND_SCORE[band], band, rationale: reasons[0].text, reasons }
+}
+
+export interface AnalyzeContext {
+  scanId: string
+  scannedAt: string            // ISO
+  durationMs: number
+  appVersion: string
+  signatureVersion: string
+  gameId: GameId | null
+  os?: { name: string; version: string; arch: string; appArch: string }
+  findKeyword: (value: string) => string | null
+  suppression: SuppressionState
+}
+
+function sortFindings(findings: AnalyzedFinding[]): AnalyzedFinding[] {
+  return [...findings].sort((a, b) =>
+    severityRank(b.severity) - severityRank(a.severity) ||
+    confidenceRank(b.confidence) - confidenceRank(a.confidence) ||
+    a.scannerId.localeCompare(b.scannerId) ||
+    a.value.localeCompare(b.value)
+  )
+}
+
+/** Pure end-to-end analysis: classify → correlate → suppress → verdict → report. */
+export function analyze(results: ScanResult[], ctx: AnalyzeContext): ScanReport {
+  const classified = classifyFindings(results, ctx.findKeyword)
+  const { findings, correlations } = correlate(classified)
+
+  const whitelist = new Set(ctx.suppression.whitelistedSignatures.map(s => s.toLowerCase()))
+  const dismissed = new Set(ctx.suppression.dismissedFindingIds)
+  for (const f of findings) {
+    if (f.matched && whitelist.has(f.matched.toLowerCase())) f.whitelisted = true
+    if (dismissed.has(f.id)) f.dismissed = true
+  }
+
+  const active = findings.filter(f => !f.whitelisted && !f.dismissed)
+  const activeCorrelations = correlations.filter(c => active.some(f => f.correlationId === c.id))
+  const verdict = computeVerdict(active, activeCorrelations)
+
+  const scanners = results.map(r => ({
+    id: (scannerIdFromDisplayName(r.scannerName) ?? (r.scannerName as ScannerName)),
+    name: r.scannerName,
+    success: r.success,
+    error: r.error,
+    durationMs: r.duration,
+    count: r.findings.length
+  }))
+
+  return {
+    id: ctx.scanId,
+    meta: {
+      appVersion: ctx.appVersion,
+      engineVersion: RISK_ENGINE_VERSION,
+      scannedAt: ctx.scannedAt,
+      durationMs: ctx.durationMs,
+      gameId: ctx.gameId,
+      os: ctx.os,
+      signatureVersion: ctx.signatureVersion
+    },
+    verdict,
+    findings: sortFindings(findings),
+    correlations,
+    scanners
+  }
 }

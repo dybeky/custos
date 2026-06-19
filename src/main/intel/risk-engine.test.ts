@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest'
-import { classifyFindings, correlate, computeVerdict } from './risk-engine'
+import { classifyFindings, correlate, computeVerdict, analyze } from './risk-engine'
+import type { AnalyzeContext } from './risk-engine'
 import type { ScanResult } from '../../shared/types'
 
 function result(scannerName: string, findings: string[], success = true): ScanResult {
@@ -151,5 +152,62 @@ describe('computeVerdict (conservative)', () => {
     expect(typeof v.score).toBe('number')
     expect(v.score).toBeGreaterThan(0)
     expect(v.rationale.length).toBeGreaterThan(0)
+  })
+})
+
+describe('analyze', () => {
+  const baseCtx: AnalyzeContext = {
+    scanId: 'scan-1',
+    scannedAt: '2026-06-19T00:00:00.000Z',
+    durationMs: 1234,
+    appVersion: '3.0.0',
+    signatureVersion: 'bundled-1',
+    gameId: 'unturned',
+    os: { name: 'Windows 11', version: '11 24H2', arch: 'x64', appArch: 'x64' },
+    findKeyword: (v: string) => (v.toLowerCase().includes('undead') ? 'undead' : null),
+    suppression: { whitelistedSignatures: [], dismissedFindingIds: [] }
+  }
+
+  it('produces a full report with stamped meta', () => {
+    const report = analyze([result('AppData Scanner', ['undead.exe'])], baseCtx)
+    expect(report.id).toBe('scan-1')
+    expect(report.meta.engineVersion).toMatch(/^\d+\.\d+\.\d+$/)
+    expect(report.meta.signatureVersion).toBe('bundled-1')
+    expect(report.meta.gameId).toBe('unturned')
+    expect(report.findings).toHaveLength(1)
+    expect(report.scanners[0]).toMatchObject({ id: 'appdata', success: true, count: 1 })
+  })
+
+  it('sorts findings by severity then confidence (most serious first)', () => {
+    const report = analyze([
+      result('VM Scanner', ['vmware']),
+      result('File Hash Scanner', ['deadbeef cheat.exe'])
+    ], baseCtx)
+    expect(report.findings[0].category).toBe('hash')
+  })
+
+  it('whitelisted signature is flagged and excluded from the verdict', () => {
+    const ctx = { ...baseCtx, suppression: { whitelistedSignatures: ['undead'], dismissedFindingIds: [] } }
+    const report = analyze([
+      result('AppData Scanner', ['undead.exe']),
+      result('BAM/DAM Scanner', ['ran undead'])
+    ], ctx)
+    expect(report.findings.every(f => f.whitelisted)).toBe(true)
+    expect(report.verdict.band).toBe('clean') // the only evidence was whitelisted
+  })
+
+  it('dismissed finding id is flagged and excluded from the verdict', () => {
+    const first = analyze([result('File Hash Scanner', ['deadbeef cheat.exe'])], baseCtx)
+    const dismissedId = first.findings[0].id
+    const ctx = { ...baseCtx, suppression: { whitelistedSignatures: [], dismissedFindingIds: [dismissedId] } }
+    const report = analyze([result('File Hash Scanner', ['deadbeef cheat.exe'])], ctx)
+    expect(report.findings[0].dismissed).toBe(true)
+    expect(report.verdict.band).toBe('clean')
+  })
+
+  it('is deterministic — identical input yields identical output', () => {
+    const a = analyze([result('AppData Scanner', ['undead.exe'])], baseCtx)
+    const b = analyze([result('AppData Scanner', ['undead.exe'])], baseCtx)
+    expect(JSON.stringify(a)).toBe(JSON.stringify(b))
   })
 })
