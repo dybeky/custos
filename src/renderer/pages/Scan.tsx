@@ -19,6 +19,7 @@ export function Scan() {
     setProgress,
     addResult,
     setResults,
+    setReport,
     setScanners,
     setError,
     reset
@@ -39,12 +40,14 @@ export function Scan() {
     const unsubError = window.electronAPI.onScanError((error) => {
       setError(error.message)
     })
+    const unsubReport = window.electronAPI.onScanReport(setReport)
 
     return () => {
       unsubProgress()
       unsubResult()
       unsubComplete()
       unsubError()
+      unsubReport()
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])

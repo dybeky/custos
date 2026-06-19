@@ -6,12 +6,15 @@ import { Button } from '../components/ui/Button'
 import { InfoTip } from '../components/ui/InfoTip'
 import { useScanStore } from '../stores/scan-store'
 import { SCANNER_NAME_TO_ID, featureName, featureHelp } from '../utils/feature-i18n'
+import { buildSeverityLookup, severityKey, severityChipClass, bandChipClass } from '../utils/report-view'
+import { SCANNER_DISPLAY_TO_ID } from '../../shared/scanners-meta'
 
 export function Results() {
   const { t } = useTranslation()
-  const { results, status, _totalFindings } = useScanStore()
+  const { results, status, _totalFindings, report } = useScanStore()
   const [expandedScanner, setExpandedScanner] = useState<string | null>(null)
   const hasResults = results.length > 0
+  const severityLookup = buildSeverityLookup(report)
 
   const handleExport = () => {
     const content = results
@@ -58,6 +61,30 @@ export function Results() {
   return (
     <div className="flex-1 p-6 overflow-y-auto">
       <div className="animate-fade-in">
+        {report && (
+          <Card className="mb-6">
+            <CardContent>
+              <div className="flex items-center justify-between gap-4">
+                <div className="flex items-center gap-4">
+                  <div className={`px-3 py-1 rounded-lg text-sm font-bold ${bandChipClass(report.verdict.band)}`}>
+                    {t(`verdict.band.${report.verdict.band}`)}
+                  </div>
+                  <div>
+                    <h2 className="text-lg font-bold text-ink font-display">{t('verdict.title')}</h2>
+                    <p className="text-sm text-ink-dim">{report.verdict.rationale}</p>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <div className="text-2xl font-bold text-ink font-display">{report.verdict.score}</div>
+                  <div className="text-xs text-ink-dim">{t('verdict.score')}</div>
+                </div>
+              </div>
+              <p className="mt-3 text-xs text-ink-dim/80 border-t border-[color:var(--line)] pt-3">
+                {t('verdict.leadsNotProof')}
+              </p>
+            </CardContent>
+          </Card>
+        )}
         {/* Summary Card */}
         <Card className="mb-6">
           <CardContent>
@@ -178,14 +205,23 @@ export function Results() {
                           className="mt-4 pt-4 border-t border-[color:var(--line)]"
                         >
                           <div className="space-y-2 max-h-60 overflow-y-auto">
-                            {result.findings.map((finding, i) => (
-                              <div
-                                key={i}
-                                className="text-xs text-ink-dim bg-panel-2 p-2 rounded-lg break-all font-mono"
-                              >
-                                {finding}
-                              </div>
-                            ))}
+                            {result.findings.map((finding, i) => {
+                              const sid = SCANNER_DISPLAY_TO_ID[result.scannerName]
+                              const sev = sid ? severityLookup.get(severityKey(sid, finding)) : undefined
+                              return (
+                                <div
+                                  key={i}
+                                  className="text-xs text-ink-dim bg-panel-2 p-2 rounded-lg break-all font-mono flex items-start gap-2"
+                                >
+                                  {sev && (
+                                    <span className={`shrink-0 px-1.5 py-0.5 rounded text-[10px] font-bold uppercase not-italic ${severityChipClass(sev)}`}>
+                                      {t(`severity.${sev}`)}
+                                    </span>
+                                  )}
+                                  <span className="min-w-0">{finding}</span>
+                                </div>
+                              )
+                            })}
                           </div>
                         </motion.div>
                       )}

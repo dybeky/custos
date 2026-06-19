@@ -440,5 +440,24 @@
       "telegram": "Cheats are often sold through these Telegram bots. Opening a bot in the user's Telegram can reveal whether they have interacted with it.",
       "resources": "Marketplaces where cheats are commonly sold. Review purchase history together with the user if needed."
     }
+  },
+  "verdict": {
+    "title": "Risk verdict",
+    "score": "Risk score",
+    "leadsNotProof": "Findings are leads, not proof — investigate before acting.",
+    "band": {
+      "clean": "Clean",
+      "low": "Low",
+      "medium": "Medium",
+      "high": "High",
+      "critical": "Critical"
+    }
+  },
+  "severity": {
+    "critical": "Critical",
+    "high": "High",
+    "medium": "Medium",
+    "low": "Low",
+    "info": "Info"
   }
 }
