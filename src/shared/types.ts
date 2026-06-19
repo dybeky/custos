@@ -1,3 +1,5 @@
+import type { GameId } from './games'
+
 // Scan result types
 export interface ScanResult {
   scannerName: string
@@ -179,6 +181,7 @@ export const IPC_CHANNELS = {
   SCAN_PROGRESS: 'scan:progress',
   SCAN_RESULT: 'scan:result',
   SCAN_COMPLETE: 'scan:complete',
+  SCAN_REPORT: 'scan:report',
   SCAN_ERROR: 'scan:error',
 
   // Scanner info
@@ -216,3 +219,92 @@ export const IPC_CHANNELS = {
 } as const
 
 export type IpcChannel = typeof IPC_CHANNELS[keyof typeof IPC_CHANNELS]
+
+// ── Forensic intelligence model ──────────────────────────────────────────────
+// Raw scanner output is EVIDENCE, never an accusation. Only the risk engine
+// produces a graded judgement, and even 'critical' means "investigate now".
+
+// Two independent axes: severity = impact-if-real, confidence = certainty-it's-real.
+export type Severity = 'critical' | 'high' | 'medium' | 'low' | 'info'
+export type Confidence = 'high' | 'medium' | 'low'
+
+// Trust level of a known-file-hash signature. Only 'verified' can drive a critical verdict alone.
+export type HashTrust = 'verified' | 'community'
+
+export type FindingCategory =
+  | 'hash' | 'execution' | 'runtime' | 'persistence'
+  | 'file' | 'registry' | 'network' | 'context' | 'environment'
+
+// Explainability primitive: every severity/confidence change carries a reason.
+export interface ScoreReason {
+  code: string                 // e.g. 'corroboration' | 'verified-hash' | 'lone-match' | 'community-hash-uncorroborated' | 'environment-only'
+  direction: 'up' | 'down' | 'neutral'
+  text: string                 // English; renderer may localize via code+params later
+  signature?: string
+  params?: Record<string, string | number>
+}
+
+export interface AnalyzedFinding {
+  id: string                   // stable: sha1(scannerId + '\n' + value), first 16 hex
+  scannerId: ScannerName
+  value: string
+  category: FindingCategory
+  matched: string | null
+  hashTrust?: HashTrust
+  severity: Severity           // after correlation
+  baseSeverity: Severity       // before correlation
+  confidence: Confidence       // after correlation
+  baseConfidence: Confidence   // before correlation
+  correlationId: string | null
+  reasons: ScoreReason[]
+  dismissed?: boolean
+  whitelisted?: boolean
+}
+
+export interface Correlation {
+  id: string
+  signature: string
+  categories: FindingCategory[]
+  scannerIds: ScannerName[]
+  strength: number             // distinct category count
+  severity: Severity
+  confidence: Confidence
+}
+
+export type VerdictBand = 'clean' | 'low' | 'medium' | 'high' | 'critical'
+
+export interface Verdict {
+  score: number                // 0–100
+  band: VerdictBand
+  rationale: string            // one-line summary (English)
+  reasons: ScoreReason[]
+}
+
+// Triage state — defined now, persisted/surfaced in later phases. The engine
+// accepts it from Phase 1 so suppression is honoured immediately.
+export interface SuppressionState {
+  whitelistedSignatures: string[]
+  dismissedFindingIds: string[]
+}
+
+export interface ScanReportMeta {
+  appVersion: string
+  engineVersion: string
+  scannedAt: string            // ISO
+  durationMs: number
+  gameId: GameId | null
+  os?: { name: string; version: string; arch: string; appArch: string }
+  signatureVersion: string
+  caseLabel?: string
+  caseNote?: string
+}
+
+export interface ScanReport {
+  id: string
+  meta: ScanReportMeta
+  verdict: Verdict
+  findings: AnalyzedFinding[]
+  correlations: Correlation[]
+  scanners: Array<{ id: ScannerName; name: string; success: boolean; error?: string; durationMs: number; count: number }>
+  contentHash?: string
+}
