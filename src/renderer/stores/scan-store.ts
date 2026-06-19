@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import { ScanResult, ScanProgress, ScannerInfo } from '../../shared/types'
+import { ScanResult, ScanProgress, ScannerInfo, ScanReport } from '../../shared/types'
 
 export type ScanStatus = 'idle' | 'scanning' | 'completed' | 'error'
 
@@ -9,6 +9,7 @@ interface ScanState {
   results: ScanResult[]
   scanners: ScannerInfo[]
   error: string | null
+  report: ScanReport | null
 
   // Memoized computed values (updated on state change)
   _totalFindings: number
@@ -23,6 +24,7 @@ interface ScanState {
   setResults: (results: ScanResult[]) => void
   setScanners: (scanners: ScannerInfo[]) => void
   setError: (error: string | null) => void
+  setReport: (report: ScanReport | null) => void
   reset: () => void
 }
 
@@ -40,6 +42,7 @@ export const useScanStore = create<ScanState>((set) => ({
   results: [],
   scanners: [],
   error: null,
+  report: null,
 
   // Initial computed values
   _totalFindings: 0,
@@ -67,11 +70,14 @@ export const useScanStore = create<ScanState>((set) => ({
 
   setError: (error) => set({ error, status: error ? 'error' : 'idle' }),
 
+  setReport: (report) => set({ report }),
+
   reset: () => set({
     status: 'idle',
     progress: null,
     results: [],
     error: null,
+    report: null,
     _totalFindings: 0,
     _hasFindings: false,
     _successfulScans: 0,
