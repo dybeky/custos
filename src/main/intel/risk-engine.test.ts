@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { classifyFindings, correlate } from './risk-engine'
+import { classifyFindings, correlate, computeVerdict } from './risk-engine'
 import type { ScanResult } from '../../shared/types'
 
 function result(scannerName: string, findings: string[], success = true): ScanResult {
@@ -87,5 +87,69 @@ describe('correlate', () => {
     const input = findingsFor('undead', ['AppData Scanner', 'BAM/DAM Scanner'])
     correlate(input)
     expect(input.every(f => f.confidence === 'low')).toBe(true)
+  })
+})
+
+describe('computeVerdict (conservative)', () => {
+  function analyzed(scanners: string[], signature: string) {
+    return correlate(classifyFindings(scanners.map(s => result(s, [`a ${signature} b`])), () => signature))
+  }
+
+  it('clean when there are no findings', () => {
+    expect(computeVerdict([], []).band).toBe('clean')
+  })
+
+  it('clean when only environment/context findings with no keyword', () => {
+    const f = classifyFindings([result('VM Scanner', ['VMware detected'])], () => null)
+    expect(computeVerdict(f, []).band).toBe('clean')
+  })
+
+  it('low for one or two lone medium findings', () => {
+    const f = classifyFindings([result('AppData Scanner', ['undead.exe'])], () => 'undead')
+    expect(computeVerdict(f, []).band).toBe('low')
+  })
+
+  it('medium for 3+ distinct uncorroborated signatures', () => {
+    const f = classifyFindings([
+      result('AppData Scanner', ['a.exe']),
+      result('Recent Files Scanner', ['b.exe']),
+      result('Game Folder Scanner', ['c.exe'])
+    ], (v) => v) // each value is its own signature; all category 'file' → no correlation
+    expect(computeVerdict(f, []).band).toBe('medium')
+  })
+
+  it('high when a signature is corroborated across 2 categories', () => {
+    const { findings, correlations } = analyzed(['AppData Scanner', 'BAM/DAM Scanner'], 'undead')
+    const v = computeVerdict(findings, correlations)
+    expect(v.band).toBe('high')
+    expect(v.reasons.some(r => r.code === 'corroboration')).toBe(true)
+  })
+
+  it('critical when a signature is corroborated across 3+ categories', () => {
+    const { findings, correlations } = analyzed(['AppData Scanner', 'BAM/DAM Scanner', 'DNS Cache Scanner'], 'undead')
+    expect(computeVerdict(findings, correlations).band).toBe('critical')
+  })
+
+  it('critical for a verified hash on its own', () => {
+    const f = classifyFindings([result('File Hash Scanner', ['deadbeef cheat.exe'])], () => null)
+    const v = computeVerdict(f, [])
+    expect(v.band).toBe('critical')
+    expect(v.reasons.some(r => r.code === 'verified-hash')).toBe(true)
+  })
+
+  it('caps a community hash at medium when uncorroborated', () => {
+    const f = classifyFindings([result('File Hash Scanner', ['deadbeef cheat.exe'])], () => null)
+    f[0].hashTrust = 'community'
+    f[0].confidence = 'medium'
+    f[0].baseConfidence = 'medium'
+    expect(computeVerdict(f, []).band).toBe('medium')
+  })
+
+  it('always assigns a numeric score and a one-line rationale', () => {
+    const { findings, correlations } = analyzed(['AppData Scanner', 'BAM/DAM Scanner'], 'undead')
+    const v = computeVerdict(findings, correlations)
+    expect(typeof v.score).toBe('number')
+    expect(v.score).toBeGreaterThan(0)
+    expect(v.rationale.length).toBeGreaterThan(0)
   })
 })

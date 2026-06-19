@@ -1,6 +1,6 @@
 import { createHash } from 'crypto'
 import type {
-  ScanResult, AnalyzedFinding, HashTrust, Confidence, Correlation, Severity, ScoreReason
+  ScanResult, AnalyzedFinding, HashTrust, Confidence, Correlation, Severity, ScoreReason, Verdict, VerdictBand
 } from '../../shared/types'
 import { scannerIdFromDisplayName } from '../../shared/scanners-meta'
 import { SCANNER_POLICY, DEFAULT_POLICY } from './scanner-policy'
@@ -116,4 +116,65 @@ export function correlate(
     }
   }
   return { findings, correlations }
+}
+
+const BAND_SCORE: Record<VerdictBand, number> = { clean: 0, low: 25, medium: 50, high: 72, critical: 92 }
+
+/**
+ * Conservative verdict: the band is raised ONLY by high-confidence (corroborated)
+ * evidence. A lone match stays low. A verified hash escalates to critical alone;
+ * a community hash is capped at medium unless other corroborating evidence exists.
+ * `findings`/`correlations` are assumed already filtered to ACTIVE (non-suppressed).
+ */
+export function computeVerdict(findings: AnalyzedFinding[], correlations: Correlation[]): Verdict {
+  const reasons: ScoreReason[] = []
+
+  if (findings.length === 0) {
+    return { score: 0, band: 'clean', rationale: 'No findings', reasons }
+  }
+
+  const hasVerifiedHash = findings.some(f => f.category === 'hash' && f.hashTrust === 'verified')
+  const communityHashes = findings.filter(f => f.category === 'hash' && f.hashTrust === 'community')
+  const strong3 = correlations.some(c => c.strength >= 3)
+  const strong2 = correlations.some(c => c.strength >= 2)
+
+  // A runtime/execution signature that also appears as a file finding.
+  const fileSigs = new Set(findings.filter(f => f.category === 'file' && f.matched).map(f => f.matched!.toLowerCase()))
+  const crossRuntimeFile = findings.some(
+    f => (f.category === 'runtime' || f.category === 'execution') && f.matched && fileSigs.has(f.matched.toLowerCase())
+  )
+  // A community hash plus any other independent medium+ evidence.
+  const communityHashCorroborated =
+    communityHashes.length > 0 && findings.some(f => f.category !== 'hash' && severityRank(f.severity) >= 2)
+
+  const distinctMediumSignatures = new Set(
+    findings.filter(f => severityRank(f.baseSeverity) >= 2 && f.matched).map(f => f.matched!.toLowerCase())
+  ).size
+
+  const hasMeaningful = findings.some(f => severityRank(f.baseSeverity) >= 1) // exclude pure 'info'
+
+  let band: VerdictBand
+  if (hasVerifiedHash) {
+    band = 'critical'
+    reasons.push({ code: 'verified-hash', direction: 'up', text: 'A verified known-cheat file hash matched' })
+  } else if (strong3) {
+    band = 'critical'
+    reasons.push({ code: 'corroboration', direction: 'up', text: 'A signature was corroborated across 3+ artifact types' })
+  } else if (strong2 || crossRuntimeFile || communityHashCorroborated) {
+    band = 'high'
+    reasons.push({ code: 'corroboration', direction: 'up', text: 'A signature was corroborated across multiple artifacts' })
+  } else if (communityHashes.length > 0 || distinctMediumSignatures >= 3) {
+    band = 'medium'
+    reasons.push(communityHashes.length > 0
+      ? { code: 'community-hash-uncorroborated', direction: 'neutral', text: 'An unverified (community) hash matched but is not corroborated' }
+      : { code: 'multiple-leads', direction: 'neutral', text: 'Several independent leads, none corroborated' })
+  } else if (hasMeaningful) {
+    band = 'low'
+    reasons.push({ code: 'lone-match', direction: 'neutral', text: 'An isolated keyword match — likely a coincidence until corroborated' })
+  } else {
+    band = 'clean'
+    reasons.push({ code: 'environment-only', direction: 'neutral', text: 'Only environment/context signals, no cheat evidence' })
+  }
+
+  return { score: BAND_SCORE[band], band, rationale: reasons[0].text, reasons }
 }
