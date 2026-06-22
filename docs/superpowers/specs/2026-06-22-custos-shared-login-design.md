@@ -20,60 +20,62 @@ is **same-origin cookie sessions only** — no `trustedOrigins`, no bearer/token
 their identity/profile inside the app, and align the desktop app's visual design with the web
 product — without breaking the scanner, which must keep working with no account at all.
 
-This spec covers **Phase 1 only**. Sharing scan reports to the web is **Phase 2** (separate spec).
+This spec covers **Phase 1 only**. Sharing scan reports to the web is **Phase 2** (separate spec, §14).
+
+### Product rules (non-negotiable)
+
+- **PR-1 — Login is optional.** Local scan, local results, local export, and basic settings must work
+  with **no account and no internet**. Login never gates the scanner.
+- **PR-2 — Kill switch.** A feature flag `DESKTOP_AUTH_ENABLED` (default may be on, but flippable to
+  `false`) disables desktop login end-to-end if production auth breaks. With it off, the scanner runs
+  fully anonymously and no auth UI is shown (§4.13).
+- **PR-3 — Phase 1 ≠ report sharing.** Phase 1 is login + identity + profile display + visual
+  alignment only. Report upload/sharing is Phase 2 (it adds storage, privacy, report schema, public
+  links, abuse controls, and deletion policy — §14).
 
 ### Locked product decisions
 
-1. **Login is optional.** The scanner works fully offline / with no account, exactly as today.
-2. **Gated features:** identity/profile (Phase 1) and share-scan-reports-to-web (Phase 2).
-3. **Primary login flow:** system browser → OAuth on `97437.dev` → auto-return to the app via a
-   `custos://` deep link, exchanged for a bearer token.
-4. **Fallback login flow:** device-code (RFC 8628 style) when the `custos://` return is blocked,
-   unavailable, or times out — important because custos's audience runs hardened/AV-locked Windows.
-5. **Design:** exact, tool-appropriate match to `97437.dev` (palette, type, components, login modal,
-   avatar, user menu, role badges). **No** marketing-site motion layer (smooth-scroll/WebGL). One
-   canonical coffee-noir theme; the three dead identical themes are removed.
+1. Login is **optional**; scanner unaffected (PR-1).
+2. Gated features: identity/profile (Phase 1) and share-scan-reports-to-web (Phase 2).
+3. **Primary login flow:** system browser → OAuth on `97437.dev` → auto-return via a `custos://` deep
+   link, exchanged (over HTTPS) for a bearer token.
+4. **Fallback login flow:** device-code when the `custos://` return is blocked/unavailable/times out —
+   custos's audience runs hardened/AV-locked Windows.
+5. **Design:** exact, tool-appropriate match to `97437.dev`. **No** marketing motion (smooth-scroll/
+   WebGL). One canonical coffee-noir theme; the three dead identical themes removed fully.
 
 ---
 
 ## 2. Scope
 
-**In scope (Phase 1):**
+**In scope (Phase 1):** web token/bearer auth for a desktop client; desktop OAuth handoff routes;
+signed grant exchange; device-code fallback; `trustedOrigins`; rate limits + audit logging + kill
+switch on the web; desktop main-process `AuthService` (browser OAuth + `custos://` handler +
+device-code + `safeStorage` token store); IPC bridge; renderer `auth-store`; login modal; header user
+menu; avatar + role badge; Settings "Account" card; design alignment + dead-theme removal.
 
-- Web: enable bearer/token auth for a desktop client; desktop OAuth handoff routes; signed grant
-  exchange; device-code fallback; `trustedOrigins`.
-- Desktop: main-process `AuthService` (browser OAuth + `custos://` handler + device-code fallback +
-  `safeStorage` token store), IPC bridge, renderer `auth-store`, login modal, header user menu,
-  avatar + role badge, Settings "Account" card.
-- Design alignment: token values, fonts, component conventions, removal of dead themes.
-
-**Out of scope (→ Phase 2 / future):**
-
-- Sharing scan reports to the web (ingest endpoint, storage, web report-view page, desktop "Share"
-  action on `Results`).
-- Settings sync across devices; gating Live/advanced scans behind a role.
-- Strict single-use (replay-proof) grants — see §4.3; deferred to a DB-backed `jti` store.
-- Any change to Google/GitHub developer-console OAuth apps (the existing web OAuth callback URL is
-  reused unchanged).
+**Out of scope (→ Phase 2 / future):** report sharing (§14); settings sync; gating Live/advanced scans
+behind a role; **strict single-use (replay-proof) grants** (§4.3 — deferred to a DB/KV `jti` store);
+any Google/GitHub developer-console change (the existing web OAuth callback URL is reused unchanged).
 
 ---
 
 ## 3. Architecture overview
 
-The desktop **renderer never performs auth networking and never sees the token.** All auth HTTP
+The desktop **renderer performs no auth networking and never sees token-like material.** All auth HTTP
 happens in the Electron **main process**, so the renderer's locked-down CSP (`connect-src 'self'
 https://api.github.com`) is untouched.
 
 ```
 ┌─ custos (Electron) ──────────────────┐        ┌─ custosweb (97437.dev) ─────────────────┐
-│ renderer                             │  IPC   │ Better Auth + bearer plugin             │
+│ renderer                             │  IPC   │ Better Auth + bearer plugin (scoped)    │
 │   login modal · avatar · user menu   │◄─────► │ GET  /desktop/auth/start  (kick OAuth)  │
-│   auth-store (public state only)     │        │ GET  /desktop/complete    (mint grant)  │
+│   auth-store (status + public user)  │        │ GET  /desktop/complete    (mint grant)  │
 │ main                                 │ HTTPS  │ POST /api/desktop/token/exchange        │
-│   AuthService                        │◄─────► │ GET  /device + device-auth plugin (fb)  │
-│     · system-browser OAuth           │        │ (existing OAuth callback URL UNCHANGED) │
-│     · custos:// callback handler     │        └─────────────────────────────────────────┘
-│     · device-code fallback           │
+│   AuthService                        │◄─────► │ GET  /device + device-auth (fallback)   │
+│     · system-browser OAuth           │        │ rate limits · audit log · kill switch   │
+│     · custos:// callback handler     │        │ (existing OAuth callback URL UNCHANGED) │
+│     · device-code fallback           │        └─────────────────────────────────────────┘
 │     · safeStorage token (main only)  │
 └──────────────────────────────────────┘
 ```
@@ -85,133 +87,182 @@ https://api.github.com`) is untouched.
 ### 4.1 Primary — browser → auto-return via `custos://`
 
 1. **Desktop** generates `state` (random), PKCE `code_verifier` + `code_challenge` (S256), and a
-   `pendingAuth` record. Opens the **system browser** (`shell.openExternal`) to
+   `pendingAuth` record. Opens the **system browser** to
    `https://97437.dev/desktop/auth/start?state=<state>&cc=<code_challenge>&provider=<google|github>`.
-2. `/desktop/auth/start` begins the **normal** Better Auth social sign-in (so the existing OAuth
-   callback URL is reused — **no Google/GitHub console change**), carrying `state`/`cc` through to
-   the post-login landing.
-3. On success the browser lands on **`/desktop/complete`**, which — with the just-established
-   session — mints a **short-lived signed grant** (§4.3) and redirects to
-   `custos://auth/callback?state=<state>&code=<grant>`.
-4. **Desktop** catches the `custos://` deep link (single-instance lock + argv parsing on Windows),
-   **strictly validates the shape** (§4.6), confirms `state` matches `pendingAuth`, then calls
-   `POST https://97437.dev/api/desktop/token/exchange` with `{ state, code, code_verifier }` over
-   HTTPS.
-5. The server verifies the grant signature, TTL, `stateHash`, and `codeChallenge` against the
-   supplied `code_verifier`, then returns `{ token, user }`. The bearer **token never appears in the
-   `custos://` URL** — it only travels inside the HTTPS exchange response.
-6. Desktop encrypts the token with `safeStorage` (§4.7), caches the public user, emits
-   `auth:changed`, clears `pendingAuth`.
+2. `/desktop/auth/start` begins the **normal** Better Auth social sign-in (existing OAuth callback URL
+   reused — **no Google/GitHub console change**), carrying `state`/`cc` through to the landing.
+3. On success the browser lands on **`/desktop/complete`**, which — with the fresh session — mints a
+   **short-lived signed grant** (§4.3) and redirects to `custos://auth/callback?state=<state>&code=<grant>`.
+4. **Desktop** catches the `custos://` deep link (single-instance lock + argv parse on Windows),
+   **strictly validates shape** (§4.6), confirms `state` matches `pendingAuth`, then calls
+   `POST https://97437.dev/api/desktop/token/exchange` `{ state, code, code_verifier }` over HTTPS.
+5. Server verifies grant signature, TTL, `stateHash`, and PKCE `codeChallenge` vs `code_verifier`;
+   returns `{ token, user }`. The bearer **token never appears in the `custos://` URL** — only inside
+   the HTTPS exchange response.
+6. Desktop encrypts the token with `safeStorage` (§4.7), caches the public user, emits `auth:changed`,
+   clears `pendingAuth`.
 
 ### 4.2 Provider/mode selection
 
-`auth:login` carries an explicit `{ provider: 'google' | 'github' | 'device', }` payload so Google,
-GitHub, and device-code starts are distinct, testable code paths (not inferred). The login modal
-sends the chosen provider; the "Use a sign-in code instead" affordance sends `mode: 'device'`.
+`auth:login` carries explicit `{ provider: 'google' | 'github' | 'device' }` so all three are distinct,
+testable code paths — never inferred. The modal sends the chosen provider; "Use a sign-in code instead"
+sends `provider: 'device'`.
 
-### 4.3 The signed grant (v1)
+### 4.3 The signed grant (v1) — short-lived, bound, **not replay-proof**
 
-The grant returned by `/desktop/complete` is a token signed (HMAC) with a **dedicated secret**
-(`DESKTOP_GRANT_SECRET`, distinct from `BETTER_AUTH_SECRET`/`KEEP_ACCOUNT_SECRET`). Claims:
+The grant from `/desktop/complete` is signed (HMAC) with a **dedicated secret** `DESKTOP_GRANT_SECRET`
+(distinct from `BETTER_AUTH_SECRET`/`KEEP_ACCOUNT_SECRET`). Claims:
 
 | Claim | Purpose |
 |---|---|
 | `userId` | who the grant is for |
-| `stateHash` | hash of the desktop-supplied `state` (binds grant to this login attempt) |
-| `codeChallenge` | PKCE S256 challenge (binds grant to the desktop instance holding the verifier) |
+| `stateHash` | hash of the desktop `state` — binds grant to this login attempt |
+| `codeChallenge` | PKCE S256 challenge — binds grant to the desktop instance holding the verifier |
 | `iat` / `exp` | issued-at / expiry — **short TTL (~120s)** |
-| `jti` | unique id (reserved for a future replay store) |
+| `jti` | unique id, **reserved** for a future replay store |
 
-**v1 security properties (documented honestly):** short-lived, state-bound, PKCE-bound,
-tamper-resistant. **NOT strict single-use** — within its ~120s TTL a grant could in principle be
-replayed, because v1 keeps **no server-side `jti` store**. This is an accepted, time-boxed risk.
+**v1 properties (use this wording everywhere):** short-lived, **state-bound**, **PKCE-bound**,
+tamper-resistant. **NOT strict single-use / NOT replay-proof** — within its ~120s TTL the grant could
+in principle be replayed because v1 keeps **no server-side `jti` store**. This is an accepted,
+time-boxed risk; never describe v1 grants as replay-proof.
 
-**Upgrade path:** add a DB-backed `desktop_grant` / `jti` table (or short-TTL KV) and reject any
-`jti` already seen → strict single-use. The `jti` claim exists now precisely so this upgrade needs
-no client change.
+**Future upgrade (real single-use):** add a DB/KV-backed `desktop_grant` / `jti` store and reject any
+`jti` already seen. The `jti` claim exists now so this needs no client change.
 
-### 4.4 Fallback — device code
+### 4.4 Fallback — device code (must share the same security as primary)
 
-Triggered when the `custos://` return is unavailable/blocked, or the primary callback does not
-arrive within ~90s, or the user clicks "Use a sign-in code instead."
+Triggered when `custos://` return is unavailable/blocked, the primary callback doesn't arrive within
+~90s, or the user chooses "Use a sign-in code instead."
 
 1. Desktop requests a device code (Better Auth **device-authorization plugin** if present in
    `better-auth@1.6.12`, else a minimal equivalent endpoint pair).
-2. Desktop shows the `user_code` and opens the system browser to `https://97437.dev/device`.
+2. Desktop shows the `user_code`, opens the system browser to `https://97437.dev/device`.
 3. User signs in (if needed) and approves the code.
-4. Desktop polls the token endpoint at the prescribed interval until it receives the bearer token,
-   then proceeds as in 4.1 step 6.
+4. Desktop polls at the prescribed interval until it receives the bearer token, then proceeds as in
+   §4.1 step 6.
 
-Device-code IPC/state is explicit enough for the modal to render progress: statuses
-`requesting → awaiting-approval (with user_code + verification_uri) → polling → authed | denied |
-expired | error`.
+**Device-code is held to the same bar as the primary flow — it is not a second, looser auth system:**
 
-### 4.5 Token model, scope & session validation
+- Same **token scope** (§4.5) and same **banned/deleted** checks (§4.5).
+- Same **revoke** behavior on logout (§4.10).
+- **Bounded polling:** honor the server `interval`, enforce a max poll duration, back off on
+  `slow_down`, and stop on `denied`/`expired`/`error`. **No infinite polling.**
+- **Bounded device-code lifetime:** short `expires_in`; expired codes are rejected and the modal shows
+  the expiry state (§9).
+- Device-code statuses are explicit for the modal: `requesting → awaiting-approval (user_code +
+  verification_uri) → polling → authed | denied | expired | error`.
 
-- The desktop credential is a **dedicated token tagged as a desktop client** — **not** a full
-  web-session credential. Server-side it is authorized only for **identity + report-sharing** scopes;
-  web-only privileged actions (moderation, profile mutation, messaging, etc.) **reject desktop
-  tokens.** Exact mechanism (session row tagged `client:'desktop'` vs JWT/api-key scope claim) is an
-  implementation choice deferred to the plan; the **scope-limiting requirement is binding.**
-- **Cached user is display-only.** The source of truth on every startup is a live
-  `GET /api/auth/get-session` with the bearer. On 401, or `status` `banned`/`deleted`, the app
-  **silently signs out** (clears token, emits `auth:changed`). The cached user only avoids a
-  logged-out flash while validation is in flight.
-- Banned/deleted handling reuses the web's existing session hooks — no parallel moderation logic.
+### 4.5 Token model — lifetime, scope, validation, ban/delete cleanup
+
+**Lifetime (explicit, not implicit):** the desktop bearer is **reasonably long-lived** (a desktop
+session credential, not a 1-hour token), **validated on startup** (and on demand), and **revoked** on
+logout and on banned/deleted/disabled/insufficient-status accounts. There is **no silent background
+refresh in v1**; a **refresh strategy is a documented future item** (§15) — when the long-lived token
+eventually expires, the app drops to anonymous and prompts re-login with clear copy (§9). Decision:
+prefer a long-lived token + startup validation over short-token-with-refresh for v1 simplicity.
+
+**Scope (narrow, enforced server-side):** the desktop token is a **dedicated credential tagged as a
+desktop client** — **not** full web-session power. The server authorizes it for **only**:
+
+- identity / session validation (`get-session` and equivalent), and
+- Phase-2 report-sharing endpoints (when built).
+
+It **must be rejected** for moderation, profile mutation, messaging, admin actions, and all normal
+web-only APIs. Enforcement is **server-side** (a token-type/scope check), never client-trust. Exact
+mechanism (session row tagged `client:'desktop'` vs JWT/api-key scope claim) is a plan-time choice; the
+**scope-limiting requirement is binding**.
+
+**Validation is the source of truth:** on every startup, main calls `GET /api/auth/get-session` with
+the bearer. Cached user (§4.8) is **display-only** and may be shown briefly to avoid a logged-out
+flash, but actual auth state is decided by this validation.
+
+**Ban/delete/disable cleanup (explicit):** if the account is banned, deleted, disabled, or loses
+required status, validation fails (401 or `status: banned|deleted`). The app then **wipes the local
+cached user + token and returns to anonymous mode silently** — no error nag, no broken state. Same
+behavior whether the token was obtained via primary or device flow.
 
 ### 4.6 Callback hardening
 
-The `custos://` handler accepts **only** `custos://auth/callback` with **both** `state` and `code`
-present and well-formed. Any other host/path, missing/garbage params, or a `state` not matching the
-current `pendingAuth` is **rejected and logged**, never acted on.
+The `custos://` handler accepts **only** `custos://auth/callback?state=…&code=…` with **both** params
+present and well-formed. Any other host/path/scheme/shape, missing/garbage params, or a `state` not
+matching the current `pendingAuth` is **rejected and logged (non-sensitively)** and never acted on.
+A rejected callback **also clears `pendingAuth`** (§4.9).
 
-### 4.7 Secret storage — fail closed
+### 4.7 Secret storage — fail closed (non-negotiable)
 
-- The bearer token is stored only in the **main process**, encrypted via Electron `safeStorage`,
-  persisted as base64 in electron-store under the `auth` key. Decrypted in main only; the renderer
-  never receives it.
-- **If `safeStorage.isEncryptionAvailable()` is false / weak, fail closed:** do **not** persist a
-  plaintext token. Either keep the session in-memory only for the current run or require re-login on
-  next launch — never write a plaintext credential to disk.
+- The bearer is stored **only in main**, encrypted via Electron `safeStorage`, persisted as base64 in
+  electron-store under `auth`. Decrypted in main only.
+- **If `safeStorage.isEncryptionAvailable()` is false/weak, fail closed:** do **not** write a plaintext
+  credential to disk. Either keep auth **memory-only for the current run** or **require re-login after
+  restart**. The user is informed via clear copy (§9). Never silently downgrade to plaintext.
 
-### 4.8 Pending-state lifecycle
+### 4.8 Renderer isolation — never receives token-like material
+
+The renderer (and anything reachable from it) **never** receives the bearer token, the grant `code`,
+the `code_verifier`, or raw auth HTTP responses. The IPC surface returns **only**:
+
+- `status` (`anon | pending | authed`),
+- **public user fields** (`id, username, uid, avatarVersion, role, status`), and
+- **device-code display/progress** (`user_code`, `verification_uri`, status enum).
+
+Everything sensitive stays in main.
+
+### 4.9 Pending-state lifecycle
 
 `pendingAuth { state, codeVerifier, codeChallenge, provider, startedAt, timer }` is **always cleared**
-on every terminal outcome: **success, timeout (~90s → offer device code), user cancel, and failure.**
-No orphaned timers or deep-link listeners.
+on every terminal outcome: **success, timeout (~90s → offer device code), user cancel, failure, and
+rejected callback** (§4.6). No orphaned timers or deep-link listeners.
 
-### 4.9 Logout
+### 4.10 Logout — local-wipe first, server-revoke best effort
 
-Logout **deletes the local `safeStorage` token** and **revokes the desktop token server-side** if
-supported (`/api/auth/sign-out` with the bearer, or a desktop-token revoke endpoint), then clears the
-cached user and emits `auth:changed`. Local cleanup proceeds even if the server revoke call fails
-(best-effort revoke, guaranteed local wipe).
+Logout **deletes the local `safeStorage` token immediately** (local wipe is guaranteed, never blocked).
+**Then**, best-effort, it revokes the desktop token server-side (`/api/auth/sign-out` with the bearer,
+or a desktop-token revoke endpoint) — but a failed/timed-out revoke call **does not** block or reverse
+local logout. Clears cached user, emits `auth:changed`.
+
+### 4.11 Rate limiting & abuse controls (web)
+
+Server-side limits on the desktop auth surface to prevent brute force / abuse:
+
+- **token exchange** attempts (per IP / per `state`),
+- **invalid-grant** attempts (tighter, with backoff),
+- **device-code creation** (per IP), and
+- **device-code polling** (enforce `interval`, emit `slow_down`, cap total polls).
+
+### 4.12 Audit logging (web) — failures only, never secrets
+
+Log security-relevant events: auth failures, exchange failures, revoke, banned/deleted rejection, rate-
+limit trips. **Never log** bearer tokens, grants, `code_verifier`, or full callback URLs (log a hash or
+the `jti`/`userId` only). Desktop-side logging follows the same redaction rule.
+
+### 4.13 Kill switch — `DESKTOP_AUTH_ENABLED`
+
+A feature flag gates the whole desktop-auth subsystem so it can be turned off if production auth breaks:
+
+- **Web:** when `false`, `/desktop/*` routes and `/api/desktop/token/exchange` (and device endpoints)
+  return a clean "desktop auth disabled" response; existing web cookie login is unaffected.
+- **Desktop:** a bundled/config flag (and/or a value fetched from the web) hides the auth UI and runs
+  the scanner anonymously. The scanner must continue working fully (PR-1/PR-2).
 
 ---
 
 ## 5. Web-side changes (`custosweb`)
 
-You redeploy once on Railway after these land. No Google/GitHub console changes.
+Redeploy once on Railway after these land. No Google/GitHub console changes.
 
-- **Better Auth config (`lib/auth.ts`):** add the **`bearer` plugin**; add **`trustedOrigins`** to
-  permit the desktop handoff/exchange; ensure desktop tokens are scoped (§4.5).
+- **Better Auth (`lib/auth.ts`):** add the **`bearer` plugin**; add **`trustedOrigins`**; ensure desktop
+  tokens are **scoped** (§4.5); wire **rate limits** (§4.11) and **audit logging** (§4.12).
 - **New routes:**
-  - `GET /desktop/auth/start` — validates `state`/`cc`/`provider`, kicks off social sign-in carrying
-    them through to the landing.
-  - `GET /desktop/complete` — requires a live session; mints the signed grant (§4.3); redirects to
-    `custos://auth/callback?...`. Renders a minimal "Return to Custos" page (no session ⇒ bounce to
-    login).
-  - `POST /api/desktop/token/exchange` — verifies grant (sig, TTL, `stateHash`, PKCE
-    `codeChallenge` vs `code_verifier`); returns `{ token, user }`.
-  - `GET /device` approval page + device-authorization plugin endpoints (fallback).
-- **Env:** add `DESKTOP_GRANT_SECRET` (own secret; `openssl rand -base64 32`). Document in
-  `.env.example` and `STATUS.md`.
-- **Respect existing posture:** strict same-origin headers / per-request CSP nonce in `proxy.ts` are
-  for the web page and are unaffected; the desktop is a native client, not a browser origin.
-
-> Heed `custosweb/AGENTS.md`: this is a **modified Next.js 16** ("`proxy.ts` replaces
-> `middleware.ts`"); read `node_modules/next/dist/docs/` before coding. Do **not** add `better-auth`
-> to `serverExternalPackages` (breaks `useSession`). Keep `kysely@0.28.17` pinned.
+  - `GET /desktop/auth/start` — validate `state`/`cc`/`provider`, kick off social sign-in carrying them.
+  - `GET /desktop/complete` — **requires a live session**; mint the signed grant (§4.3); redirect to
+    `custos://auth/callback?...`; render a minimal "Return to Custos" page (no session ⇒ bounce to login).
+  - `POST /api/desktop/token/exchange` — verify grant (sig, TTL, `stateHash`, PKCE); return `{ token, user }`.
+  - `GET /device` approval page + device-authorization endpoints (fallback, §4.4).
+- **Kill switch** `DESKTOP_AUTH_ENABLED` gating all of the above (§4.13).
+- **Env / secrets (§8):** add `DESKTOP_GRANT_SECRET`.
+- **Heed `custosweb/AGENTS.md`:** modified **Next.js 16** (`proxy.ts` replaces `middleware.ts`) — read
+  `node_modules/next/dist/docs/` first. Do **not** add `better-auth` to `serverExternalPackages`. Keep
+  `kysely@0.28.17` pinned.
 
 ---
 
@@ -219,57 +270,62 @@ You redeploy once on Railway after these land. No Google/GitHub console changes.
 
 ### 6.1 Main process
 
-- **`src/main/services/auth-service.ts`** — owns the full flow: state/PKCE generation, system-browser
-  open, `custos://` handler (strict validation §4.6), grant exchange, device-code fallback,
-  `safeStorage` token persistence (fail-closed §4.7), startup validation, logout/revoke, pending-state
-  lifecycle (§4.8).
-- **Protocol registration** — `app.setAsDefaultProtocolClient('custos')`; `requestSingleInstanceLock`
-  + `second-instance` argv parsing (Windows) and `open-url` (mac, for dev parity).
-- **`openExternal` allowlist** — extend `src/main/utils/url-policy.ts` so the auth flow's outbound
-  opens are explicitly allowed for `https://97437.dev/...` (it is already `https`-allowed generally;
-  the spec requires it be an explicit, tested allowlist entry, not incidental). `custos://` is
-  **inbound** and never goes through `openExternal`.
-- **IPC (`src/main/ipc-handlers.ts`, zod-validated like existing channels):**
-  - `auth:get-state` → `{ status:'anon'|'authed'|'pending', user|null, device?: DeviceProgress }`
-  - `auth:login` ← `{ provider:'google'|'github'|'device' }` — starts the chosen flow
-  - `auth:cancel` — cancels the pending flow, clears state
-  - `auth:logout`
-  - push event `auth:changed` (and device-progress updates surfaced via `auth:get-state` / a
-    `auth:device` push so the modal can render progress)
-- **Persistence (`src/main/services/app-store.ts`):** add an `auth` key `{ tokenEnc?: string,
-  user?: CachedUser }` alongside `settings`. Renderer receives only `user` (public fields).
+- **`src/main/services/auth-service.ts`** — state/PKCE generation, system-browser open, `custos://`
+  handler (strict §4.6), grant exchange, device-code fallback (§4.4), `safeStorage` token store
+  (fail-closed §4.7), startup validation + ban/delete cleanup (§4.5), logout/revoke (§4.10), pending-
+  state lifecycle (§4.9), kill-switch gating (§4.13), non-sensitive logging (§4.12).
+- **Protocol registration** — `app.setAsDefaultProtocolClient('custos')`; `requestSingleInstanceLock` +
+  `second-instance` argv parse (Windows), `open-url` (mac dev parity).
+- **`openExternal` allowlist** — extend `src/main/utils/url-policy.ts` so the auth flow opens **only**
+  expected `https://97437.dev/...` auth/profile/device URLs. **No arbitrary URLs** built from renderer-
+  controlled data may be opened. `custos://` is inbound and never goes through `openExternal`.
+- **IPC (`ipc-handlers.ts`, zod-validated):** `auth:get-state` → `{status, user|null, device?}`;
+  `auth:login` ← `{provider}`; `auth:cancel`; `auth:logout`; push `auth:changed`; device progress via
+  `auth:get-state`/a `auth:device` push. Renderer payloads carry **no** token-like material (§4.8).
+- **Persistence (`app-store.ts`):** add `auth` key `{ tokenEnc?: string, user?: CachedUser }` beside
+  `settings`. Renderer receives `user` only.
 
 ### 6.2 Preload (`src/preload/index.ts`)
 
-Add `getAuthState`, `login(provider)`, `cancelLogin`, `logout`, `onAuthChanged(cb)` (and device
-progress subscription) to the `electronAPI` bridge. Update `src/shared/global.d.ts` /
-`shared/types.ts` accordingly.
+Add `getAuthState`, `login(provider)`, `cancelLogin`, `logout`, `onAuthChanged(cb)` + device-progress
+subscription to the `electronAPI` bridge. Update `shared/global.d.ts` / `shared/types.ts`.
 
 ### 6.3 Renderer
 
-- **`src/renderer/stores/auth-store.ts`** — mirrors `settings-store`: hydrate via `getAuthState()` on
-  boot, subscribe to `onAuthChanged`, hold `{ status, user, device }` with public user fields only
-  (`id, username, uid, avatarVersion, role, status`).
-- **Login modal** (reuse `Modal.tsx`): "Continue with Google" / "Continue with GitHub" buttons styled
-  like the web OAuth button (`IconGoogle`/`IconGithub` + `rounded-xl border border-line-strong bg-bg
-  hover:border-scan hover:text-scan`). A quiet **"Use a sign-in code instead"** reveals the
-  device-code panel (`user_code`, opens `/device`, live status from §4.4).
-- **Header user cluster** (`components/layout/Header.tsx`, right of the OS pill): **"Sign in"** when
-  anon; **avatar + dropdown** (`UserMenu`) when authed — username with role glow, role badge, "Open
-  profile on web" (`openExternal` → `97437.dev/u/<username>`), "Sign out".
-- **Settings** (`pages/Settings.tsx`): replace the read-only "Appearance" palette swatch with an
-  **"Account"** card (sign-in / profile summary / sign-out).
-- **New UI primitives:** `components/ui/Avatar.tsx` (image with initials fallback + role ring) and
-  `components/ui/RoleName.tsx` (role-colored, matching the web's `.role-glow`). No text-input
-  primitive needed — login is social-only.
-- **No blocking auth gate.** Login is optional; auth UI lives in the header + Settings. Phase-2 gated
-  actions will check `auth-store`.
+- **`stores/auth-store.ts`** — mirrors `settings-store`: hydrate via `getAuthState()` on boot, subscribe
+  to `onAuthChanged`, hold `{ status, user, device }` with public fields only.
+- **Login modal** (reuse `Modal.tsx`): "Continue with Google" / "Continue with GitHub" (web OAuth-button
+  styling, `IconGoogle`/`IconGithub`); a quiet **"Use a sign-in code instead"** reveals the device panel
+  (`user_code`, opens `/device`, live status §4.4). Error states per §9.
+- **Header user cluster** (`components/layout/Header.tsx`, right of the OS pill): **"Sign in"** when anon;
+  **avatar + dropdown** (`UserMenu`) when authed — username (role glow), role badge, "Open profile on
+  web", "Sign out".
+- **Profile URL (§6.4).**
+- **Settings** (`pages/Settings.tsx`): replace the read-only "Appearance" swatch with an **"Account"**
+  card (sign-in / profile summary / sign-out).
+- **New primitives:** `components/ui/Avatar.tsx` (image + initials fallback + role ring; §6.5) and
+  `components/ui/RoleName.tsx` (role-colored, matching web `.role-glow`). No text-input primitive needed
+  (social-only).
+- **No blocking auth gate** (PR-1). Phase-2 gated actions will check `auth-store`.
+
+### 6.4 Profile URL — stable, not stale
+
+"Open profile on web" must not break if the username changed. Use a **stable `uid`-based profile URL**
+(e.g. `97437.dev/u/<uid>`) **or** refresh the user via startup validation before opening so the cached
+username isn't stale. Decision: prefer the uid-based stable URL if the web supports it; otherwise refresh
+first.
+
+### 6.5 Avatar loading — safe and resilient
+
+Avatars load from `https://97437.dev/api/avatar/<id>?v=<avatarVersion>` (public, no auth; already allowed
+by the renderer `img-src https:` CSP). **A load failure must not break the UI** — fall back to initials.
+**No token-like material in image URLs** (no bearer/grant in query params); only the public `id` + `v`.
 
 ---
 
 ## 7. Design alignment
 
-### 7.1 Tokens (update `tailwind.config.js` **and** `src/renderer/styles/index.css :root`)
+### 7.1 Tokens (update `tailwind.config.js` **and** `styles/index.css :root`)
 
 | Token | Desktop (now) | → Web target |
 |---|---|---|
@@ -287,100 +343,159 @@ progress subscription) to the `electronAPI` bridge. Update `src/shared/global.d.
 | `--line-strong` | ad-hoc | `rgba(244,240,234,0.18)` |
 | `--glow` | — | `200,154,106` (rgb triplet) |
 
-### 7.2 Fonts — two deliberate, justified divergences from the web
+### 7.2 Fonts — two deliberate, justified divergences
 
-- **MuseoModerno** stays the single brand display/body face (already shipped in
-  `src/renderer/assets/fonts/`).
-- **Divergence 1 — keep Inter as the Cyrillic fallback.** The desktop app has `ru` i18n; the web
-  does not need this. Font stack: `['MuseoModerno','Inter','system-ui','sans-serif']`.
-- **Divergence 2 — keep a true monospace for forensic data.** The web aliases `font-mono` →
-  MuseoModerno (brand mono). The desktop scanner prints **file hashes, registry paths, and tabular
-  forensic output** where real monospace readability matters, so it keeps **JetBrains Mono** for that
-  data. The web's eyebrow/label convention (uppercase, tracked) is adopted for UI labels using the
-  brand face.
+- **MuseoModerno** stays the single brand display/body face (already shipped).
+- **Divergence 1 — keep Inter as the Cyrillic fallback** (desktop has `ru` i18n; web doesn't need it).
+  Stack: `['MuseoModerno','Inter','system-ui','sans-serif']`.
+- **Divergence 2 — keep a true monospace (JetBrains Mono) for forensic data:** hashes, paths, registry
+  keys, timestamps, tabular output. The web's `font-mono → MuseoModerno` brand alias is fine for brand
+  UI labels (uppercase, tracked eyebrow), but **forensic readability wins** for data.
 
 ### 7.3 Components
 
-Align to the web's conventions:
+Align to web conventions: **Button primary** (caramel fill, `text-on-accent`, `font-display font-bold`,
+subtle `hover:-translate-y-0.5`); **OAuth/secondary** (`rounded-xl border-line-strong bg-bg
+hover:border-scan hover:text-scan`); **Card** (`rounded-xl border-line bg-panel/40 hover:border-scan/50`
++ glass/elevated); add **eyebrow**, **pill/badge**, **dropdown** conventions; reconcile `.glow-scan` /
+`.text-glow`.
 
-- **Button primary:** caramel fill, `text-on-accent`, `font-display font-bold`, subtle
-  `hover:-translate-y-0.5`.
-- **OAuth/secondary button:** `rounded-xl border border-line-strong bg-bg hover:border-scan
-  hover:text-scan`.
-- **Card:** `rounded-xl border border-line bg-panel/40 hover:border-scan/50` + glass/elevated variant
-  (`bg-panel/80 backdrop-blur` + `.glow-scan`).
-- Add web-matching **eyebrow** (uppercase, tracked, `text-ink-dim`), **pill/badge**
-  (`rounded-full border-scan/40 bg-scan/10 text-scan`), and **dropdown** conventions.
-- Reconcile `.glow-scan` / `.text-glow` with the web definitions.
+### 7.4 No over-animation
 
-### 7.4 Remove dead themes
+Exact palette/type/components — yes. **No smooth-scroll, no WebGL, no marketing-style motion.** Only
+tool-appropriate feedback: small hover states, loading/scan progress, modal transitions, clear status
+changes. It should feel premium, fast, forensic — not a landing page.
 
-`aurora` / `mono` / `tropical` are three identical no-op `data-theme` values. Collapse to **one
-canonical theme**:
+### 7.5 Remove dead themes fully
 
-- Drop the duplicate `[data-theme="…"]` blocks in `styles/index.css`; keep a single `:root`.
-- Set `<html data-theme="dark">` statically (matches the web).
-- Remove the theme field/selector from `settings-store` and Settings UI.
-- Point the main-process `backgroundColor` (read in `src/main/index.ts` before window creation) at the
-  new `--bg`.
-- Add a **one-line migration** so an existing persisted `settings.theme` value does not trip the
-  `.strict()` zod schema on upgrade (strip/normalize the legacy key in `app-store`).
+`aurora`/`mono`/`tropical` are three identical no-op themes. Remove **completely** — no half-removed
+state:
 
----
-
-## 8. Persistence & secrets summary
-
-- **electron-store** gains an `auth` key `{ tokenEnc?: safeStorage-base64, user?: CachedUser }`,
-  separate from `settings`. Token decrypted in main only; renderer gets `user` only.
-- **Web env:** `DESKTOP_GRANT_SECRET` (new, dedicated). Existing `BETTER_AUTH_URL`/secrets unchanged.
-- Fail-closed on weak/absent `safeStorage` (§4.7).
+- Drop the duplicate `[data-theme="…"]` blocks; keep a single `:root`.
+- Set `<html data-theme="dark">` statically (matches web).
+- Remove the theme **selector** from `settings-store` and Settings UI, and the **legacy theme settings**.
+- Point the main `backgroundColor` (read in `src/main/index.ts` before window creation) at the new `--bg`.
+- **Add a migration** so an existing persisted `settings.theme` value doesn't trip the `.strict()` zod
+  schema on upgrade (strip/normalize the legacy key in `app-store`).
 
 ---
 
-## 9. Testing (vitest, both repos)
+## 8. Persistence & secrets
 
-**Desktop:**
-- state + PKCE (S256) generation.
-- `custos://` callback parsing **including rejection** of wrong host/path, missing `state`/`code`,
-  mismatched `state`.
-- grant exchange (happy path + server-error path).
-- `safeStorage` round-trip (mocked) **and** fail-closed behavior when encryption unavailable.
-- pending-state cleared on success / timeout / cancel / failure.
-- device-code poll loop (awaiting → authed / denied / expired).
-- `url-policy` allowlist includes `https://97437.dev/...`.
-
-**Web:**
-- grant sign/verify: claim set, TTL expiry, `stateHash` binding, PKCE `codeChallenge` vs
-  `code_verifier`, tamper rejection. (Replay-within-TTL is **documented as accepted** for v1, not
-  tested as prevented.)
-- `POST /api/desktop/token/exchange` happy + invalid-grant paths.
-- bearer-plugin scope gate: a desktop token **cannot** hit web-only privileged actions.
-- `/desktop/complete` requires a live session (no session ⇒ bounce to login).
-
-**Manual:** full round-trip against a **local `custosweb` dev backend** first, then production.
+- **electron-store** gains `auth` `{ tokenEnc?: safeStorage-base64, user?: CachedUser }`, separate from
+  `settings`. Token decrypted in main only; renderer gets `user` only (§4.8). Fail-closed (§4.7).
+- **`DESKTOP_GRANT_SECRET`** (web) — **separate** from Better Auth secrets; add to `.env.example` and the
+  deploy checklist (§11). **Rotation semantics:** rotating it **invalidates outstanding grants** (in-
+  flight logins must restart) but **not existing desktop sessions** (those are bearer tokens, validated
+  independently) — unless an intentional mass session invalidation is desired.
 
 ---
 
-## 10. Manual setup checklist (for the human)
+## 9. Error copy / UX states (no generic "Something went wrong")
 
-- [ ] Generate `DESKTOP_GRANT_SECRET`, add to Railway env for `custosweb`.
-- [ ] Redeploy `custosweb` (web + worker as usual).
-- [ ] Verify `custos://` protocol registers on a real Windows install (installer/admin manifest).
-- [ ] No Google/GitHub console changes required (existing web callback reused).
+Each failure mode gets clear, specific user-facing copy:
+
+| Condition | Copy intent |
+|---|---|
+| Login failed (OAuth/exchange) | "Couldn't complete sign-in. Try again." + retry |
+| Callback blocked / no return | "Browser couldn't return to Custos — use a sign-in code instead." → device flow |
+| Device code expired | "That code expired. Get a new one." |
+| Server unavailable | "Can't reach 97437.dev right now. You can keep using Custos offline." |
+| Encryption unavailable (§4.7) | "Secure storage isn't available, so you'll need to sign in again after restart." |
+| Banned / deleted account (§4.5) | Silent return to anonymous (no nag); if surfaced, neutral "Signed out." |
+| Auth disabled (kill switch) | Auth UI hidden; scanner works normally. |
 
 ---
 
-## 11. Phase 2 (separate spec — not built here)
+## 10. Testing (vitest, both repos)
 
-Share scan reports to the web, built on Phase 1's bearer token: web ingest endpoint + storage +
-web report-view page + a "Share" action on the desktop `Results` page (scope-gated to desktop tokens).
+**Desktop:** state + PKCE (S256) generation; `custos://` parsing **incl. rejection** of wrong host/path,
+missing `state`/`code`, mismatched `state`; grant exchange (happy + error); `safeStorage` round-trip
+(mocked) **and** fail-closed when encryption unavailable; pending-state cleared on success/timeout/
+cancel/failure/rejected-callback; device-poll loop (interval, slow_down, max duration, denied/expired);
+`url-policy` allowlist includes only expected `97437.dev` URLs; avatar initials fallback on load error;
+kill-switch off ⇒ no auth UI, scanner works.
+
+**Web:** grant sign/verify (claim set, TTL, `stateHash` + PKCE binding, tamper rejection — **replay-
+within-TTL documented as accepted, not tested as prevented**); `/api/desktop/token/exchange` happy +
+invalid; bearer scope gate (desktop token cannot hit web-only privileged actions); `/desktop/complete`
+requires live session; rate-limit trips; audit log emits non-sensitive entries only; kill switch returns
+clean disabled response without affecting web cookie login.
+
+**Production-like (before merge, §13):** run the full flow against a **local `custosweb` dev backend**
+first, then a **staging / production-like Railway environment**. Do **not** merge on unit-test green
+alone.
 
 ---
 
-## 12. Open items / future upgrades
+## 11. Manual Windows verification (must pass before "done")
 
-- **Strict single-use grants:** add DB-backed `jti` store → reject replays (`jti` claim already
-  present).
-- **Token refresh/expiry UX:** decide silent re-auth vs prompt when the desktop token expires.
-- **Device-flow plugin availability:** confirm `better-auth@1.6.12` ships device-authorization; if
-  not, implement the minimal endpoint pair.
+On a real Windows install:
+
+- [ ] `custos://` protocol registration works.
+- [ ] Primary browser auto-return signs the app in.
+- [ ] Device-code fallback works when return is blocked.
+- [ ] `safeStorage` token persists across app restart (and **fail-closed** path when encryption absent).
+- [ ] Logout wipes local token (and best-effort server revoke).
+- [ ] Banned/deleted account → silent wipe → anonymous on next validation.
+- [ ] **Scanner works fully with no login and no internet** (PR-1).
+- [ ] Kill switch off → no auth UI, scanner unaffected (PR-2).
+
+Deploy checklist: generate `DESKTOP_GRANT_SECRET` → add to Railway env → redeploy `custosweb` (web +
+worker) → verify protocol registration on a real install → confirm no Google/GitHub console change needed.
+
+---
+
+## 12. Implementation phasing (single PR per repo where sensible; do NOT mix Phase 2)
+
+- **Phase 1A — Web auth endpoints:** `bearer` plugin, `trustedOrigins`, `/desktop/auth/start`,
+  `/desktop/complete`, `/api/desktop/token/exchange`, signed grant, device endpoints + `/device`, rate
+  limits, audit logging, kill switch, `DESKTOP_GRANT_SECRET`. Tests. (custosweb)
+- **Phase 1B — Electron main `AuthService`:** protocol registration, browser OAuth, `custos://` handler,
+  grant exchange, device fallback, `safeStorage` (fail-closed), startup validation + ban/delete cleanup,
+  logout/revoke, IPC, persistence, kill-switch gating, `openExternal` allowlist. Tests. (custos)
+- **Phase 1C — Renderer auth UI:** `auth-store`, login modal (+ device panel), header user menu, avatar,
+  role badge, Settings "Account" card, error copy, uid-based profile URL. Tests. (custos)
+- **Phase 1D — Design alignment / theme cleanup:** token values, fonts, component conventions, full dead-
+  theme removal + migration. (custos)
+- **Phase 1E — Full manual Windows verification** (§11) end-to-end.
+
+---
+
+## 13. Merge & deploy rules
+
+- **No direct merge to `main` after a huge diff.** Open a PR per repo; review changed files; run
+  **typecheck + lint + build + tests in both repos**; then **manually test the login flow** (local →
+  production-like, §10) before deployment.
+- **Web deploy rollback note:** because this touches Better Auth + Railway, rollback = flip
+  `DESKTOP_AUTH_ENABLED=false` (and/or revert the `/desktop/*` + token-exchange routes). Existing web
+  cookie login must remain **unaffected** by enabling or rolling back desktop auth.
+
+---
+
+## 14. Phase 2 — Share scan reports to the web (separate spec; privacy model required first)
+
+Built on Phase 1's scoped bearer token: web ingest endpoint + storage + web report-view page + a "Share"
+action on the desktop `Results` page (scope-gated to desktop tokens).
+
+**Before building, the Phase 2 spec must define a privacy model — do not upload raw forensic output
+blindly.** It must answer:
+
+- What scan data is uploaded vs **redacted**.
+- Who can view a shared link; whether links are public/unlisted/auth-gated.
+- Whether links **expire**; whether users can **delete** reports.
+- Whether reports expose **usernames, file paths, Windows usernames, hardware IDs, IPs, or server/player
+  identifiers** — and the redaction/consent policy for each.
+- Abuse controls (rate limits, report size caps, takedown).
+
+---
+
+## 15. Open items / future upgrades
+
+- **Strict single-use grants:** DB/KV `jti` store → reject replays (claim already present, §4.3).
+- **Token refresh strategy:** decide silent refresh vs re-login prompt when the long-lived desktop token
+  expires (§4.5).
+- **Device-auth plugin availability:** confirm `better-auth@1.6.12` ships device-authorization; else
+  implement the minimal endpoint pair.
+- **Kill-switch source:** decide whether desktop reads `DESKTOP_AUTH_ENABLED` purely from its own
+  config/build or also honors a value served by the web (for remote disable).
