@@ -267,6 +267,7 @@ export const IPC_CHANNELS = {
   AUTH_LOGIN: 'auth:login',
   AUTH_CANCEL: 'auth:cancel',
   AUTH_LOGOUT: 'auth:logout',
+  AUTH_OPEN_PROFILE: 'auth:open-profile',
   AUTH_CHANGED: 'auth:changed'
 } as const
 

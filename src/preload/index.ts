@@ -196,6 +196,9 @@ const api = {
   /** Log out — wipes the local token and best-effort revokes server-side. */
   logout: (): Promise<void> => ipcRenderer.invoke(IPC_CHANNELS.AUTH_LOGOUT),
 
+  /** Open the signed-in user's profile on the web (main builds the allowlisted URL). */
+  openProfile: (): Promise<void> => ipcRenderer.invoke(IPC_CHANNELS.AUTH_OPEN_PROFILE),
+
   /** Subscribe to auth-state changes pushed from main. Returns unsubscribe fn. */
   onAuthChanged: (callback: AuthChangedCallback): (() => void) => {
     const listener = (_event: Electron.IpcRendererEvent, state: AuthState): void => callback(state)
