@@ -14,10 +14,10 @@ import { findCallbackInArgv } from './auth/callback-parser'
 import { isAllowedAuthUrl } from './utils/url-policy'
 import { IPC_CHANNELS } from '../shared/types'
 
-// Read settings from electron-store before app is ready
-const themeColors = { aurora: '#320d40', mono: '#1a1a1a', tropical: '#0a0a0f' } as const
-const savedTheme = appStore.get('settings').theme as keyof typeof themeColors
-const bgColor = themeColors[savedTheme] || themeColors.tropical
+// Window background flashed before the renderer paints. Use the new static
+// `--bg` (#0a0908); the multi-theme machinery was removed in 1D-4. The
+// data-theme CSS removal is finalized in 1D-5.
+const bgColor = '#0a0908'
 
 let mainWindow: BrowserWindow | null = null
 let authService: AuthService | null = null
