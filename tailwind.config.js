@@ -4,39 +4,40 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        // ── Espresso design-system tokens: black & white with coffee accents ──
-        bg: '#0E0C0A',
-        panel: '#171411',
-        'panel-2': '#1F1B16',
-        ink: '#EDE7DE',
-        'ink-dim': '#A89F93',
-        scan: '#C8A47E',
-        'scan-dim': '#B0A696',
-        alert: '#D98E8E',
-        amber: '#D9B380',
+        // ── Coffee-noir design-system tokens: black & white with coffee accents ──
+        bg: '#0a0908',
+        panel: '#141110',
+        'panel-2': '#1c1815',
+        ink: '#f4f0ea',
+        'ink-dim': '#a89f93',
+        scan: '#c89a6a',
+        'scan-dim': '#8a7b68',
+        alert: '#e0604c',
+        amber: '#e3a45c',
+        'on-accent': '#14100c',
         // ── Legacy tokens (kept so existing components don't break) ──
         // Warm near-black base
         background: {
-          DEFAULT: '#0E0C0A',
-          surface: '#171411',
-          elevated: '#1F1B16'
+          DEFAULT: '#0a0908',
+          surface: '#141110',
+          elevated: '#1c1815'
         },
         // The single coffee accent family — the only palette in the app
         accent: {
           lavender: '#D9BC9A',
           purple: '#B0A696',
           sky: '#B0A696',
-          blue: '#C8A47E'
+          blue: '#c89a6a'
         },
         primary: {
-          DEFAULT: '#C8A47E',
+          DEFAULT: '#c89a6a',
           hover: '#D9BC9A',
-          muted: 'rgba(200, 164, 126, 0.12)'
+          muted: 'rgba(200, 154, 106, 0.12)'
         },
         // Legacy token name, remapped onto the coffee palette
         aurora: {
           purple: '#B0A696',
-          blue: '#C8A47E'
+          blue: '#c89a6a'
         },
         // Semantic status colors — kept only for scan results & health,
         // desaturated so the UI still reads black-and-white-first

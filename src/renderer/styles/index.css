@@ -97,11 +97,11 @@
    ============================================ */
 
 :root {
-  --bg:#0E0C0A; --panel:#171411; --panel-2:#1F1B16;
-  --ink:#EDE7DE; --ink-dim:#A89F93; --scan:#C8A47E; --scan-dim:#B0A696;
-  --alert:#D98E8E; --amber:#D9B380;
-  --line:rgba(237,231,222,.08); --line-strong:rgba(200,164,126,.2);
-  --glow:200,164,126;
+  --bg:#0a0908; --panel:#141110; --panel-2:#1c1815;
+  --ink:#f4f0ea; --ink-dim:#a89f93; --scan:#c89a6a; --scan-dim:#8a7b68;
+  --alert:#e0604c; --amber:#e3a45c; --on-accent:#14100c;
+  --line:rgba(244,240,234,.10); --line-strong:rgba(244,240,234,.18);
+  --glow:200,154,106;
 }
 html, body { background: var(--bg); color: var(--ink); }
 
@@ -130,11 +130,11 @@ html, body { background: var(--bg); color: var(--ink); }
   --theme-accent-1: #B0A696;
   --theme-accent-2: #C8A47E;
   --theme-glow: rgba(200, 164, 126, 0.25);
-  --theme-bg: #0E0C0A;
-  --theme-surface: #171411;
-  --theme-elevated: #1F1B16;
+  --theme-bg: #0a0908;
+  --theme-surface: #141110;
+  --theme-elevated: #1c1815;
   /* Caramel buttons are light, so button text is the dark base for contrast */
-  --theme-text-btn: #0E0C0A;
+  --theme-text-btn: #14100c;
   --theme-border: rgba(237, 231, 222, 0.08);
   --theme-border-hover: rgba(200, 164, 126, 0.25);
 }
