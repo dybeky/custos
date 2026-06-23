@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { isAllowedExternalUrl, isAllowedLocalPath, expandEnv } from './url-policy'
+import { isAllowedExternalUrl, isAllowedLocalPath, expandEnv, isAllowedAuthUrl } from './url-policy'
 
 const NUL = String.fromCharCode(0)
 
@@ -77,5 +77,26 @@ describe('isAllowedLocalPath', () => {
     expect(isAllowedLocalPath('C:\\Windows\\Prefetch')).toBe(true)
     expect(isAllowedLocalPath('C:\\Users\\me\\.ssh')).toBe(true)
     expect(isAllowedLocalPath('C:\\Program Files (x86)\\Steam')).toBe(true)
+  })
+})
+
+describe('isAllowedAuthUrl', () => {
+  const ORIGIN = 'https://97437.dev'
+  it('allows the exact auth/device/profile paths on the web origin', () => {
+    expect(isAllowedAuthUrl(`${ORIGIN}/desktop/auth/start?state=a&cc=b&provider=google`, ORIGIN)).toBe(true)
+    expect(isAllowedAuthUrl(`${ORIGIN}/device`, ORIGIN)).toBe(true)
+    expect(isAllowedAuthUrl(`${ORIGIN}/profile/id/u1`, ORIGIN)).toBe(true)
+  })
+  it('rejects other paths, other origins, and non-https', () => {
+    expect(isAllowedAuthUrl(`${ORIGIN}/admin`, ORIGIN)).toBe(false)
+    expect(isAllowedAuthUrl('https://evil.example/desktop/auth/start', ORIGIN)).toBe(false)
+    expect(isAllowedAuthUrl('http://97437.dev/device', ORIGIN)).toBe(false)
+    expect(isAllowedAuthUrl('custos://auth/callback?state=a&code=b', ORIGIN)).toBe(false)
+    expect(isAllowedAuthUrl('not a url', ORIGIN)).toBe(false)
+  })
+  it('accepts a localhost dev origin when that is the configured base', () => {
+    const DEV = 'http://localhost:3000'
+    expect(isAllowedAuthUrl(`${DEV}/device`, DEV)).toBe(true)
+    expect(isAllowedAuthUrl(`${ORIGIN}/device`, DEV)).toBe(false)
   })
 })
