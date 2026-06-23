@@ -25,15 +25,19 @@ const execFileP = promisify(execFile)
 
 // Strict schema for partial user settings — rejects unknown properties
 const UserSettingsPartialSchema = z.object({
-  language: z.enum(['en', 'ru']).optional(),
-  theme: z.enum(['aurora', 'mono', 'tropical']).optional()
+  language: z.enum(['en', 'ru']).optional()
 }).strict()
 
-// Full schema with defaults — used to re-validate persisted settings on read
-const UserSettingsSchema = z.object({
-  language: z.enum(['en', 'ru']).default('en'),
-  theme: z.enum(['aurora', 'mono', 'tropical']).default('tropical')
-})
+/**
+ * Normalize persisted settings: drop the legacy `theme` key (and any other
+ * extras) so an existing `{ language, theme }` blob from before 1D-4 still
+ * validates against the strict partial schema on the next SETTINGS_SET.
+ * Returns a valid UserSettings, defaulting language to 'en'.
+ */
+export function migrateSettings(raw: unknown): UserSettings {
+  const language = (raw && typeof raw === 'object' && (raw as { language?: unknown }).language === 'ru') ? 'ru' : 'en'
+  return { language }
+}
 
 // Single owner of the in-flight scan's running flag + abort controller, kept in
 // sync so cancellation can't prematurely free the guard and let a second scan
@@ -161,15 +165,13 @@ export function setupIpcHandlers(mainWindow: BrowserWindow): void {
     scannerFactory.cancelAll()
   })
 
-  // Get settings
+  // Get settings — migrate persisted data on read so a legacy `{ language, theme }`
+  // blob is normalized (theme stripped) and re-persisted, keeping it valid for the
+  // strict partial schema on the next SETTINGS_SET.
   ipcMain.handle(IPC_CHANNELS.SETTINGS_GET, (): UserSettings => {
-    const stored = appStore.get('settings')
-    const parsed = UserSettingsSchema.safeParse(stored)
-    if (parsed.success) return parsed.data
-    logger.warn('Stored settings failed validation; using defaults', { error: parsed.error.message })
-    const defaults = UserSettingsSchema.parse({})
-    appStore.set('settings', defaults)
-    return defaults
+    const migrated = migrateSettings(appStore.get('settings'))
+    appStore.set('settings', migrated)
+    return migrated
   })
 
   // Set settings (validated with Zod to reject unknown properties)

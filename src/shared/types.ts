@@ -52,7 +52,6 @@ export interface ScannerInfo {
 // Settings types
 export interface UserSettings {
   language: 'en' | 'ru'
-  theme: 'aurora' | 'mono' | 'tropical'
 }
 
 // Desktop auth providers. 'google'/'github' are interactive OAuth via the
