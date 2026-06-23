@@ -9,7 +9,10 @@
     "developer": "Разработчик:",
     "viewOnGitHub": "ОТКРЫТЬ НА GITHUB",
     "language": "Язык",
-    "languageDesc": "Выберите язык интерфейса"
+    "languageDesc": "Выберите язык интерфейса",
+    "account": "Аккаунт",
+    "accountAnon": "Войдите, чтобы показать ваш профиль 97437.dev в Custos.",
+    "accountAuthed": "Выполнен вход в 97437.dev"
   },
   "dashboard": {
     "title": "Главная",
