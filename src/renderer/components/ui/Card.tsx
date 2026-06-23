@@ -10,7 +10,7 @@ interface CardProps extends HTMLMotionProps<'div'> {
 // Surfaces are translucent + blurred so the animated aurora behind the app
 // tints them — the UI reads as colourful glass rather than flat black.
 const variants = {
-  default: 'bg-panel/70 backdrop-blur-xl border border-[color:var(--line)]',
+  default: 'bg-panel/40 backdrop-blur-xl border border-[color:var(--line)] hover:border-scan/50',
   glass: 'bg-panel/60 backdrop-blur-xl glow-scan border border-[color:var(--line)]',
   elevated: 'bg-panel-2/70 backdrop-blur-xl border border-[color:var(--line)] shadow-lg'
 }
@@ -31,7 +31,7 @@ export const Card = forwardRef<HTMLDivElement, CardProps>(
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.2 }}
         className={cn(
-          'rounded-2xl',
+          'rounded-xl',
           variants[variant],
           paddings[padding],
           className

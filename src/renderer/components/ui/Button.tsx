@@ -2,7 +2,7 @@ import { ButtonHTMLAttributes, forwardRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import { cn } from '../../utils/cn'
 
-type ButtonVariant = 'primary' | 'secondary' | 'outline' | 'danger' | 'ghost'
+type ButtonVariant = 'primary' | 'secondary' | 'outline' | 'danger' | 'ghost' | 'oauth'
 type ButtonSize = 'sm' | 'md' | 'lg'
 
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
@@ -15,11 +15,12 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 }
 
 const variants: Record<ButtonVariant, string> = {
-  primary: 'bg-scan text-bg hover:shadow-glow active:opacity-80',
+  primary: 'bg-scan text-on-accent font-display font-bold hover:-translate-y-0.5 hover:shadow-glow active:opacity-80',
   secondary: 'bg-panel text-ink border border-[color:var(--line)] hover:bg-panel-2 active:opacity-80',
-  outline: 'border border-scan text-scan bg-transparent hover:bg-scan hover:text-bg active:opacity-80',
+  outline: 'border border-scan text-scan bg-transparent hover:bg-scan hover:text-on-accent active:opacity-80',
   danger: 'bg-alert/10 text-alert border border-alert/30 hover:bg-alert/20 active:opacity-80',
-  ghost: 'text-ink-dim hover:text-ink hover:bg-panel-2 active:bg-panel'
+  ghost: 'text-ink-dim hover:text-ink hover:bg-panel-2 active:bg-panel',
+  oauth: 'rounded-xl border border-[color:var(--line-strong)] bg-bg text-ink hover:border-scan hover:text-scan active:opacity-80'
 }
 
 const sizes: Record<ButtonSize, string> = {
