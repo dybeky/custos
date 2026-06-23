@@ -1,0 +1,206 @@
+// src/main/auth/auth-service.ts
+import { generateState, generatePkce } from './pkce'
+import { parseCallback } from './callback-parser'
+import type { AuthClient } from './auth-client'
+import type { TokenStore } from './token-store'
+import type { AuthConfig } from '../services/config-service'
+import type { AuthState, AuthProvider, PublicUser, DeviceProgress } from '../../shared/types'
+
+const PENDING_TIMEOUT_MS = 90_000
+const DEVICE_MAX_DURATION_MS = 5 * 60_000
+
+interface PendingAuth {
+  state: string
+  codeVerifier: string
+  provider: AuthProvider
+  startedAt: number
+  timer: ReturnType<typeof setTimeout> | null
+}
+
+export interface AuthServiceDeps {
+  client: AuthClient
+  tokens: TokenStore
+  config: AuthConfig
+  openExternal: (url: string) => void
+  onChange: (state: AuthState) => void
+  now?: () => number
+}
+
+export class AuthService {
+  private status: AuthState['status'] = 'anon'
+  private user: PublicUser | null = null
+  private device: DeviceProgress | undefined = undefined
+  private encryptionUnavailable = false
+  private pendingAuth: PendingAuth | null = null
+
+  // Same object references as deps.client / deps.tokens. All call sites read
+  // through these fields so swapping a method on the live client (tests/seams)
+  // is observed. They are plain references — never a token or code-verifier.
+  private readonly client: AuthClient
+  private readonly tokens: TokenStore
+
+  constructor(private deps: AuthServiceDeps) {
+    this.client = deps.client
+    this.tokens = deps.tokens
+  }
+
+  getState(): AuthState {
+    return {
+      status: this.status,
+      user: this.user,
+      device: this.device,
+      encryptionUnavailable: this.encryptionUnavailable || undefined
+    }
+  }
+
+  private emit(): void {
+    this.deps.onChange(this.getState())
+  }
+
+  private clearPending(): void {
+    if (this.pendingAuth?.timer) clearTimeout(this.pendingAuth.timer)
+    this.pendingAuth = null
+  }
+
+  /** Drop to authed-if-user-else-anon (used after a failed/cancelled pending). */
+  private settleToBaseline(): void {
+    this.device = undefined
+    this.status = this.user ? 'authed' : 'anon'
+  }
+
+  async login(provider: AuthProvider): Promise<void> {
+    if (!this.deps.config.enabled) return // kill switch (§4.13)
+    this.clearPending()
+    if (provider === 'device') {
+      await this.runDeviceFlow()
+      return
+    }
+    const state = generateState()
+    const { codeVerifier, codeChallenge } = generatePkce()
+    const timer = setTimeout(() => this.onPendingTimeout(), PENDING_TIMEOUT_MS)
+    this.pendingAuth = { state, codeVerifier, provider, startedAt: Date.now(), timer }
+    this.status = 'pending'
+    this.device = undefined
+    this.emit()
+    this.deps.openExternal(this.client.buildStartUrl(state, codeChallenge, provider))
+  }
+
+  private onPendingTimeout(): void {
+    // Timeout (~90s): offer device code (§4.4). Clear primary pending.
+    this.clearPending()
+    this.device = { status: 'awaiting-approval' } // UI shows "use a code"
+    this.status = this.user ? 'authed' : 'anon'
+    this.emit()
+  }
+
+  async handleCallback(url: string): Promise<void> {
+    const parsed = parseCallback(url)
+    if (!parsed || !this.pendingAuth || parsed.state !== this.pendingAuth.state) {
+      // Rejected callback (§4.6) → clear pending (§4.9), non-sensitive log.
+      this.clearPending()
+      this.settleToBaseline()
+      this.emit()
+      return
+    }
+    const { codeVerifier, state } = this.pendingAuth
+    try {
+      const { token, user } = await this.client.exchange({ state, code: parsed.code, codeVerifier })
+      this.completeAuth(token, user)
+    } catch {
+      this.clearPending()
+      this.settleToBaseline()
+      this.emit()
+    }
+  }
+
+  private completeAuth(token: string, user: PublicUser): void {
+    this.clearPending()
+    const persisted = this.tokens.save(token)
+    this.encryptionUnavailable = !persisted
+    this.tokens.saveUser(user)
+    this.user = user
+    this.status = 'authed'
+    this.device = undefined
+    this.emit()
+  }
+
+  async cancel(): Promise<void> {
+    this.clearPending()
+    this.settleToBaseline()
+    this.emit()
+  }
+
+  async logout(): Promise<void> {
+    const token = this.tokens.load()
+    // Local wipe FIRST (guaranteed, never blocked) — §4.10
+    this.tokens.clear()
+    this.clearPending()
+    this.user = null
+    this.status = 'anon'
+    this.device = undefined
+    this.encryptionUnavailable = false
+    this.emit()
+    // Best-effort server revoke (non-blocking, never throws)
+    if (token) void this.client.revoke(token)
+  }
+
+  async validateOnStartup(): Promise<void> {
+    if (!this.deps.config.enabled) return
+    const token = this.tokens.load()
+    if (!token) { this.status = 'anon'; this.user = null; return }
+    // Cached user is display-only; show it briefly to avoid a logged-out flash.
+    this.user = this.tokens.loadUser()
+    this.status = this.user ? 'authed' : 'anon'
+    this.emit()
+    const session = await this.client.getSession(token)
+    if (!session) {
+      // banned/deleted/401 → silent wipe → anonymous (§4.5)
+      this.tokens.clear()
+      this.user = null
+      this.status = 'anon'
+      this.emit()
+      return
+    }
+    this.user = session.user
+    this.tokens.saveUser(session.user)
+    this.status = 'authed'
+    this.emit()
+  }
+
+  private async runDeviceFlow(): Promise<void> {
+    this.device = { status: 'requesting' }
+    this.status = 'pending'
+    this.emit()
+    let code
+    try {
+      code = await this.client.requestDeviceCode()
+    } catch {
+      this.device = { status: 'error' }
+      this.status = this.user ? 'authed' : 'anon'
+      this.emit()
+      return
+    }
+    this.device = { status: 'awaiting-approval', userCode: code.userCode, verificationUri: code.verificationUri }
+    this.emit()
+    this.deps.openExternal(this.client.buildDeviceVerificationUrl())
+    await this.pollDevice(code.deviceCode, code.interval, Date.now())
+  }
+
+  private async pollDevice(deviceCode: string, intervalSec: number, startedAt: number): Promise<void> {
+    let intervalMs = Math.max(1, intervalSec) * 1000
+    // Bounded loop (§4.4): honor interval, back off on slow_down, cap duration.
+    while (Date.now() - startedAt < DEVICE_MAX_DURATION_MS) {
+      await new Promise((r) => setTimeout(r, intervalMs))
+      const res = await this.client.pollDeviceToken(deviceCode)
+      if (res.kind === 'token') { this.completeAuth(res.token, res.user); return }
+      if (res.kind === 'slow_down') { intervalMs += 5000; continue }
+      if (res.kind === 'pending') { this.device = { status: 'polling', userCode: this.device?.userCode, verificationUri: this.device?.verificationUri }; this.emit(); continue }
+      if (res.kind === 'denied') { this.device = { status: 'denied' }; this.status = this.user ? 'authed' : 'anon'; this.emit(); return }
+      if (res.kind === 'expired') { this.device = { status: 'expired' }; this.status = this.user ? 'authed' : 'anon'; this.emit(); return }
+      this.device = { status: 'error' }; this.status = this.user ? 'authed' : 'anon'; this.emit(); return
+    }
+    this.device = { status: 'expired' } // max duration hit → treat as expired
+    this.status = this.user ? 'authed' : 'anon'
+    this.emit()
+  }
+}
