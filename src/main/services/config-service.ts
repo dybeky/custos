@@ -93,10 +93,28 @@ export type AppConfig = z.infer<typeof AppConfigSchema>
 export type KeywordSettings = z.infer<typeof KeywordSettingsSchema>
 export type KnownHashes = z.infer<typeof KnownHashesSchema>
 
+// ── Desktop auth config (kill switch + web base URL) ──────────────────────────
+const AuthConfigSchema = z.object({
+  enabled: z.boolean(),
+  webBaseUrl: z.string().url()
+})
+export { AuthConfigSchema }
+export type AuthConfig = z.infer<typeof AuthConfigSchema>
+
+const DEFAULT_AUTH_CONFIG: AuthConfig = { enabled: true, webBaseUrl: 'https://97437.dev' }
+
+/** Apply WEB_BASE_URL / DESKTOP_AUTH_ENABLED env overrides on top of a file block. */
+export function resolveAuthConfig(fileBlock: AuthConfig): AuthConfig {
+  const webBaseUrl = process.env.WEB_BASE_URL || fileBlock.webBaseUrl
+  const enabled = process.env.DESKTOP_AUTH_ENABLED === 'false' ? false : fileBlock.enabled
+  return { enabled, webBaseUrl }
+}
+
 class ConfigService {
   private config: AppConfig | null = null
   private keywords: KeywordSettings | null = null
   private knownHashes: string[] | null = null
+  private authConfig: AuthConfig | null = null
 
   private getResourcePath(): string {
     // In production, configs are in resources folder
@@ -174,6 +192,22 @@ class ConfigService {
       logger.error('Failed to load known hashes:', error)
       return []
     }
+  }
+
+  loadAuthConfig(): AuthConfig {
+    if (this.authConfig) return this.authConfig
+    let fileBlock = DEFAULT_AUTH_CONFIG
+    try {
+      const configPath = join(this.getResourcePath(), 'settings.json')
+      const parsed = JSON.parse(readFileSync(configPath, 'utf-8'))
+      const result = AuthConfigSchema.safeParse(parsed.auth)
+      if (result.success) fileBlock = result.data
+      else logger.warn('Auth config block missing/invalid; using defaults')
+    } catch (error) {
+      logger.warn('Failed to read auth config; using defaults', { error: String(error) })
+    }
+    this.authConfig = resolveAuthConfig(fileBlock)
+    return this.authConfig
   }
 
   private getDefaultConfig(): AppConfig {
