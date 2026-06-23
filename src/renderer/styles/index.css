@@ -89,7 +89,7 @@
 /* ============================================
    SINGLE PALETTE — black & white with warm coffee accents
    #C8A47E caramel · #D9BC9A latte · #B0A696 taupe · #EDE7DE cream
-   (data-theme variants all resolve to this one palette)
+   Single canonical coffee-noir theme — one :root, no data-theme switching.
    ============================================ */
 
 /* ============================================
@@ -114,10 +114,7 @@ html, body { background: var(--bg); color: var(--ink); }
    LEGACY THEME VARIABLES (kept for existing components)
    ============================================ */
 
-:root,
-[data-theme="aurora"],
-[data-theme="mono"],
-[data-theme="tropical"] {
+:root {
   /* The four coffee tones */
   --c-lavender: #D9BC9A;
   --c-purple: #B0A696;
