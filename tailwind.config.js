@@ -25,8 +25,8 @@ module.exports = {
         // The single coffee accent family — the only palette in the app
         accent: {
           lavender: '#D9BC9A',
-          purple: '#B0A696',
-          sky: '#B0A696',
+          purple: '#8a7b68',
+          sky: '#8a7b68',
           blue: '#c89a6a'
         },
         primary: {
@@ -36,7 +36,7 @@ module.exports = {
         },
         // Legacy token name, remapped onto the coffee palette
         aurora: {
-          purple: '#B0A696',
+          purple: '#8a7b68',
           blue: '#c89a6a'
         },
         // Semantic status colors — kept only for scan results & health,
@@ -46,11 +46,11 @@ module.exports = {
           muted: 'rgba(143, 191, 159, 0.12)'
         },
         error: {
-          DEFAULT: '#D98E8E',
+          DEFAULT: '#e0604c',
           muted: 'rgba(217, 142, 142, 0.12)'
         },
         warning: {
-          DEFAULT: '#D9B380',
+          DEFAULT: '#e3a45c',
           muted: 'rgba(217, 179, 128, 0.12)'
         },
         text: {

@@ -11,12 +11,12 @@ import type { CapabilityCategory, ScannerCapability, ChangelogGroup } from '../.
 
 // Accent color per changelog group — replaces emojis with quiet semantic color.
 const CHANGELOG_ACCENT: Record<string, string> = {
-  New: '#C8A47E',          // caramel — the primary accent
+  New: '#c89a6a',          // caramel — the primary accent
   Fixes: '#8FBF9F',        // sage — something resolved
-  Performance: '#B0A696',  // taupe
-  Improvements: '#B0A696'  // taupe
+  Performance: '#8a7b68',  // taupe
+  Improvements: '#8a7b68'  // taupe
 }
-const CHANGELOG_ACCENT_DEFAULT = '#C8A47E'
+const CHANGELOG_ACCENT_DEFAULT = '#c89a6a'
 
 // Render order + i18n label key for each app-area group.
 const CATEGORY_ORDER: { id: CapabilityCategory; labelKey: string }[] = [
@@ -99,9 +99,9 @@ export function Dashboard() {
                 <svg className="w-7 h-7" viewBox="0 0 24 24" fill="none">
                   <defs>
                     <linearGradient id="welcomeSword" x1="0" y1="0" x2="24" y2="24">
-                      <stop offset="0%" stopColor="#C8A47E" />
+                      <stop offset="0%" stopColor="#c89a6a" />
                       <stop offset="50%" stopColor="#D9BC9A" />
-                      <stop offset="100%" stopColor="#C8A47E" />
+                      <stop offset="100%" stopColor="#c89a6a" />
                     </linearGradient>
                   </defs>
                   {/* Blade */}
