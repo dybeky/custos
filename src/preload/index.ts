@@ -1,7 +1,9 @@
 import { contextBridge, ipcRenderer } from 'electron'
 import { IPC_CHANNELS, ScanResult, ScanProgress, UserSettings, ScannerInfo, OsInfo, ScannerCapability, ScannerName, LiveFinding, LiveScanStatus, ScanReport } from '../shared/types'
-import type { ChangelogGroup, UpdateInfo } from '../shared/types'
+import type { ChangelogGroup, UpdateInfo, AuthState, AuthProvider } from '../shared/types'
 import type { GameId } from '../shared/games'
+
+export type AuthChangedCallback = (state: AuthState) => void
 
 export type ScanProgressCallback = (progress: ScanProgress) => void
 export type ScanResultCallback = (result: ScanResult) => void
@@ -178,7 +180,28 @@ const api = {
 
   /** Check for a newer release on GitHub. */
   checkForUpdate: (): Promise<UpdateInfo> =>
-    ipcRenderer.invoke(IPC_CHANNELS.UPDATE_CHECK)
+    ipcRenderer.invoke(IPC_CHANNELS.UPDATE_CHECK),
+
+  // ── Auth (token-free; all networking + the bearer token live in main) ──────
+  /** Current public auth state (never exposes the token/grant/codeVerifier). */
+  getAuthState: (): Promise<AuthState> => ipcRenderer.invoke(IPC_CHANNELS.AUTH_GET_STATE),
+
+  /** Start an interactive (google/github) or device-code login. */
+  login: (provider: AuthProvider): Promise<void> =>
+    ipcRenderer.invoke(IPC_CHANNELS.AUTH_LOGIN, { provider }),
+
+  /** Cancel an in-flight login. */
+  cancelLogin: (): Promise<void> => ipcRenderer.invoke(IPC_CHANNELS.AUTH_CANCEL),
+
+  /** Log out — wipes the local token and best-effort revokes server-side. */
+  logout: (): Promise<void> => ipcRenderer.invoke(IPC_CHANNELS.AUTH_LOGOUT),
+
+  /** Subscribe to auth-state changes pushed from main. Returns unsubscribe fn. */
+  onAuthChanged: (callback: AuthChangedCallback): (() => void) => {
+    const listener = (_event: Electron.IpcRendererEvent, state: AuthState): void => callback(state)
+    ipcRenderer.on(IPC_CHANNELS.AUTH_CHANGED, listener)
+    return () => ipcRenderer.removeListener(IPC_CHANNELS.AUTH_CHANGED, listener)
+  }
 }
 
 // Expose API to renderer

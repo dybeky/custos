@@ -16,6 +16,9 @@ import { humanizeCommits } from './services/changelog'
 import { checkForUpdate } from './services/updater'
 import { appStore } from './services/app-store'
 import { safeOpenExternal, safeOpenPath } from './utils/safe-open'
+import { AuthLoginPayloadSchema } from './auth/auth-ipc-schema'
+import type { AuthService } from './auth/auth-service'
+import type { AuthState } from '../shared/types'
 import { z } from 'zod'
 
 const execFileP = promisify(execFile)
@@ -281,4 +284,25 @@ export function setupIpcHandlers(mainWindow: BrowserWindow): void {
       logger.debug('Window close failed', { error: error instanceof Error ? error.message : 'Unknown error' })
     }
   })
+}
+
+/**
+ * Register the request/response auth IPC handlers, wired to the AuthService.
+ * The renderer never sees the bearer token, PKCE verifier, or grant — only the
+ * public AuthState. The `auth:changed` push is wired separately in index.ts via
+ * the AuthService `onChange` callback (kept beside construction so a single
+ * import in index.ts wires both the handlers and the push).
+ */
+export function setupAuthHandlers(_mainWindow: BrowserWindow, authService: AuthService): void {
+  ipcMain.handle(IPC_CHANNELS.AUTH_GET_STATE, (): AuthState => authService.getState())
+
+  ipcMain.handle(IPC_CHANNELS.AUTH_LOGIN, async (_e, payload: unknown): Promise<void> => {
+    // TypeScript types are erased at the IPC boundary — validate the shape here.
+    const parsed = AuthLoginPayloadSchema.safeParse(payload)
+    if (!parsed.success) throw new Error(`Invalid login payload: ${parsed.error.message}`)
+    await authService.login(parsed.data.provider)
+  })
+
+  ipcMain.handle(IPC_CHANNELS.AUTH_CANCEL, async (): Promise<void> => authService.cancel())
+  ipcMain.handle(IPC_CHANNELS.AUTH_LOGOUT, async (): Promise<void> => authService.logout())
 }
