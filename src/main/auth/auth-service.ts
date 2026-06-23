@@ -23,7 +23,6 @@ export interface AuthServiceDeps {
   config: AuthConfig
   openExternal: (url: string) => void
   onChange: (state: AuthState) => void
-  now?: () => number
 }
 
 export class AuthService {
