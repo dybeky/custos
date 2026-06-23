@@ -12,6 +12,7 @@ import { Settings } from './pages/Settings'
 import { LiveScan } from './pages/LiveScan'
 import { ErrorBoundary } from './components/ErrorBoundary'
 import { useSettingsStore } from './stores/settings-store'
+import { useAuthStore } from './stores/auth-store'
 import { GamePicker } from './components/GamePicker'
 import { UpdateModal } from './components/UpdateModal'
 import { WebsitePromoToast } from './components/WebsitePromoToast'
@@ -43,6 +44,12 @@ export function App() {
   useEffect(() => {
     loadSettings()
   }, [loadSettings])
+
+  // Hydrate renderer auth-store from main and stay live via onAuthChanged.
+  // No blocking gate — login is optional (PR-1); the scanner works while anon.
+  useEffect(() => {
+    useAuthStore.getState().init()
+  }, [])
 
   // Brief loading screen while settings load
   if (isLoading) {
