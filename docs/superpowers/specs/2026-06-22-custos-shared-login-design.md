@@ -310,10 +310,13 @@ subscription to the `electronAPI` bridge. Update `shared/global.d.ts` / `shared/
 
 ### 6.4 Profile URL — stable, not stale
 
-"Open profile on web" must not break if the username changed. Use a **stable `uid`-based profile URL**
-(e.g. `97437.dev/u/<uid>`) **or** refresh the user via startup validation before opening so the cached
-username isn't stale. Decision: prefer the uid-based stable URL if the web supports it; otherwise refresh
-first.
+"Open profile on web" must not break if the username changed. The web already exposes a **stable,
+id-based entry route** `https://97437.dev/profile/id/<user.id>` (`app/profile/id/[id]/page.tsx`) that
+resolves the user server-side and redirects to their canonical handle `/profile/<username>.<uid>`
+(`lib/handle.ts` → `profileHandle(username, uid)` = `"<username>.<uid>"`). Decision: open
+`/profile/id/<user.id>` — it uses the internal `id` the desktop already holds, survives username
+changes, and needs no client-side handle building. The URL is built and opened in the **main process**
+(via `auth:open-profile` IPC) so the renderer never constructs a `97437.dev` URL.
 
 ### 6.5 Avatar loading — safe and resilient
 
@@ -455,7 +458,7 @@ worker) → verify protocol registration on a real install → confirm no Google
   grant exchange, device fallback, `safeStorage` (fail-closed), startup validation + ban/delete cleanup,
   logout/revoke, IPC, persistence, kill-switch gating, `openExternal` allowlist. Tests. (custos)
 - **Phase 1C — Renderer auth UI:** `auth-store`, login modal (+ device panel), header user menu, avatar,
-  role badge, Settings "Account" card, error copy, uid-based profile URL. Tests. (custos)
+  role badge, Settings "Account" card, error copy, id-based profile URL. Tests. (custos)
 - **Phase 1D — Design alignment / theme cleanup:** token values, fonts, component conventions, full dead-
   theme removal + migration. (custos)
 - **Phase 1E — Full manual Windows verification** (§11) end-to-end.
