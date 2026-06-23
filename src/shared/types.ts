@@ -55,6 +55,11 @@ export interface UserSettings {
   theme: 'aurora' | 'mono' | 'tropical'
 }
 
+// Desktop auth providers. 'google'/'github' are interactive OAuth via the
+// browser; 'device' is the headless device-code grant. The auth-client's
+// buildStartUrl only accepts the interactive ones (Exclude<AuthProvider,'device'>).
+export type AuthProvider = 'google' | 'github' | 'device'
+
 // Public, display-only user shape. Safe to cache on disk (NOT secret).
 // The bearer token is the only secret and is never part of this shape.
 export interface PublicUser {
@@ -64,7 +69,12 @@ export interface PublicUser {
   avatarVersion: number
   role: string | null
   status: string
-  image?: string
+  // The web returns the raw provider avatar URL, or null when the user has no
+  // avatar. The auth-client REPLACES this with the canonical, token-free
+  // `/api/avatar/<id>?v=<avatarVersion>` endpoint before handing the user to the
+  // renderer (see AuthClient.withAvatar), so what the renderer sees is always a
+  // string. Optional because the device-poll / cached shapes may omit it.
+  image?: string | null
 }
 
 // Cross-platform OS info for renderer
