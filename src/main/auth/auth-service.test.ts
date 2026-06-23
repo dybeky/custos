@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from 'vitest'
+import { describe, it, expect, vi, afterEach } from 'vitest'
 import { AuthService } from './auth-service'
 import { AuthClient } from './auth-client'
 import { TokenStore } from './token-store'
@@ -103,5 +103,139 @@ describe('AuthService kill switch', () => {
     })
     await svc.login('google')
     expect(svc.getState().status).toBe('anon')
+  })
+})
+
+// A device-code response with a 1s poll interval. The interval drives the
+// pollDevice sleep(); we use fake timers to advance through it deterministically.
+const deviceCode = {
+  deviceCode: 'dev-123', userCode: 'WXYZ-1234',
+  verificationUri: 'http://localhost:3000/device', expiresIn: 600, interval: 1
+}
+
+describe('AuthService.login (device-code flow)', () => {
+  afterEach(() => { vi.useRealTimers() })
+
+  it('happy path: requesting → awaiting-approval (code surfaced) → polled token → authed', async () => {
+    vi.useFakeTimers()
+    const requestDeviceCode = vi.fn(async () => deviceCode)
+    const pollDeviceToken = vi.fn(async () => ({ kind: 'token' as const, token: 'tok', user }))
+    const { svc, tokens, opened, states } = build({ requestDeviceCode, pollDeviceToken } as any)
+
+    const done = svc.login('device')
+    // synchronous prelude: device flow announces 'requesting' before awaiting the code
+    expect(states[0]?.device?.status).toBe('requesting')
+    expect(states[0]?.status).toBe('pending')
+
+    // resolve requestDeviceCode + run the poll loop's first interval to completion
+    await vi.advanceTimersByTimeAsync(1000)
+    await done
+
+    // userCode/verificationUri surfaced on the awaiting-approval emit, browser opened on /device
+    const awaiting = states.find((s) => s.device?.status === 'awaiting-approval')
+    expect(awaiting?.device?.userCode).toBe('WXYZ-1234')
+    expect(awaiting?.device?.verificationUri).toBe('http://localhost:3000/device')
+    expect(opened.at(-1)).toContain('/device')
+
+    expect(pollDeviceToken).toHaveBeenCalledWith('dev-123')
+    expect(svc.getState().status).toBe('authed')
+    expect(svc.getState().user?.username).toBe('neo')
+    expect(tokens.load()).toBe('tok')
+  })
+
+  it('slow_down: backs off (no busy-spin) then completes authed', async () => {
+    vi.useFakeTimers()
+    const requestDeviceCode = vi.fn(async () => deviceCode)
+    // first poll → slow_down (interval grows by 5s), second poll → token
+    const pollDeviceToken = vi.fn()
+      .mockResolvedValueOnce({ kind: 'slow_down' as const })
+      .mockResolvedValueOnce({ kind: 'token' as const, token: 'tok', user })
+    const { svc } = build({ requestDeviceCode, pollDeviceToken } as any)
+
+    const done = svc.login('device')
+    // first interval (1s) → slow_down. The loop must NOT poll again until the
+    // backed-off interval (1s + 5s = 6s) elapses.
+    await vi.advanceTimersByTimeAsync(1000)
+    expect(pollDeviceToken).toHaveBeenCalledTimes(1)
+    await vi.advanceTimersByTimeAsync(5000) // not yet — only 5s since the slow_down
+    expect(pollDeviceToken).toHaveBeenCalledTimes(1)
+    await vi.advanceTimersByTimeAsync(1000) // now 6s → second poll fires
+    expect(pollDeviceToken).toHaveBeenCalledTimes(2)
+    await done
+
+    expect(svc.getState().status).toBe('authed')
+  })
+
+  it('denied: device status denied, settles to anon (not authed)', async () => {
+    vi.useFakeTimers()
+    const requestDeviceCode = vi.fn(async () => deviceCode)
+    const pollDeviceToken = vi.fn(async () => ({ kind: 'denied' as const }))
+    const { svc } = build({ requestDeviceCode, pollDeviceToken } as any)
+
+    const done = svc.login('device')
+    await vi.advanceTimersByTimeAsync(1000)
+    await done
+
+    expect(svc.getState().device?.status).toBe('denied')
+    expect(svc.getState().status).toBe('anon')
+    expect(svc.getState().user).toBeNull()
+  })
+
+  it('expired: device status expired, settles to anon (not authed)', async () => {
+    vi.useFakeTimers()
+    const requestDeviceCode = vi.fn(async () => deviceCode)
+    const pollDeviceToken = vi.fn(async () => ({ kind: 'expired' as const }))
+    const { svc } = build({ requestDeviceCode, pollDeviceToken } as any)
+
+    const done = svc.login('device')
+    await vi.advanceTimersByTimeAsync(1000)
+    await done
+
+    expect(svc.getState().device?.status).toBe('expired')
+    expect(svc.getState().status).toBe('anon')
+    expect(svc.getState().user).toBeNull()
+  })
+
+  it('max-duration: a never-resolving (always pending) poll loop terminates as expired', async () => {
+    vi.useFakeTimers()
+    const requestDeviceCode = vi.fn(async () => deviceCode)
+    const pollDeviceToken = vi.fn(async () => ({ kind: 'pending' as const }))
+    const { svc } = build({ requestDeviceCode, pollDeviceToken } as any)
+
+    const done = svc.login('device')
+    // Drive well past DEVICE_MAX_DURATION_MS (5 min). The bounded while-loop
+    // must exit on the deadline rather than spin forever.
+    await vi.advanceTimersByTimeAsync(5 * 60_000 + 2000)
+    await done
+
+    expect(svc.getState().device?.status).toBe('expired')
+    expect(svc.getState().status).toBe('anon')
+    // polling emitted while pending, but it never settled to a token
+    expect(pollDeviceToken).toHaveBeenCalled()
+    expect(svc.getState().user).toBeNull()
+  })
+})
+
+describe('AuthService primary-login timeout → device-code offer', () => {
+  afterEach(() => { vi.useRealTimers() })
+
+  it('after ~90s the pending is cleared and the device-code affordance surfaces', async () => {
+    vi.useFakeTimers()
+    const { svc, states } = build()
+
+    await svc.login('google')
+    expect(svc.getState().status).toBe('pending')
+    expect((svc as any).pendingAuth).not.toBeNull()
+    const pendingTimer = (svc as any).pendingAuth.timer
+    expect(pendingTimer).not.toBeNull()
+
+    // advance past PENDING_TIMEOUT_MS (90s) → onPendingTimeout fires
+    await vi.advanceTimersByTimeAsync(90_000)
+
+    // pending (and its timer) cleared; device affordance offered; settled to anon
+    expect((svc as any).pendingAuth).toBeNull()
+    expect(svc.getState().device?.status).toBe('awaiting-approval')
+    expect(svc.getState().status).toBe('anon')
+    expect(states.at(-1)?.device?.status).toBe('awaiting-approval')
   })
 })
