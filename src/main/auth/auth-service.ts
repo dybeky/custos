@@ -31,6 +31,11 @@ export class AuthService {
   private device: DeviceProgress | undefined = undefined
   private encryptionUnavailable = false
   private pendingAuth: PendingAuth | null = null
+  // Monotonic device-flow generation. The device poll loop closes over the
+  // epoch captured at flow start; bumping it (cancel/logout/login or a new
+  // device flow) invalidates any in-flight loop so it stops and discards a
+  // late token instead of silently re-logging the user in (§4.4, §4.9).
+  private deviceEpoch = 0
 
   // Same object references as deps.client / deps.tokens. All call sites read
   // through these fields so swapping a method on the live client (tests/seams)
@@ -70,6 +75,7 @@ export class AuthService {
   async login(provider: AuthProvider): Promise<void> {
     if (!this.deps.config.enabled) return // kill switch (§4.13)
     this.clearPending()
+    this.deviceEpoch++ // invalidate any stale device poll from a prior attempt
     if (provider === 'device') {
       await this.runDeviceFlow()
       return
@@ -125,6 +131,7 @@ export class AuthService {
 
   async cancel(): Promise<void> {
     this.clearPending()
+    this.deviceEpoch++ // tear down any running device/poll flow (UserMenu contract)
     this.settleToBaseline()
     this.emit()
   }
@@ -134,6 +141,7 @@ export class AuthService {
     // Local wipe FIRST (guaranteed, never blocked) — §4.10
     this.tokens.clear()
     this.clearPending()
+    this.deviceEpoch++ // stop any running device poll; discard a late token
     this.user = null
     this.status = 'anon'
     this.device = undefined
@@ -180,6 +188,10 @@ export class AuthService {
   }
 
   private async runDeviceFlow(): Promise<void> {
+    // Start a new device generation (and invalidate any prior one). The poll
+    // loop checks this captured epoch against the live counter; cancel/logout/
+    // login bump the counter to stop a stale loop and discard a late token.
+    const myEpoch = ++this.deviceEpoch
     this.device = { status: 'requesting' }
     this.status = 'pending'
     this.emit()
@@ -187,23 +199,33 @@ export class AuthService {
     try {
       code = await this.client.requestDeviceCode()
     } catch {
+      if (myEpoch !== this.deviceEpoch) return // cancelled during the request
       this.device = { status: 'error' }
       this.status = this.user ? 'authed' : 'anon'
       this.emit()
       return
     }
+    if (myEpoch !== this.deviceEpoch) return // cancelled while awaiting the code
     this.device = { status: 'awaiting-approval', userCode: code.userCode, verificationUri: code.verificationUri }
     this.emit()
     this.deps.openExternal(this.client.buildDeviceVerificationUrl())
-    await this.pollDevice(code.deviceCode, code.interval, Date.now())
+    await this.pollDevice(code.deviceCode, code.interval, Date.now(), myEpoch)
   }
 
-  private async pollDevice(deviceCode: string, intervalSec: number, startedAt: number): Promise<void> {
+  private async pollDevice(deviceCode: string, intervalSec: number, startedAt: number, myEpoch: number): Promise<void> {
     let intervalMs = Math.max(1, intervalSec) * 1000
     // Bounded loop (§4.4): honor interval, back off on slow_down, cap duration.
     while (Date.now() - startedAt < DEVICE_MAX_DURATION_MS) {
+      // Stop before sleeping if this flow was cancelled (§4.9).
+      if (myEpoch !== this.deviceEpoch) return
       await new Promise((r) => setTimeout(r, intervalMs))
+      // cancel/logout/login may have landed during the sleep — don't even poll.
+      if (myEpoch !== this.deviceEpoch) return
       const res = await this.client.pollDeviceToken(deviceCode)
+      // Re-check AFTER the poll await too: cancellation may have landed while
+      // the poll was in flight. A stale result (incl. a token) is discarded —
+      // no emit, no completeAuth, no silent re-login.
+      if (myEpoch !== this.deviceEpoch) return
       if (res.kind === 'token') { this.completeAuth(res.token, res.user); return }
       if (res.kind === 'slow_down') { intervalMs += 5000; continue }
       if (res.kind === 'pending') { this.device = { status: 'polling', userCode: this.device?.userCode, verificationUri: this.device?.verificationUri }; this.emit(); continue }
@@ -211,6 +233,7 @@ export class AuthService {
       if (res.kind === 'expired') { this.device = { status: 'expired' }; this.status = this.user ? 'authed' : 'anon'; this.emit(); return }
       this.device = { status: 'error' }; this.status = this.user ? 'authed' : 'anon'; this.emit(); return
     }
+    if (myEpoch !== this.deviceEpoch) return // cancelled at the deadline boundary
     this.device = { status: 'expired' } // max duration hit → treat as expired
     this.status = this.user ? 'authed' : 'anon'
     this.emit()

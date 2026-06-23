@@ -231,6 +231,90 @@ describe('AuthService.login (device-code flow)', () => {
     expect(pollDeviceToken).toHaveBeenCalled()
     expect(svc.getState().user).toBeNull()
   })
+
+  it('cancel mid-poll: stops the loop and a late token is discarded (no silent re-login)', async () => {
+    vi.useFakeTimers()
+    const requestDeviceCode = vi.fn(async () => deviceCode)
+    // poll #1 → pending (we reach the polling state), poll #2 (if it ever fires)
+    // → token. After cancel(), the loop must NOT poll again and the token must
+    // never be applied.
+    const pollDeviceToken = vi.fn()
+      .mockResolvedValueOnce({ kind: 'pending' as const })
+      .mockResolvedValue({ kind: 'token' as const, token: 'tok', user })
+    const { svc, tokens } = build({ requestDeviceCode, pollDeviceToken } as any)
+
+    const done = svc.login('device')
+    // first interval (1s) → pending: we are now in the polling state
+    await vi.advanceTimersByTimeAsync(1000)
+    expect(svc.getState().device?.status).toBe('polling')
+    expect(pollDeviceToken).toHaveBeenCalledTimes(1)
+
+    // user cancels (e.g. closed the login modal) — must tear down the poll
+    await svc.cancel()
+    expect(svc.getState().status).toBe('anon')
+
+    // advance well past several intervals: a stale token result must be discarded
+    await vi.advanceTimersByTimeAsync(10_000)
+    await done
+
+    // the loop stopped after cancel: at most the in-flight poll completed, no
+    // further polling, and crucially NOT signed back in
+    expect(pollDeviceToken).toHaveBeenCalledTimes(1)
+    expect(svc.getState().status).toBe('anon')
+    expect(svc.getState().user).toBeNull()
+    expect(tokens.load()).toBeNull()
+  })
+
+  it('logout mid-poll: a subsequent token result does not sign the user back in', async () => {
+    vi.useFakeTimers()
+    const requestDeviceCode = vi.fn(async () => deviceCode)
+    const pollDeviceToken = vi.fn()
+      .mockResolvedValueOnce({ kind: 'pending' as const })
+      .mockResolvedValue({ kind: 'token' as const, token: 'tok', user })
+    const { svc, tokens } = build({ requestDeviceCode, pollDeviceToken } as any)
+
+    const done = svc.login('device')
+    await vi.advanceTimersByTimeAsync(1000)
+    expect(svc.getState().device?.status).toBe('polling')
+    expect(pollDeviceToken).toHaveBeenCalledTimes(1)
+
+    await svc.logout()
+    expect(svc.getState().status).toBe('anon')
+
+    await vi.advanceTimersByTimeAsync(10_000)
+    await done
+
+    expect(pollDeviceToken).toHaveBeenCalledTimes(1)
+    expect(svc.getState().status).toBe('anon')
+    expect(svc.getState().user).toBeNull()
+    expect(tokens.load()).toBeNull()
+  })
+
+  it('new login invalidates a prior device poll: starting login(google) stops the device loop', async () => {
+    vi.useFakeTimers()
+    const requestDeviceCode = vi.fn(async () => deviceCode)
+    const pollDeviceToken = vi.fn()
+      .mockResolvedValueOnce({ kind: 'pending' as const })
+      .mockResolvedValue({ kind: 'token' as const, token: 'tok', user })
+    const { svc, tokens } = build({ requestDeviceCode, pollDeviceToken } as any)
+
+    const done = svc.login('device')
+    await vi.advanceTimersByTimeAsync(1000)
+    expect(svc.getState().device?.status).toBe('polling')
+    expect(pollDeviceToken).toHaveBeenCalledTimes(1)
+
+    // a fresh browser login must invalidate the stale device poll
+    await svc.login('google')
+    expect(svc.getState().status).toBe('pending')
+
+    await vi.advanceTimersByTimeAsync(10_000)
+    await done
+
+    // device loop stopped: no further polling, and the stale token never applied
+    expect(pollDeviceToken).toHaveBeenCalledTimes(1)
+    expect(svc.getState().user).toBeNull()
+    expect(tokens.load()).toBeNull()
+  })
 })
 
 describe('AuthService primary-login timeout → device-code offer', () => {
