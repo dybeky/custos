@@ -55,6 +55,18 @@ export interface UserSettings {
   theme: 'aurora' | 'mono' | 'tropical'
 }
 
+// Public, display-only user shape. Safe to cache on disk (NOT secret).
+// The bearer token is the only secret and is never part of this shape.
+export interface PublicUser {
+  id: string
+  username: string
+  uid: number
+  avatarVersion: number
+  role: string | null
+  status: string
+  image?: string
+}
+
 // Cross-platform OS info for renderer
 export type OsPlatform = 'windows' | 'macos' | 'linux' | 'unknown'
 
