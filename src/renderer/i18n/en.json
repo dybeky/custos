@@ -151,6 +151,24 @@
     "body": "Tools, mods & more — come say hi.",
     "visit": "Visit 97437.dev"
   },
+  "auth": {
+    "signIn": "Sign in",
+    "signOut": "Sign out",
+    "openProfile": "Open profile on web",
+    "continueGoogle": "Continue with Google",
+    "continueGithub": "Continue with GitHub",
+    "useCode": "Use a sign-in code instead",
+    "enterCodeAt": "Enter this code at {{url}}",
+    "yourCode": "Your sign-in code",
+    "waitingApproval": "Waiting for you to approve in your browser…",
+    "loginFailed": "Couldn't complete sign-in. Try again.",
+    "callbackBlocked": "Browser couldn't return to Custos — use a sign-in code instead.",
+    "deviceExpired": "That code expired. Get a new one.",
+    "serverUnavailable": "Can't reach 97437.dev right now. You can keep using Custos offline.",
+    "encryptionUnavailable": "Secure storage isn't available, so you'll need to sign in again after restart.",
+    "signedOut": "Signed out.",
+    "retry": "Try again"
+  },
   "liveScan": {
     "title": "Live Scan",
     "subtitle": "Scan Unturned process memory in real time",
