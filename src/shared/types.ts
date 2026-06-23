@@ -68,13 +68,36 @@ export interface PublicUser {
   uid: number
   avatarVersion: number
   role: string | null
-  status: string
+  status: 'active' | 'banned' | 'deleted'
   // The web returns the raw provider avatar URL, or null when the user has no
   // avatar. The auth-client REPLACES this with the canonical, token-free
   // `/api/avatar/<id>?v=<avatarVersion>` endpoint before handing the user to the
   // renderer (see AuthClient.withAvatar), so what the renderer sees is always a
   // string. Optional because the device-poll / cached shapes may omit it.
   image?: string | null
+}
+
+// ── Renderer-facing auth state (token-free) ──────────────────────────────────
+// The AuthService emits ONLY this shape via onChange / AUTH_CHANGED. The bearer
+// token and PKCE code-verifier are NEVER part of it — they live in pendingAuth /
+// the TokenStore and never cross the process boundary.
+export type AuthStatus = 'anon' | 'pending' | 'authed'
+
+export type DeviceStatus =
+  | 'requesting' | 'awaiting-approval' | 'polling' | 'denied' | 'expired' | 'error'
+
+export interface DeviceProgress {
+  status: DeviceStatus
+  userCode?: string
+  verificationUri?: string
+}
+
+export interface AuthState {
+  status: AuthStatus
+  user: PublicUser | null
+  device?: DeviceProgress
+  /** True when safeStorage is unavailable → token is memory-only this run (§4.7). */
+  encryptionUnavailable?: boolean
 }
 
 // Cross-platform OS info for renderer
@@ -237,7 +260,14 @@ export const IPC_CHANNELS = {
   LIVE_SCAN_START: 'live:scan:start',
   LIVE_SCAN_PROGRESS: 'live:scan:progress',
   LIVE_SCAN_RESULT: 'live:scan:result',
-  LIVE_SCAN_COMPLETE: 'live:scan:complete'
+  LIVE_SCAN_COMPLETE: 'live:scan:complete',
+
+  // Auth
+  AUTH_GET_STATE: 'auth:get-state',
+  AUTH_LOGIN: 'auth:login',
+  AUTH_CANCEL: 'auth:cancel',
+  AUTH_LOGOUT: 'auth:logout',
+  AUTH_CHANGED: 'auth:changed'
 } as const
 
 export type IpcChannel = typeof IPC_CHANNELS[keyof typeof IPC_CHANNELS]
