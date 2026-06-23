@@ -60,7 +60,7 @@ export function App() {
             <span
               className="text-3xl font-bold tracking-wide mb-6 block"
               style={{
-                background: 'linear-gradient(90deg, #C8A47E, #EDE7DE)',
+                background: 'linear-gradient(90deg, #c89a6a, #f4f0ea)',
                 WebkitBackgroundClip: 'text',
                 WebkitTextFillColor: 'transparent',
                 backgroundClip: 'text',

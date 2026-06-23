@@ -81,7 +81,7 @@ export function Manual() {
       titleKey: 'manual.systemTools',
       helpKey: 'help.manual.systemTools',
       icon: toolIcon,
-      accent: '#C8A47E',
+      accent: '#c89a6a',
       action: 'path',
       showHint: true,
       items: [
@@ -94,7 +94,7 @@ export function Manual() {
       titleKey: 'manual.folders',
       helpKey: 'help.manual.folders',
       icon: folderIcon,
-      accent: '#B0A696',
+      accent: '#8a7b68',
       action: 'path',
       showHint: true,
       items: [
@@ -111,7 +111,7 @@ export function Manual() {
       titleKey: 'manual.games',
       helpKey: 'help.manual.games',
       icon: gameIcon,
-      accent: '#B0A696',
+      accent: '#8a7b68',
       action: 'path',
       showHint: true,
       items: [
@@ -124,7 +124,7 @@ export function Manual() {
       titleKey: 'manual.registry',
       helpKey: 'help.manual.registry',
       icon: registryIcon,
-      accent: '#C8A47E',
+      accent: '#c89a6a',
       action: 'registry',
       grid: true,
       items: [
@@ -145,7 +145,7 @@ export function Manual() {
       descKey: 'manual.telegramBotsDesc',
       helpKey: 'help.manual.telegram',
       icon: telegramIcon,
-      accent: '#B0A696',
+      accent: '#8a7b68',
       action: 'external',
       items: [
         { label: '@undeadsellerbot', target: 'https://t.me/undeadsellerbot' },

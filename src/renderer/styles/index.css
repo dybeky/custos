@@ -88,7 +88,7 @@
 
 /* ============================================
    SINGLE PALETTE — black & white with warm coffee accents
-   #C8A47E caramel · #D9BC9A latte · #B0A696 taupe · #EDE7DE cream
+   #c89a6a scan · #f4f0ea ink · #8a7b68 scan-dim · #e3a45c amber · #e0604c alert
    Single canonical coffee-noir theme — one :root, no data-theme switching.
    ============================================ */
 
@@ -115,17 +115,9 @@ html, body { background: var(--bg); color: var(--ink); }
    ============================================ */
 
 :root {
-  /* The four coffee tones */
-  --c-lavender: #D9BC9A;
-  --c-purple: #B0A696;
-  --c-sky: #B0A696;
-  --c-blue: #C8A47E;
-
-  --theme-primary: #C8A47E;
+  --theme-primary: #c89a6a;
   --theme-primary-hover: #D9BC9A;
   --theme-primary-muted: rgba(200, 164, 126, 0.12);
-  --theme-accent-1: #B0A696;
-  --theme-accent-2: #C8A47E;
   --theme-glow: rgba(200, 164, 126, 0.25);
   --theme-bg: #0a0908;
   --theme-surface: #141110;
@@ -301,7 +293,7 @@ body {
 
 /* Theme gradient text — quiet caramel-to-cream, no animation */
 .theme-gradient-text {
-  background: linear-gradient(90deg, #C8A47E, #EDE7DE);
+  background: linear-gradient(90deg, #c89a6a, #f4f0ea);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
