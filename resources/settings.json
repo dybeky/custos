@@ -1,4 +1,5 @@
 {
+  "auth": { "enabled": true, "webBaseUrl": "https://97437.dev" },
   "app": {
     "timeouts": {
       "defaultProcessTimeoutMs": 10000,
