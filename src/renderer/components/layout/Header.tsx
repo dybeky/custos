@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { useAppHealthStore } from '../../stores/app-health-store'
 import { useGameStore } from '../../stores/game-store'
 import { GAMES } from '../../../shared/games'
+import { UserMenu } from '../auth/UserMenu'
 
 export function Header() {
   const { t } = useTranslation()
@@ -46,6 +47,9 @@ export function Header() {
 
       {/* Window controls */}
       <div className="flex items-center gap-1" style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}>
+        {/* Auth cluster — sign-in / avatar + dropdown (interactive: no-drag) */}
+        <UserMenu />
+
         {/* Status + OS indicator — glass pill */}
         <div
           className="flex items-center gap-1.5 mr-2 h-6 px-2.5 rounded-full bg-panel-2/60 border border-[color:var(--line)] backdrop-blur-sm"

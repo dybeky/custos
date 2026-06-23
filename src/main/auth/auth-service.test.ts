@@ -73,6 +73,23 @@ describe('AuthService.logout', () => {
   })
 })
 
+describe('AuthService.openProfile', () => {
+  it('opens the allowlisted /profile/id/<id> URL for the current user', async () => {
+    const { svc, opened } = build()
+    await svc.login('github')
+    ;(svc as any).client.exchange = vi.fn(async () => ({ token: 'b', user }))
+    await svc.handleCallback(`custos://auth/callback?state=${(svc as any).pendingAuth?.state ?? ''}&code=g`)
+    opened.length = 0
+    svc.openProfile()
+    expect(opened.at(-1)).toBe(`${config.webBaseUrl}/profile/id/u1`)
+  })
+  it('is a no-op when there is no signed-in user', () => {
+    const { svc, opened } = build()
+    svc.openProfile()
+    expect(opened).toHaveLength(0)
+  })
+})
+
 describe('AuthService.validateOnStartup', () => {
   it('wipes to anonymous when get-session returns null (banned/deleted/401)', async () => {
     const { svc, tokens } = build()

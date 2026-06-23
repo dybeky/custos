@@ -143,6 +143,19 @@ export class AuthService {
     if (token) void this.client.revoke(token)
   }
 
+  /**
+   * Open the signed-in user's profile on the web in the system browser.
+   * The renderer never builds a 97437.dev URL — it calls this via IPC, and main
+   * constructs the canonical id-based profile link (buildProfileUrl → /profile/
+   * id/<id>). openExternal is allowlisted by isAllowedAuthUrl, which permits the
+   * /profile/id/ path. Per §6.4 startup validation has already refreshed the
+   * cached user, so the link points at the current account. No-op when anon.
+   */
+  openProfile(): void {
+    if (!this.user) return
+    this.deps.openExternal(this.client.buildProfileUrl(this.user))
+  }
+
   async validateOnStartup(): Promise<void> {
     if (!this.deps.config.enabled) return
     const token = this.tokens.load()

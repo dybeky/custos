@@ -305,4 +305,8 @@ export function setupAuthHandlers(_mainWindow: BrowserWindow, authService: AuthS
 
   ipcMain.handle(IPC_CHANNELS.AUTH_CANCEL, async (): Promise<void> => authService.cancel())
   ipcMain.handle(IPC_CHANNELS.AUTH_LOGOUT, async (): Promise<void> => authService.logout())
+  // Open the current user's profile on the web. Main builds the canonical
+  // /profile/id/<id> URL (allowlisted by isAllowedAuthUrl) — the renderer never
+  // constructs a 97437.dev URL itself.
+  ipcMain.handle(IPC_CHANNELS.AUTH_OPEN_PROFILE, (): void => authService.openProfile())
 }
