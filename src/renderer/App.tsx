@@ -9,6 +9,7 @@ import { Results } from './pages/Results'
 import { Manual } from './pages/Manual'
 import { Utilities } from './pages/Utilities'
 import { Settings } from './pages/Settings'
+import { Profile } from './pages/Profile'
 import { LiveScan } from './pages/LiveScan'
 import { ErrorBoundary } from './components/ErrorBoundary'
 import { useSettingsStore } from './stores/settings-store'
@@ -99,6 +100,7 @@ export function App() {
                 <Route path="/manual" element={<Manual />} />
                 <Route path="/utilities" element={<Utilities />} />
                 <Route path="/settings" element={<Settings />} />
+                <Route path="/profile" element={<Profile />} />
               </Routes>
             </main>
           </div>
