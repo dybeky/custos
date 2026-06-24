@@ -31,11 +31,11 @@ describe('RoleName', () => {
     expect(screen.getByText('neo').style.color).toBe('rgb(228, 111, 232)')
   })
 
-  it('applies a non-empty glow (text-shadow) for a role-holder', () => {
+  it('colours the letters ONLY — no glow/halo (text-shadow) behind a role-holder', () => {
     render(<RoleName username="neo" role="admin" />)
     const el = screen.getByText('neo')
-    expect(el.style.textShadow).toBeTruthy()
-    expect(el.style.textShadow).toContain('rgba(219, 33, 9')
+    expect(el.style.color).toBe('rgb(219, 33, 9)')
+    expect(el.style.textShadow).toBe('')
   })
 
   it('renders default ink with no role colour or glow for a null role', () => {

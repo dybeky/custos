@@ -9,11 +9,9 @@ interface RoleNameProps {
 
 /**
  * Username coloured to faithfully match the web's role registry (lib/roles.ts):
- * owner/admin/moderator/trusted get the web's exact hex colour plus a soft,
- * static same-colour glow. We deliberately do NOT port the web's animated
- * specular shine — a static text-shadow is the tool-appropriate match for the
- * desktop scanner. Members / null / unknown roles render plain default ink with
- * no glow. Self-contained inline style (no dependency on a .role-glow class).
+ * owner/admin/moderator/trusted get the web's exact hex colour applied to the
+ * letters ONLY — no glow/halo behind the text. Members / null / unknown roles
+ * render plain default ink. Self-contained inline style (no .role-glow class).
  */
 export function RoleName({ username, role, className }: RoleNameProps) {
   const info = roleInfo(role)
@@ -21,7 +19,7 @@ export function RoleName({ username, role, className }: RoleNameProps) {
     return (
       <span
         className={cn('font-display font-semibold', className)}
-        style={{ color: info.color, textShadow: `0 0 24px rgba(${info.rgb}, 0.45)` }}
+        style={{ color: info.color }}
       >
         {username}
       </span>
