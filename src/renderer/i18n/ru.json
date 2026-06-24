@@ -162,6 +162,7 @@
     "continueGoogle": "Продолжить с Google",
     "continueGithub": "Продолжить с GitHub",
     "useCode": "Использовать код для входа",
+    "continueCode": "Продолжить с кодом для входа",
     "enterCodeAt": "Введите этот код на {{url}}",
     "yourCode": "Ваш код для входа",
     "waitingApproval": "Ожидаем подтверждение в браузере…",
