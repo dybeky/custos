@@ -164,6 +164,30 @@ export class AuthService {
     this.deps.openExternal(this.client.buildProfileUrl(this.user))
   }
 
+  /**
+   * Change the signed-in user's avatar. The renderer sends the cropped image bytes
+   * (it never holds the bearer); main uploads them, then re-fetches the session so
+   * `avatarVersion` bumps and the new avatar URL is emitted to every surface.
+   */
+  async uploadAvatar(bytes: ArrayBuffer, mime: string): Promise<{ ok: boolean; error?: string }> {
+    if (!this.deps.config.enabled) return { ok: false, error: 'disabled' }
+    const token = this.tokens.load()
+    if (!token || this.status !== 'authed') return { ok: false, error: 'not_signed_in' }
+    try {
+      await this.client.uploadAvatar(token, bytes, mime)
+    } catch (e) {
+      return { ok: false, error: (e as Error).message || 'upload_failed' }
+    }
+    // Refresh so avatarVersion bumps and the version-keyed Avatar refetches.
+    const session = await this.client.getSession(token)
+    if (session) {
+      this.user = session.user
+      this.tokens.saveUser(session.user)
+      this.emit()
+    }
+    return { ok: true }
+  }
+
   async validateOnStartup(): Promise<void> {
     if (!this.deps.config.enabled) return
     const token = this.tokens.load()

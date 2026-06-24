@@ -11,6 +11,7 @@ interface AuthStore {
   login: (provider: AuthProvider) => Promise<void>
   cancel: () => Promise<void>
   logout: () => Promise<void>
+  uploadAvatar: (bytes: ArrayBuffer, mime: string) => Promise<{ ok: boolean; error?: string }>
   _apply: (state: AuthState) => void
 }
 
@@ -42,5 +43,6 @@ export const useAuthStore = create<AuthStore>((set) => ({
 
   login: (provider) => window.electronAPI.login(provider),
   cancel: () => window.electronAPI.cancelLogin(),
-  logout: () => window.electronAPI.logout()
+  logout: () => window.electronAPI.logout(),
+  uploadAvatar: (bytes, mime) => window.electronAPI.uploadAvatar(bytes, mime)
 }))

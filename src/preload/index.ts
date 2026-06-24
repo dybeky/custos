@@ -199,6 +199,11 @@ const api = {
   /** Open the signed-in user's profile on the web (main builds the allowlisted URL). */
   openProfile: (): Promise<void> => ipcRenderer.invoke(IPC_CHANNELS.AUTH_OPEN_PROFILE),
 
+  /** Change the profile picture. `bytes` is a cropped image (webp); main holds the
+   *  bearer and performs the upload, then re-emits auth state with the new avatar. */
+  uploadAvatar: (bytes: ArrayBuffer, mime: string): Promise<{ ok: boolean; error?: string }> =>
+    ipcRenderer.invoke(IPC_CHANNELS.AUTH_UPLOAD_AVATAR, { bytes, mime }),
+
   /** Subscribe to auth-state changes pushed from main. Returns unsubscribe fn. */
   onAuthChanged: (callback: AuthChangedCallback): (() => void) => {
     const listener = (_event: Electron.IpcRendererEvent, state: AuthState): void => callback(state)

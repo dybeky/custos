@@ -99,6 +99,25 @@ export class AuthClient {
     return { user: this.withAvatar(parsed.data.user) }
   }
 
+  /**
+   * Upload a new avatar via the desktop bearer surface (POST /api/desktop/profile/
+   * avatar). The cropped image bytes come from the renderer; the bearer token never
+   * leaves main. FormData sets its own multipart Content-Type — don't set it here.
+   */
+  async uploadAvatar(token: string, bytes: ArrayBuffer, mime: string): Promise<void> {
+    const form = new FormData()
+    form.set('file', new Blob([bytes], { type: mime }), 'avatar')
+    const res = await this.fetchImpl(this.url('/api/desktop/profile/avatar'), {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` },
+      body: form
+    })
+    if (!res.ok) {
+      const body = (await res.json().catch(() => ({}))) as { error?: string }
+      throw new Error(body?.error ?? `upload failed: ${res.status}`)
+    }
+  }
+
   async requestDeviceCode(): Promise<{ deviceCode: string; userCode: string; verificationUri: string; expiresIn: number; interval: number }> {
     const res = await this.fetchImpl(this.url('/api/desktop/device/code'), { method: 'POST' })
     const body = await res.json().catch(() => ({}))

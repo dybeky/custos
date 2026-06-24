@@ -340,3 +340,47 @@ describe('AuthService primary-login timeout → device-code offer', () => {
     expect(states.at(-1)?.device?.status).toBe('awaiting-approval')
   })
 })
+
+describe('AuthService.uploadAvatar', () => {
+  async function authedSvc() {
+    const ctx = build()
+    await ctx.svc.login('github')
+    ;(ctx.svc as any).client.exchange = vi.fn(async () => ({ token: 'b', user }))
+    await ctx.svc.handleCallback(`custos://auth/callback?state=${(ctx.svc as any).pendingAuth?.state ?? ''}&code=g`)
+    return ctx
+  }
+
+  it('returns not_signed_in when anonymous (no token)', async () => {
+    const { svc } = build()
+    const res = await svc.uploadAvatar(new ArrayBuffer(4), 'image/webp')
+    expect(res).toEqual({ ok: false, error: 'not_signed_in' })
+  })
+
+  it('uploads with the bearer, then refreshes the session so the new avatar emits', async () => {
+    const { svc, states } = await authedSvc()
+    const uploadAvatar = vi.fn(async () => {})
+    ;(svc as any).client.uploadAvatar = uploadAvatar
+    ;(svc as any).client.getSession = vi.fn(async () => ({ user: { ...user, avatarVersion: 2 } }))
+    states.length = 0
+
+    const bytes = new ArrayBuffer(8)
+    const res = await svc.uploadAvatar(bytes, 'image/webp')
+
+    expect(res.ok).toBe(true)
+    expect(uploadAvatar).toHaveBeenCalledWith('b', bytes, 'image/webp')
+    expect(svc.getState().user?.avatarVersion).toBe(2) // bumped via refresh
+    expect(states.at(-1)?.user?.avatarVersion).toBe(2) // re-emitted to the renderer
+  })
+
+  it('surfaces the upload error and does NOT refresh the session on failure', async () => {
+    const { svc } = await authedSvc()
+    const getSession = vi.fn(async () => ({ user }))
+    ;(svc as any).client.uploadAvatar = vi.fn(async () => { throw new Error('upload failed: 413') })
+    ;(svc as any).client.getSession = getSession
+
+    const res = await svc.uploadAvatar(new ArrayBuffer(4), 'image/webp')
+    expect(res.ok).toBe(false)
+    expect(res.error).toContain('413')
+    expect(getSession).not.toHaveBeenCalled()
+  })
+})

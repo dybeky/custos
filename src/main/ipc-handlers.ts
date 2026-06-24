@@ -16,7 +16,7 @@ import { humanizeCommits } from './services/changelog'
 import { checkForUpdate } from './services/updater'
 import { appStore } from './services/app-store'
 import { safeOpenExternal, safeOpenPath } from './utils/safe-open'
-import { AuthLoginPayloadSchema } from './auth/auth-ipc-schema'
+import { AuthLoginPayloadSchema, AuthUploadAvatarPayloadSchema } from './auth/auth-ipc-schema'
 import type { AuthService } from './auth/auth-service'
 import type { AuthState } from '../shared/types'
 import { z } from 'zod'
@@ -311,4 +311,15 @@ export function setupAuthHandlers(_mainWindow: BrowserWindow, authService: AuthS
   // /profile/id/<id> URL (allowlisted by isAllowedAuthUrl) — the renderer never
   // constructs a 97437.dev URL itself.
   ipcMain.handle(IPC_CHANNELS.AUTH_OPEN_PROFILE, (): void => authService.openProfile())
+
+  // Change the avatar. The renderer sends the cropped image bytes; main holds the
+  // bearer and does the upload. Validate the shape at the boundary (types erased).
+  ipcMain.handle(
+    IPC_CHANNELS.AUTH_UPLOAD_AVATAR,
+    async (_e, payload: unknown): Promise<{ ok: boolean; error?: string }> => {
+      const parsed = AuthUploadAvatarPayloadSchema.safeParse(payload)
+      if (!parsed.success) return { ok: false, error: 'invalid_payload' }
+      return authService.uploadAvatar(parsed.data.bytes, parsed.data.mime)
+    }
+  )
 }

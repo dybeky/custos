@@ -15,6 +15,7 @@ beforeEach(() => {
       login: vi.fn(async () => {}),
       cancelLogin: vi.fn(async () => {}),
       logout: vi.fn(async () => {}),
+      uploadAvatar: vi.fn(async () => ({ ok: true })),
       onAuthChanged: vi.fn((cb: any) => { changedCb = cb; return () => {} })
     }
   }
@@ -35,5 +36,12 @@ describe('useAuthStore', () => {
     const { useAuthStore } = await import('./auth-store')
     await useAuthStore.getState().login('github')
     expect((window as any).electronAPI.login).toHaveBeenCalledWith('github')
+  })
+  it('uploadAvatar forwards the bytes + mime to electronAPI', async () => {
+    const { useAuthStore } = await import('./auth-store')
+    const bytes = new ArrayBuffer(8)
+    const res = await useAuthStore.getState().uploadAvatar(bytes, 'image/webp')
+    expect((window as any).electronAPI.uploadAvatar).toHaveBeenCalledWith(bytes, 'image/webp')
+    expect(res.ok).toBe(true)
   })
 })
