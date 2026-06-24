@@ -162,6 +162,7 @@
     "continueGoogle": "Continue with Google",
     "continueGithub": "Continue with GitHub",
     "useCode": "Use a sign-in code instead",
+    "continueCode": "Continue with a sign-in code",
     "enterCodeAt": "Enter this code at {{url}}",
     "yourCode": "Your sign-in code",
     "waitingApproval": "Waiting for you to approve in your browser…",
