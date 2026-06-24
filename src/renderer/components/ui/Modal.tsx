@@ -1,4 +1,5 @@
 import { ReactNode, useEffect, useRef, useId } from 'react'
+import { createPortal } from 'react-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useTranslation } from 'react-i18next'
 import { cn } from '../../utils/cn'
@@ -84,7 +85,11 @@ export function Modal({
     }
   }, [isOpen, onClose])
 
-  return (
+  // Portal to <body> so the overlay escapes any transformed/filtered ancestor
+  // (e.g. the header's `backdrop-blur-xl`, which establishes a containing block
+  // for position:fixed). Inline, the modal gets trapped to the header strip —
+  // pinned to the top, backdrop not covering the page. Matches InfoTip/Sidebar.
+  return createPortal(
     <AnimatePresence>
       {isOpen && (
         <div
@@ -143,6 +148,7 @@ export function Modal({
           </motion.div>
         </div>
       )}
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body
   )
 }
