@@ -18,9 +18,18 @@ describe('Avatar', () => {
     expect(img.src.toLowerCase()).not.toContain('bearer')
     expect(img.src.toLowerCase()).not.toContain('token')
   })
-  it('falls back to initials on image load error', () => {
+  it('retries once with a cache-buster on the first load error (stale-header self-heal)', () => {
     render(<Avatar user={{ ...base, image: 'https://97437.dev/api/avatar/u1?v=1' }} />)
     fireEvent.error(screen.getByRole('img'))
+    // Still an <img> (not initials yet), now with a cache-busting param.
+    const img = screen.getByRole('img') as HTMLImageElement
+    expect(img.src).toContain('cb=')
+    expect(img.src).toContain('/api/avatar/u1?v=1')
+  })
+  it('falls back to initials only after the retry also fails', () => {
+    render(<Avatar user={{ ...base, image: 'https://97437.dev/api/avatar/u1?v=1' }} />)
+    fireEvent.error(screen.getByRole('img')) // 1st: retry with cache-buster
+    fireEvent.error(screen.getByRole('img')) // 2nd: give up
     expect(screen.getByText('N')).toBeTruthy()
   })
 })
