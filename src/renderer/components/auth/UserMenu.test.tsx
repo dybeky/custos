@@ -4,13 +4,14 @@ import { render, screen, fireEvent } from '@testing-library/react'
 import { UserMenu } from './UserMenu'
 import { useAuthStore } from '../../stores/auth-store'
 
+const navigate = vi.fn()
+vi.mock('react-router-dom', () => ({ useNavigate: () => navigate }))
 vi.mock('react-i18next', () => ({ useTranslation: () => ({ t: (k: string) => k }) }))
 
 beforeEach(() => {
+  navigate.mockReset()
   ;(globalThis as any).window = (globalThis as any).window || {}
   ;(window as any).electronAPI = {
-    openProfile: vi.fn(async () => {}),
-    logout: vi.fn(async () => {}),
     login: vi.fn(async () => {}),
     cancelLogin: vi.fn(async () => {})
   }
@@ -31,31 +32,24 @@ describe('UserMenu', () => {
   it('closing the login modal tears down any pending flow via cancel()', () => {
     render(<UserMenu />)
     fireEvent.click(screen.getByText('auth.signIn'))
-    // The modal is open; close it via its close button (aria-label general.close).
     fireEvent.click(screen.getByLabelText('general.close'))
     expect((window as any).electronAPI.cancelLogin).toHaveBeenCalled()
   })
 
-  it('shows the avatar + opens menu when authed, and Open profile calls main', () => {
+  it('authed: clicking the avatar navigates to /profile (no inline dropdown)', () => {
     useAuthStore.setState(authed)
     render(<UserMenu />)
-    fireEvent.click(screen.getByLabelText('auth.signIn'))
-    fireEvent.click(screen.getByText('auth.openProfile'))
-    expect((window as any).electronAPI.openProfile).toHaveBeenCalled()
+    // The dropdown actions no longer render inline — they live on the Profile page.
+    expect(screen.queryByText('auth.openProfile')).toBeNull()
+    expect(screen.queryByText('auth.signOut')).toBeNull()
+    fireEvent.click(screen.getByLabelText('nav.profile'))
+    expect(navigate).toHaveBeenCalledWith('/profile')
   })
 
-  it('Sign out calls logout()', () => {
+  it('authed: renders the avatar button (initials fallback for no image)', () => {
     useAuthStore.setState(authed)
     render(<UserMenu />)
-    fireEvent.click(screen.getByLabelText('auth.signIn'))
-    fireEvent.click(screen.getByText('auth.signOut'))
-    expect((window as any).electronAPI.logout).toHaveBeenCalled()
-  })
-
-  it('renders the role-coloured username in the dropdown', () => {
-    useAuthStore.setState(authed)
-    render(<UserMenu />)
-    fireEvent.click(screen.getByLabelText('auth.signIn'))
-    expect(screen.getByText('neo')).toBeTruthy()
+    expect(screen.getByLabelText('nav.profile')).toBeTruthy()
+    expect(screen.getByText('N')).toBeTruthy() // initials of "neo"
   })
 })

@@ -134,7 +134,8 @@
     "results": "Results",
     "manual": "Manual",
     "utilities": "Utilities",
-    "settings": "Settings"
+    "settings": "Settings",
+    "profile": "Profile"
   },
   "gamePicker": {
     "title": "Choose your game",
@@ -170,7 +171,14 @@
     "serverUnavailable": "Can't reach 97437.dev right now. You can keep using Custos offline.",
     "encryptionUnavailable": "Secure storage isn't available, so you'll need to sign in again after restart.",
     "signedOut": "Signed out.",
-    "retry": "Try again"
+    "retry": "Try again",
+    "changePicture": "Change picture",
+    "save": "Save",
+    "cancel": "Cancel",
+    "uploading": "Uploading…",
+    "zoom": "Zoom",
+    "avatarUploadFailed": "Couldn't update your picture. Try again.",
+    "signInToManage": "Sign in to manage your profile."
   },
   "liveScan": {
     "title": "Live Scan",
