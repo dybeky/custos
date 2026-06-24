@@ -65,7 +65,7 @@ export function Settings() {
                     )}
                   </div>
                   <p className="text-xs text-ink-dim mt-0.5">
-                    {t('settings.accountAuthed')} · #{user.uid}
+                    {t('settings.accountAuthed')}
                   </p>
                 </div>
                 <button
