@@ -8,8 +8,6 @@
     "version": "Version:",
     "developer": "Developer:",
     "viewOnGitHub": "VIEW ON GITHUB",
-    "language": "Language",
-    "languageDesc": "Select interface language",
     "account": "Account",
     "accountAnon": "Sign in to show your 97437.dev identity in Custos.",
     "accountAuthed": "Signed in to 97437.dev",

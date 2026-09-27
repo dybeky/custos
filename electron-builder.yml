@@ -9,7 +9,6 @@ npmRebuild: true
 
 electronLanguages:
   - en
-  - ru
 
 files:
   - out/**/*

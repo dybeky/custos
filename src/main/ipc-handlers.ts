@@ -29,20 +29,18 @@ const execFileP = promisify(execFile)
 
 // Strict schema for partial user settings — rejects unknown properties
 const UserSettingsPartialSchema = z.object({
-  language: z.enum(['en', 'ru']).optional(),
   uiMode: z.enum(['classic', 'modern']).optional()
 }).strict()
 
 /**
- * Normalize persisted settings: drop the legacy `theme` key (and any other
- * extras) so an existing `{ language, theme }` blob from before 1D-4 still
- * validates against the strict partial schema on the next SETTINGS_SET.
- * Returns a valid UserSettings, defaulting language to 'en'.
+ * Normalize persisted settings: drop legacy keys (`theme`, and `language` from
+ * when the app shipped a Russian UI) and any other extras, so an old blob
+ * still validates against the strict partial schema on the next SETTINGS_SET.
+ * Returns a valid UserSettings, defaulting uiMode to 'classic'.
  */
 export function migrateSettings(raw: unknown): UserSettings {
-  const obj = raw && typeof raw === 'object' ? (raw as { language?: unknown; uiMode?: unknown }) : {}
+  const obj = raw && typeof raw === 'object' ? (raw as { uiMode?: unknown }) : {}
   return {
-    language: obj.language === 'ru' ? 'ru' : 'en',
     uiMode: obj.uiMode === 'modern' ? 'modern' : 'classic'
   }
 }

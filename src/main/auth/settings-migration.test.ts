@@ -22,16 +22,16 @@ vi.mock('electron-store', () => {
 
 import { migrateSettings } from '../ipc-handlers'
 
-describe('migrateSettings (drops legacy theme)', () => {
-  it('strips a legacy theme key', () => {
-    expect(migrateSettings({ language: 'ru', theme: 'tropical' })).toEqual({ language: 'ru', uiMode: 'classic' })
+describe('migrateSettings (drops legacy keys)', () => {
+  it('strips the legacy theme and language keys', () => {
+    expect(migrateSettings({ language: 'ru', theme: 'tropical' })).toEqual({ uiMode: 'classic' })
   })
-  it('defaults language to en for junk', () => {
-    expect(migrateSettings({ theme: 'aurora' })).toEqual({ language: 'en', uiMode: 'classic' })
-    expect(migrateSettings(null)).toEqual({ language: 'en', uiMode: 'classic' })
+  it('defaults for junk input', () => {
+    expect(migrateSettings({ theme: 'aurora' })).toEqual({ uiMode: 'classic' })
+    expect(migrateSettings(null)).toEqual({ uiMode: 'classic' })
   })
   it('keeps a valid interface mode and rejects junk', () => {
-    expect(migrateSettings({ language: 'en', uiMode: 'modern' })).toEqual({ language: 'en', uiMode: 'modern' })
-    expect(migrateSettings({ uiMode: 'neon' })).toEqual({ language: 'en', uiMode: 'classic' })
+    expect(migrateSettings({ language: 'en', uiMode: 'modern' })).toEqual({ uiMode: 'modern' })
+    expect(migrateSettings({ uiMode: 'neon' })).toEqual({ uiMode: 'classic' })
   })
 })

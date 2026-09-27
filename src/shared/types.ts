@@ -54,7 +54,6 @@ export interface ScannerInfo {
 export type UiMode = 'classic' | 'modern'
 
 export interface UserSettings {
-  language: 'en' | 'ru'
   /** Which interface shell to render. 'classic' is the original layout. */
   uiMode: UiMode
 }

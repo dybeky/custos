@@ -1,22 +1,19 @@
 import { describe, it, expect, beforeAll } from 'vitest'
 import i18next, { type TFunction } from 'i18next'
 import en from '../i18n/en.json'
-import ru from '../i18n/ru.json'
 import type { ScanReport, ScanResult } from '../../shared/types'
 import { buildTextReport, buildJsonReport, exportFileStem, REPORT_FORMAT } from './report-export'
 import { reasonText, evidenceFindings, coverageReason, rankedCorrelations, buildTimeline, relativeToScan, steamIdentities, steamIdentityLabel } from './report-view'
 
 let tEn: TFunction
-let tRu: TFunction
 
 beforeAll(async () => {
   const mk = async (lng: string) => {
     const inst = i18next.createInstance()
-    await inst.init({ lng, resources: { en: { translation: en }, ru: { translation: ru } }, interpolation: { escapeValue: false } })
+    await inst.init({ lng, resources: { en: { translation: en } }, interpolation: { escapeValue: false } })
     return inst.t
   }
   tEn = await mk('en')
-  tRu = await mk('ru')
 })
 
 const now = new Date(0)
@@ -61,7 +58,7 @@ const report: ScanReport = {
 
 describe('report-view helpers', () => {
   it('localizes reasons by code with params, falling back to engine text', () => {
-    expect(reasonText(tRu, report.verdict.reasons[1])).toContain('1 из 3')
+    expect(reasonText(tEn, report.verdict.reasons[1])).toContain('1 of 3 checks did not complete')
     expect(reasonText(tEn, { code: 'unknown-code', direction: 'neutral', text: 'raw text' })).toBe('raw text')
   })
   it('counts only active, non-informational findings as evidence', () => {
@@ -99,12 +96,9 @@ describe('buildTextReport', () => {
     expect(txt.indexOf('UNDEAD.EXE')).toBeLessThan(txt.indexOf('[Steam Account]'))
   })
 
-  it('is fully localized in Russian', () => {
-    const txt = buildTextReport(tRu, report, [], 'ru-RU')
-    expect(txt).toContain('ОТЧЁТ О КРИМИНАЛИСТИЧЕСКОЙ ПРОВЕРКЕ')
-    expect(txt).toContain('ОЦЕНКА РИСКА: ВЫСОКИЙ')
-    expect(txt).toContain('КЛЮЧЕВЫЕ УЛИКИ')
-    expect(txt).not.toMatch(/\{\{|\bverdict\.|\breport\./)
+  it('leaves no untranslated keys or placeholders', () => {
+    const txt = buildTextReport(tEn, report, [], 'en-GB')
+    expect(txt).not.toMatch(/\{\{|\bverdict\.|\breport\.|\bcase\./)
   })
 
   it('falls back to raw results when no report is available', () => {
@@ -136,11 +130,10 @@ describe('exportFileStem', () => {
 })
 
 describe('buildTextReport formatting', () => {
-  it('localizes duration units and omits confidence for informational items', () => {
-    const ru = buildTextReport(tRu, report, [], 'ru-RU')
-    expect(ru).toContain('12.3 с')
-    expect(ru).toContain('[ИНФО] ')
-    expect(buildTextReport(tEn, report, [])).toContain('12.3 s')
+  it('formats durations and omits confidence for informational items', () => {
+    const txt = buildTextReport(tEn, report, [])
+    expect(txt).toContain('12.3 s')
+    expect(txt).toContain('[INFO] ')
   })
 })
 
@@ -163,11 +156,11 @@ describe('activity timeline', () => {
     expect(tl[1].recent).toBe(false)
   })
 
-  it('formats the time relative to the scan in both languages', () => {
+  it('formats the time relative to the scan', () => {
+    expect(relativeToScan(tEn, 1)).toBe('1 min before the scan')
     expect(relativeToScan(tEn, 40)).toBe('40 min before the scan')
     expect(relativeToScan(tEn, 180)).toBe('3 h before the scan')
-    expect(relativeToScan(tRu, 3 * 24 * 60)).toBe('за 3 дня до проверки')
-    expect(relativeToScan(tRu, 5 * 24 * 60)).toBe('за 5 дней до проверки')
+    expect(relativeToScan(tEn, 24 * 60 * 2)).toBe('2 days before the scan')
   })
 
   it('is included in the text export', () => {
@@ -181,11 +174,11 @@ describe('case details', () => {
   const caseInfo = { player: 'Neo (76561198000000000)', checkedBy: 'admin', notes: 'Refused to share screen.\nBanned 7d.' }
 
   it('puts player, checker and notes at the top of the text report', () => {
-    const txt = buildTextReport(tRu, report, [], 'ru-RU', caseInfo)
-    expect(txt).toMatch(/Игрок:\s+Neo \(76561198000000000\)/)
-    expect(txt).toMatch(/Проверяющий:\s+admin/)
+    const txt = buildTextReport(tEn, report, [], 'en-GB', caseInfo)
+    expect(txt).toMatch(/Player:\s+Neo \(76561198000000000\)/)
+    expect(txt).toMatch(/Checked by:\s+admin/)
     expect(txt).toContain('  Refused to share screen.\n  Banned 7d.')
-    expect(txt.indexOf('Игрок')).toBeLessThan(txt.indexOf('ОЦЕНКА РИСКА'))
+    expect(txt.indexOf('Player')).toBeLessThan(txt.indexOf('RISK VERDICT'))
   })
 
   it('omits empty case fields', () => {

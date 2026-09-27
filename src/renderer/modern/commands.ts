@@ -11,7 +11,7 @@ export interface Command {
   id: string
   group: 'actions' | 'navigate' | 'preferences'
   label: string
-  /** Extra words the fuzzy filter should match (other language, synonyms). */
+  /** Extra words the fuzzy filter should match (synonyms). */
   keywords?: string
   shortcut?: string
   run: () => void
@@ -50,25 +50,25 @@ export function useModernCommands(): Command[] {
   const { t } = useTranslation()
   const navigate = useNavigate()
   const { status, results, startScan, cancelScan } = useScanStore()
-  const { language, setLanguage, setUiMode } = useSettingsStore()
+  const { setUiMode } = useSettingsStore()
   const { selectedGame } = useGameStore()
   const exportReport = useExportReport()
 
   const cmds: Command[] = []
 
   if (status === 'scanning') {
-    cmds.push({ id: 'cancel', group: 'actions', label: t('modern.cmd.cancel'), keywords: 'stop cancel стоп', run: () => void cancelScan() })
+    cmds.push({ id: 'cancel', group: 'actions', label: t('modern.cmd.cancel'), keywords: 'stop cancel abort', run: () => void cancelScan() })
   } else {
     cmds.push({
       id: 'start', group: 'actions', label: status === 'idle' ? t('modern.cmd.start') : t('modern.cmd.rescan'),
-      keywords: 'scan start check проверка скан', shortcut: 'Ctrl Enter',
+      keywords: 'scan start check run', shortcut: 'Ctrl Enter',
       run: () => { navigate('/'); void startScan(selectedGame ?? undefined) }
     })
   }
   if (results.length > 0 && status !== 'scanning') {
     cmds.push(
-      { id: 'export-txt', group: 'actions', label: t('modern.cmd.exportTxt'), keywords: 'export report txt экспорт отчёт', shortcut: 'Ctrl E', run: () => void exportReport('txt') },
-      { id: 'export-json', group: 'actions', label: t('modern.cmd.exportJson'), keywords: 'export json экспорт', run: () => void exportReport('json') }
+      { id: 'export-txt', group: 'actions', label: t('modern.cmd.exportTxt'), keywords: 'export report txt save download', shortcut: 'Ctrl E', run: () => void exportReport('txt') },
+      { id: 'export-json', group: 'actions', label: t('modern.cmd.exportJson'), keywords: 'export json save download', run: () => void exportReport('json') }
     )
   }
 
@@ -76,18 +76,12 @@ export function useModernCommands(): Command[] {
     cmds.push({ id: `go-${item.key}`, group: 'navigate', label: t(`modern.nav.${item.key}`), keywords: item.key, run: () => navigate(item.path) })
   }
   cmds.push(
-    { id: 'go-settings', group: 'navigate', label: t('nav.settings'), keywords: 'settings настройки', run: () => navigate('/settings') },
-    { id: 'go-profile', group: 'navigate', label: t('modern.cmd.profile'), keywords: 'profile account профиль', run: () => navigate('/profile') }
+    { id: 'go-settings', group: 'navigate', label: t('nav.settings'), keywords: 'settings preferences options', run: () => navigate('/settings') },
+    { id: 'go-profile', group: 'navigate', label: t('modern.cmd.profile'), keywords: 'profile account', run: () => navigate('/profile') }
   )
 
   cmds.push(
-    {
-      id: 'lang', group: 'preferences',
-      label: language === 'ru' ? 'Switch to English' : 'Переключить на русский',
-      keywords: 'language язык english русский',
-      run: () => setLanguage(language === 'ru' ? 'en' : 'ru')
-    },
-    { id: 'classic', group: 'preferences', label: t('modern.cmd.classic'), keywords: 'classic interface ui классический интерфейс', run: () => setUiMode('classic') }
+    { id: 'classic', group: 'preferences', label: t('modern.cmd.classic'), keywords: 'classic interface ui layout', run: () => setUiMode('classic') }
   )
   return cmds
 }

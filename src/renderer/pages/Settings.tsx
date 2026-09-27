@@ -1,7 +1,6 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Card, CardHeader, CardTitle, CardContent } from '../components/ui/Card'
-import { useSettingsStore } from '../stores/settings-store'
 import { useAuthStore } from '../stores/auth-store'
 import { Avatar } from '../components/ui/Avatar'
 import { RoleName } from '../components/ui/RoleName'
@@ -9,14 +8,8 @@ import { LoginModal } from '../components/auth/LoginModal'
 import { roleInfo } from '../utils/roles'
 import { InterfacePicker } from '../components/settings/InterfacePicker'
 
-const LANGUAGES: Array<{ id: 'en' | 'ru'; label: string }> = [
-  { id: 'en', label: 'English' },
-  { id: 'ru', label: 'Русский' }
-]
-
 export function Settings() {
   const { t } = useTranslation()
-  const { language, setLanguage } = useSettingsStore()
   const { status, user, encryptionUnavailable, logout, cancel } = useAuthStore()
   const [loginOpen, setLoginOpen] = useState(false)
 
@@ -114,31 +107,6 @@ export function Settings() {
           </CardContent>
         </Card>
 
-        {/* Language */}
-        <Card className="mb-4">
-          <CardHeader>
-            <CardTitle>{t('settings.language')}</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-sm text-ink-dim mb-4">{t('settings.languageDesc')}</p>
-            <div className="flex gap-3">
-              {LANGUAGES.map((lang) => (
-                <button
-                  key={lang.id}
-                  onClick={() => setLanguage(lang.id)}
-                  aria-pressed={language === lang.id}
-                  className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors border ${
-                    language === lang.id
-                      ? 'bg-scan/10 text-scan border-scan/40'
-                      : 'text-ink-dim border-[color:var(--line)] hover:text-ink hover:bg-panel-2'
-                  }`}
-                >
-                  {lang.label}
-                </button>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
       </div>
     </div>
   )
