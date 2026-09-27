@@ -1,7 +1,7 @@
 import type { ScannerName, FindingCategory, Severity } from '../../shared/types'
 
 /** Bump when scoring logic changes, so history/diff stays comparable across versions. */
-export const RISK_ENGINE_VERSION = '1.0.0'
+export const RISK_ENGINE_VERSION = '1.1.0'
 
 export interface ScannerPolicy {
   category: FindingCategory

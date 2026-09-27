@@ -1,7 +1,8 @@
 import { describe, it, expect } from 'vitest'
-import { classifyFindings, correlate, computeVerdict, analyze } from './risk-engine'
+import { classifyFindings, correlate, computeVerdict, analyze, reportContentHash } from './risk-engine'
 import type { AnalyzeContext } from './risk-engine'
 import type { ScanResult } from '../../shared/types'
+import { formatFileHashFinding } from './finding-tags'
 
 function result(scannerName: string, findings: string[], success = true): ScanResult {
   const now = new Date(0)
@@ -12,6 +13,9 @@ function result(scannerName: string, findings: string[], success = true): ScanRe
 const SIGS = ['undead', 'aimbot']
 const findKeyword = (v: string): string | null =>
   SIGS.find(s => v.toLowerCase().includes(s)) ?? null
+
+// A file-hash scanner finding for a known-cheat hash (content match).
+const KNOWN = formatFileHashFinding('C:/d/cheat.exe', 'deadbeefdeadbeefdeadbeef', true)
 
 describe('classifyFindings', () => {
   it('classifies a lone keyword file match as medium severity / LOW confidence', () => {
@@ -25,12 +29,41 @@ describe('classifyFindings', () => {
     expect(out[0].id).toMatch(/^[0-9a-f]{16}$/)
   })
 
-  it('treats a file-hash finding as a verified hash: critical severity, high confidence', () => {
-    const out = classifyFindings([result('File Hash Scanner', ['deadbeef  C:/d/cheat.exe'])], findKeyword)
+  it('treats a known-hash content match as a verified hash: critical severity, high confidence', () => {
+    const out = classifyFindings([result('File Hash Scanner', [KNOWN])], findKeyword)
     expect(out[0]).toMatchObject({
       scannerId: 'filehash', category: 'hash', hashTrust: 'verified',
-      baseSeverity: 'critical', baseConfidence: 'high', matched: 'deadbeef  C:/d/cheat.exe'
+      baseSeverity: 'critical', baseConfidence: 'high', matched: 'sha256:deadbeefdeadbeef'
     })
+  })
+
+  it('correlates a known-hash match on its keyword when the file name matches one', () => {
+    const v = formatFileHashFinding('C:/d/undead.exe', 'deadbeefdeadbeefdeadbeef', true)
+    expect(classifyFindings([result('File Hash Scanner', [v])], findKeyword)[0].matched).toBe('undead')
+  })
+
+  it('treats a file-hash FILE-NAME match as an ordinary file lead, never a verified hash', () => {
+    const v = formatFileHashFinding('C:/Users/p/Downloads/undead.exe', 'abcabcabcabcabcabc', false)
+    const out = classifyFindings([result('File Hash Scanner', [v])], findKeyword)
+    expect(out[0]).toMatchObject({
+      scannerId: 'filehash', category: 'file', hashTrust: undefined,
+      baseSeverity: 'medium', confidence: 'low', matched: 'undead'
+    })
+    expect(computeVerdict(out, []).band).toBe('low')
+  })
+
+  it('treats unmatched context (Steam accounts) as informational, keeping the verdict clean', () => {
+    const out = classifyFindings([result('Steam Scanner', [
+      '[Steam Account] player1 (SteamID: 76561198000000000)',
+      '[Steam] Steam installation not found'
+    ])], findKeyword)
+    expect(out.every(f => f.severity === 'info')).toBe(true)
+    expect(computeVerdict(out, []).band).toBe('clean')
+  })
+
+  it('still counts a context finding that matches a keyword', () => {
+    const out = classifyFindings([result('Steam Scanner', ['C:/Steam/undead_loader.exe'])], findKeyword)
+    expect(out[0].severity).toBe('low')
   })
 
   it('keeps matched=null for findings with no keyword (e.g. VM)', () => {
@@ -132,14 +165,14 @@ describe('computeVerdict (conservative)', () => {
   })
 
   it('critical for a verified hash on its own', () => {
-    const f = classifyFindings([result('File Hash Scanner', ['deadbeef cheat.exe'])], () => null)
+    const f = classifyFindings([result('File Hash Scanner', [KNOWN])], () => null)
     const v = computeVerdict(f, [])
     expect(v.band).toBe('critical')
     expect(v.reasons.some(r => r.code === 'verified-hash')).toBe(true)
   })
 
   it('caps a community hash at medium when uncorroborated', () => {
-    const f = classifyFindings([result('File Hash Scanner', ['deadbeef cheat.exe'])], () => null)
+    const f = classifyFindings([result('File Hash Scanner', [KNOWN])], () => null)
     f[0].hashTrust = 'community'
     f[0].confidence = 'medium'
     f[0].baseConfidence = 'medium'
@@ -181,7 +214,7 @@ describe('analyze', () => {
   it('sorts findings by severity then confidence (most serious first)', () => {
     const report = analyze([
       result('VM Scanner', ['vmware']),
-      result('File Hash Scanner', ['deadbeef cheat.exe'])
+      result('File Hash Scanner', [KNOWN])
     ], baseCtx)
     expect(report.findings[0].category).toBe('hash')
   })
@@ -197,12 +230,28 @@ describe('analyze', () => {
   })
 
   it('dismissed finding id is flagged and excluded from the verdict', () => {
-    const first = analyze([result('File Hash Scanner', ['deadbeef cheat.exe'])], baseCtx)
+    const first = analyze([result('File Hash Scanner', [KNOWN])], baseCtx)
     const dismissedId = first.findings[0].id
     const ctx = { ...baseCtx, suppression: { whitelistedSignatures: [], dismissedFindingIds: [dismissedId] } }
-    const report = analyze([result('File Hash Scanner', ['deadbeef cheat.exe'])], ctx)
+    const report = analyze([result('File Hash Scanner', [KNOWN])], ctx)
     expect(report.findings[0].dismissed).toBe(true)
     expect(report.verdict.band).toBe('clean')
+  })
+
+  it('flags incomplete coverage when scanners failed, without changing the band', () => {
+    const report = analyze([result('AppData Scanner', []), result('BAM/DAM Scanner', [], false)], baseCtx)
+    expect(report.verdict.band).toBe('clean')
+    const r = report.verdict.reasons.find(x => x.code === 'incomplete-coverage')
+    expect(r?.params).toEqual({ failed: 1, total: 2 })
+    expect(report.verdict.rationale).not.toMatch(/coverage/)
+  })
+
+  it('stamps a content hash that detects edits', () => {
+    const report = analyze([result('AppData Scanner', ['undead.exe'])], baseCtx)
+    expect(report.contentHash).toMatch(/^[0-9a-f]{64}$/)
+    expect(reportContentHash(report)).toBe(report.contentHash)
+    const tampered = { ...report, verdict: { ...report.verdict, band: 'clean' as const } }
+    expect(reportContentHash(tampered)).not.toBe(report.contentHash)
   })
 
   it('is deterministic — identical input yields identical output', () => {
