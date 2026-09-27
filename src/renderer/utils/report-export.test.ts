@@ -4,7 +4,7 @@ import en from '../i18n/en.json'
 import ru from '../i18n/ru.json'
 import type { ScanReport, ScanResult } from '../../shared/types'
 import { buildTextReport, buildJsonReport, exportFileStem, REPORT_FORMAT } from './report-export'
-import { reasonText, evidenceFindings, coverageReason, rankedCorrelations, buildTimeline, relativeToScan } from './report-view'
+import { reasonText, evidenceFindings, coverageReason, rankedCorrelations, buildTimeline, relativeToScan, steamIdentities, steamIdentityLabel } from './report-view'
 
 let tEn: TFunction
 let tRu: TFunction
@@ -174,5 +174,46 @@ describe('activity timeline', () => {
     const txt = buildTextReport(tEn, timed, [], 'en-GB')
     expect(txt).toContain('ACTIVITY TIMELINE')
     expect(txt).toContain('40 min before the scan')
+  })
+})
+
+describe('case details', () => {
+  const caseInfo = { player: 'Neo (76561198000000000)', checkedBy: 'admin', notes: 'Refused to share screen.\nBanned 7d.' }
+
+  it('puts player, checker and notes at the top of the text report', () => {
+    const txt = buildTextReport(tRu, report, [], 'ru-RU', caseInfo)
+    expect(txt).toMatch(/Игрок:\s+Neo \(76561198000000000\)/)
+    expect(txt).toMatch(/Проверяющий:\s+admin/)
+    expect(txt).toContain('  Refused to share screen.\n  Banned 7d.')
+    expect(txt.indexOf('Игрок')).toBeLessThan(txt.indexOf('ОЦЕНКА РИСКА'))
+  })
+
+  it('omits empty case fields', () => {
+    const txt = buildTextReport(tEn, report, [], 'en', { player: '  ', notes: '' })
+    expect(txt).not.toContain('Player:')
+    expect(txt).not.toContain('Notes:')
+  })
+
+  it('adds case details to the JSON envelope, outside the hashed report', () => {
+    const json = JSON.parse(buildJsonReport(report, [], new Date(0), caseInfo))
+    expect(json.case).toEqual({ player: 'Neo (76561198000000000)', checkedBy: 'admin', notes: 'Refused to share screen.\nBanned 7d.' })
+    expect(json.report.contentHash).toBe('f'.repeat(64))
+    expect(JSON.parse(buildJsonReport(report, [], new Date(0))).case).toBeUndefined()
+  })
+})
+
+describe('steamIdentities', () => {
+  it('parses Steam accounts found on the PC, de-duplicated by SteamID', () => {
+    const r: ScanReport = {
+      ...report,
+      findings: [
+        { ...report.findings[2], id: 's1', value: '[Steam Account] neo_acc (SteamID: 76561198000000001) - Neo' },
+        { ...report.findings[2], id: 's2', value: '[Steam Account] alt (SteamID: 76561198000000002)' },
+        { ...report.findings[2], id: 's3', value: '[Steam Account] neo_acc (SteamID: 76561198000000001) - Neo' },
+        { ...report.findings[2], id: 's4', value: '[Steam] Steam installation not found' }
+      ]
+    }
+    const ids = steamIdentities(r)
+    expect(ids.map(steamIdentityLabel)).toEqual(['Neo (76561198000000001)', 'alt (76561198000000002)'])
   })
 })
