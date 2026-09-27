@@ -175,7 +175,8 @@ html, body { background: var(--bg); color: var(--ink); }
 
 /* Font smoothing + base body styles */
 body {
-  /* MuseoModerno has no Cyrillic glyphs, so Russian text falls through to Inter */
+  /* MuseoModerno has no Cyrillic glyphs; Cyrillic data (player names, Windows
+     paths on localized systems) falls through to Inter */
   font-family: 'MuseoModerno', 'Inter', system-ui, -apple-system, sans-serif;
   letter-spacing: 0;
   -webkit-font-smoothing: antialiased;

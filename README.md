@@ -103,7 +103,7 @@ Custos has a slim **icon‑only sidebar** down the left edge. Hover any icon to 
 | **Results** | Review and export findings. A badge shows the total count. |
 | **Manual** | One‑click shortcuts to open Windows folders, registry keys, and references. |
 | **Utilities** | Links to trusted third‑party forensic tools. |
-| **Settings** | Language (English / Русский) and appearance. |
+| **Settings** | Interface (Classic / Focus) and your 97437.dev account. |
 
 ---
 
@@ -198,7 +198,7 @@ The verdict, counts, key evidence, timeline and exports update instantly — not
 
 | Button | File | Best for |
 |---|---|---|
-| **Export Results** | `custos-YYYY-MM-DD-<scan id>.txt` | A complete, human‑readable report in your UI language — scan ID, date, game, system, verdict and reasons, key evidence, graded findings, which checks ran or failed, and an integrity hash. Paste it into a ticket or attach it to an appeal. |
+| **Export Results** | `custos-YYYY-MM-DD-<scan id>.txt` | A complete, human‑readable report — scan ID, date, game, system, verdict and reasons, key evidence, graded findings, which checks ran or failed, and an integrity hash. Paste it into a ticket or attach it to an appeal. |
 | **Export JSON** | `custos-YYYY-MM-DD-<scan id>.json` | The full analyzed report plus the raw per‑scanner output, in a versioned format (`custos-scan-report` v1) for records or tooling. |
 
 Every report carries a **SHA‑256 integrity hash**. It is computed over the JSON `report` object without its `contentHash` field (`JSON.stringify` of the object as exported), so anyone holding the JSON can recompute it and confirm the report was not edited after the scan.
@@ -297,8 +297,10 @@ Clicking a tool opens its official download page in your browser:
 
 The **Settings** page has two sections:
 
-- **Language** — switch the entire interface between **English** and **Русский** instantly. Every page, scanner description, tooltip, and live‑scan finding is fully translated.
-- **Appearance** — Custos uses a single black‑and‑white palette with warm coffee accents; this section shows the brand colours.
+- **Interface** — choose **Classic** or **Focus** (see [Two interfaces](#two-interfaces-classic-and-focus)); the switch is instant and remembered.
+- **Account** — sign in with your 97437.dev account (optional). Your name is then recorded as *checked by* on exported reports.
+
+Custos is English‑only. Scanners still read artifacts from Windows in any display language (for example, `ipconfig` output on a Russian‑language Windows is parsed correctly).
 
 > [!NOTE]
 > Earlier versions had a “Danger Zone” that could delete the app after a scan. That feature has been **removed** — Custos no longer deletes itself or any of your files.

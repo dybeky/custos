@@ -41,7 +41,7 @@ describe('findings filter', () => {
 describe('fuzzyMatch', () => {
   it('matches subsequences case-insensitively, ignoring spaces', () => {
     expect(fuzzyMatch('exp tx', 'Export TXT')).toBe(true)
-    expect(fuzzyMatch('нач пр', 'Начать проверку')).toBe(true)
+    expect(fuzzyMatch('st ch', 'Start check')).toBe(true)
     expect(fuzzyMatch('zzz', 'Export TXT')).toBe(false)
     expect(fuzzyMatch('', 'anything')).toBe(true)
   })

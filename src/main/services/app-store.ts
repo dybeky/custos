@@ -18,7 +18,6 @@ export interface AppStoreSchema {
 export const appStore = new Store<AppStoreSchema>({
   defaults: {
     settings: {
-      language: 'en',
       uiMode: 'classic'
     },
     auth: {},
