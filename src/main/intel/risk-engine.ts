@@ -202,6 +202,25 @@ export function computeVerdict(findings: AnalyzedFinding[], correlations: Correl
     reasons.push({ code: 'environment-only', direction: 'neutral', text: 'Only environment/context signals, no cheat evidence' })
   }
 
+  // Trace cleaning (cleared logs, wiped/disabled Prefetch, a cleaner run
+  // before the check) is not cheat evidence in itself, but it means the other
+  // checks may have been starved of data. It sets a floor on the band, and
+  // cleaning on a machine that still carries cheat leads is escalated.
+  const traceCleaning = findings.some(f => f.category === 'antiforensics')
+  if (traceCleaning) {
+    const hasLeads = findings.some(f => f.category !== 'antiforensics' && f.matched && f.severity !== 'info')
+    const floor: VerdictBand = hasLeads ? 'high' : 'medium'
+    const reason: ScoreReason = hasLeads
+      ? { code: 'trace-cleaning-with-leads', direction: 'up', text: 'Traces were cleaned and cheat leads remain' }
+      : { code: 'trace-cleaning', direction: 'up', text: 'Signs that traces were removed before the check' }
+    if (BAND_SCORE[floor] > BAND_SCORE[band]) {
+      band = floor
+      reasons.unshift(reason)
+    } else {
+      reasons.push(reason)
+    }
+  }
+
   return { score: BAND_SCORE[band], band, rationale: reasons[0].text, reasons }
 }
 

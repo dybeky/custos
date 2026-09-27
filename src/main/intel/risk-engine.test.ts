@@ -188,6 +188,45 @@ describe('computeVerdict (conservative)', () => {
   })
 })
 
+describe('computeVerdict — trace cleaning', () => {
+  const trace = (v: string) => result('Anti-Forensics Scanner', [v])
+
+  it('raises a machine with only trace cleaning to medium', () => {
+    const f = classifyFindings([trace('[Trace cleaning] CCleaner was run 2026-09-27 13:40 UTC (5 min ago)')], findKeyword)
+    const v = computeVerdict(f, [])
+    expect(v.band).toBe('medium')
+    expect(v.reasons[0].code).toBe('trace-cleaning')
+  })
+
+  it('escalates trace cleaning plus a remaining cheat lead to high', () => {
+    const f = classifyFindings([
+      trace('[Trace cleaning] A Windows event log was cleared 2026-09-27 12:00 UTC (2 h ago)'),
+      result('AppData Scanner', ['C:/x/undead.exe'])
+    ], findKeyword)
+    const v = computeVerdict(f, [])
+    expect(v.band).toBe('high')
+    expect(v.reasons[0].code).toBe('trace-cleaning-with-leads')
+  })
+
+  it('does not lower a band that is already higher, but still records the reason', () => {
+    const f = classifyFindings([
+      trace('[Trace cleaning] Prefetch folder holds only 3 file(s)'),
+      result('File Hash Scanner', [KNOWN])
+    ], findKeyword)
+    const v = computeVerdict(f, [])
+    expect(v.band).toBe('critical')
+    expect(v.reasons.map(r => r.code)).toContain('trace-cleaning-with-leads')
+  })
+
+  it('does not treat informational context as a remaining lead', () => {
+    const f = classifyFindings([
+      trace('[Trace cleaning] Prefetch folder holds only 3 file(s)'),
+      result('Steam Scanner', ['[Steam Account] p (SteamID: 76561198000000000)'])
+    ], findKeyword)
+    expect(computeVerdict(f, []).band).toBe('medium')
+  })
+})
+
 describe('analyze', () => {
   const baseCtx: AnalyzeContext = {
     scanId: 'scan-1',

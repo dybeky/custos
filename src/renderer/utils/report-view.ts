@@ -39,7 +39,7 @@ export function bandChipClass(band: VerdictBand): string {
 const REASON_KEYS = new Set([
   'no-findings', 'verified-hash', 'strong-corroboration', 'corroboration',
   'community-hash-uncorroborated', 'multiple-leads', 'lone-match',
-  'environment-only', 'incomplete-coverage'
+  'environment-only', 'incomplete-coverage', 'trace-cleaning', 'trace-cleaning-with-leads'
 ])
 
 /** Localized text for a verdict reason, falling back to the engine's English. */

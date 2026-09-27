@@ -44,7 +44,7 @@ Custos is a desktop app that reads those records, looks for fingerprints of know
 
 Reads Windows history & artifacts to find traces of **past** cheat use.
 
-This is the **main** feature — 16 scanners, no game required.
+This is the **main** feature — 17 scanners, no game required.
 
 </td>
 <td valign="top" width="50%">
@@ -196,10 +196,10 @@ The page shows a status banner telling you exactly where you stand — *Checking
 
 ## What each scanner checks
 
-A full forensic scan runs **16 scanners**.
+A full forensic scan runs **17 scanners**.
 
 <details open>
-<summary><b>The 16 scanners — what each one inspects</b></summary>
+<summary><b>The 17 scanners — what each one inspects</b></summary>
 
 <br/>
 
@@ -221,6 +221,7 @@ A full forensic scan runs **16 scanners**.
 | 14 | **Scheduled Tasks** | The Task Scheduler, for entries used to keep cheats running (persistence). |
 | 15 | **File Hash** | SHA‑256 fingerprints of files in Downloads/Desktop/Temp vs. known cheat hashes. |
 | 16 | **Window & Module** | Window titles and loaded modules of running programs vs. the keyword list. |
+| 17 | **Anti‑Forensics** | Signs traces were removed before the check: Prefetch disabled or wiped, event logs cleared in the last 14 days, trace cleaners (CCleaner, PrivaZer, BleachBit, SDelete, USB Oblivion…) run in the last 3 days. Raises the verdict to at least **Medium**, or **High** if cheat leads remain. |
 
 </details>
 
@@ -321,7 +322,7 @@ npm run package:win:arm64
 npm run rebuild
 ```
 
-On non‑Windows hosts you can skip it — Live Scan reports "native unavailable," but **all 16 forensic scanners remain fully functional.**
+On non‑Windows hosts you can skip it — Live Scan reports "native unavailable," but **all 17 forensic scanners remain fully functional.**
 
 </details>
 

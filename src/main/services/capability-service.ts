@@ -38,7 +38,8 @@ const REQUIREMENTS: Record<string, Requirement> = {
   dnscache: { platforms: ['windows'], requirement: 'Windows' },
   scheduledtasks: { platforms: ['windows'], requirement: 'Windows' },
   filehash: { platforms: ['windows'], requirement: 'Windows' },
-  windowmodule: { platforms: ['windows'], requirement: 'Windows' }
+  windowmodule: { platforms: ['windows'], requirement: 'Windows' },
+  antiforensics: { platforms: ['windows'], requirement: 'Windows' }
 }
 
 /**

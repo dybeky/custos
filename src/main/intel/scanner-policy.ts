@@ -25,7 +25,8 @@ export const SCANNER_POLICY: Record<ScannerName, ScannerPolicy> = {
   dnscache: { category: 'network', baseSeverity: 'medium' },
   steam: { category: 'context', baseSeverity: 'low' },
   shellbags: { category: 'context', baseSeverity: 'low' },
-  vm: { category: 'environment', baseSeverity: 'info' }
+  vm: { category: 'environment', baseSeverity: 'info' },
+  antiforensics: { category: 'antiforensics', baseSeverity: 'medium' }
 }
 
 /** Used when a scanner display name cannot be resolved (defensive; should not occur). */
