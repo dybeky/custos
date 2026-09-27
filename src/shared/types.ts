@@ -312,6 +312,8 @@ export interface AnalyzedFinding {
   baseConfidence: Confidence   // before correlation
   correlationId: string | null
   reasons: ScoreReason[]
+  /** ISO time of the activity this finding records (last run, visit, log clear…), when known. */
+  observedAt?: string
   dismissed?: boolean
   whitelisted?: boolean
 }

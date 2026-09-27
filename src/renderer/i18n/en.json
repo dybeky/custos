@@ -543,5 +543,18 @@
     "integrityNote": "Any edit to the JSON export changes this hash — compare it to verify the report is unmodified.",
     "unitSec": "s",
     "unitMs": "ms"
+  },
+  "timeline": {
+    "title": "Activity timeline",
+    "hint": "Every lead that carries a time — last program runs, execution records, site visits, log clears — in order. Activity shortly before the check is highlighted.",
+    "recent": "last 24 h",
+    "minutesBefore_one": "{{count}} min before the scan",
+    "minutesBefore_other": "{{count}} min before the scan",
+    "hoursBefore_one": "{{count}} h before the scan",
+    "hoursBefore_other": "{{count}} h before the scan",
+    "daysBefore_one": "{{count}} day before the scan",
+    "daysBefore_other": "{{count}} days before the scan",
+    "showAll": "Show all ({{count}})",
+    "showLess": "Show less"
   }
 }

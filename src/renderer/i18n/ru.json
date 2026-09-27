@@ -547,5 +547,24 @@
     "integrityNote": "Любое изменение JSON-экспорта меняет этот хэш — сравните его, чтобы убедиться, что отчёт не изменён.",
     "unitSec": "с",
     "unitMs": "мс"
+  },
+  "timeline": {
+    "title": "Хронология активности",
+    "hint": "Все зацепки со временем — последние запуски программ, записи о выполнении, посещения сайтов, очистка журналов — по порядку. Активность незадолго до проверки подсвечена.",
+    "recent": "за последние 24 ч",
+    "minutesBefore_one": "за {{count}} мин до проверки",
+    "minutesBefore_few": "за {{count}} мин до проверки",
+    "minutesBefore_many": "за {{count}} мин до проверки",
+    "minutesBefore_other": "за {{count}} мин до проверки",
+    "hoursBefore_one": "за {{count}} ч до проверки",
+    "hoursBefore_few": "за {{count}} ч до проверки",
+    "hoursBefore_many": "за {{count}} ч до проверки",
+    "hoursBefore_other": "за {{count}} ч до проверки",
+    "daysBefore_one": "за {{count}} день до проверки",
+    "daysBefore_few": "за {{count}} дня до проверки",
+    "daysBefore_many": "за {{count}} дней до проверки",
+    "daysBefore_other": "за {{count}} дня до проверки",
+    "showAll": "Показать все ({{count}})",
+    "showLess": "Свернуть"
   }
 }

@@ -3,7 +3,7 @@ import type { AnalyzedFinding, ScanReport, ScanResult } from '../../shared/types
 import { GAMES } from '../../shared/games'
 import { SCANNER_DISPLAY_TO_ID } from '../../shared/scanners-meta'
 import { featureName } from './feature-i18n'
-import { rankedCorrelations, reasonText } from './report-view'
+import { buildTimeline, rankedCorrelations, reasonText, relativeToScan } from './report-view'
 
 /** Identifies the JSON export so other tooling can recognise and version it. */
 export const REPORT_FORMAT = 'custos-scan-report'
@@ -109,6 +109,21 @@ export function buildTextReport(
         .map((id) => scannerLabel(t, id, report.scanners.find((s) => s.id === id)?.name ?? id))
         .join(', ')
       out.push(`  "${c.signature}" — ${t('verdict.seenIn', { count: c.strength })}: ${where}`)
+    }
+  }
+
+  // ── Timeline ────────────────────────────────────────────────────────────
+  const timeline = buildTimeline(report)
+  if (timeline.length > 0) {
+    out.push('', THIN, t('timeline.title').toUpperCase(), THIN)
+    const fmt = new Intl.DateTimeFormat(locale, { dateStyle: 'short', timeStyle: 'short' })
+    for (const e of timeline) {
+      const scanner = report.scanners.find((s) => s.id === e.finding.scannerId)
+      out.push(
+        `  ${e.recent ? '!' : ' '} ${fmt.format(e.at)}  (${relativeToScan(t, e.minutesBeforeScan)})  ` +
+          `${scannerLabel(t, e.finding.scannerId, scanner?.name ?? e.finding.scannerId)}`,
+        indent(e.finding.value, '      ')
+      )
     }
   }
 

@@ -7,6 +7,7 @@ import type { GameId } from '../../shared/games'
 import { scannerIdFromDisplayName } from '../../shared/scanners-meta'
 import { SCANNER_POLICY, DEFAULT_POLICY, RISK_ENGINE_VERSION } from './scanner-policy'
 import { isKnownHashFinding, hashTokenOf } from './finding-tags'
+import { extractObservedAt } from './observed-at'
 
 function findingId(scannerId: string, value: string): string {
   return createHash('sha1').update(`${scannerId}\n${value}`).digest('hex').slice(0, 16)
@@ -67,11 +68,18 @@ export function classifyFindings(
         confidence,
         baseConfidence: confidence,
         correlationId: null,
-        reasons: []
+        reasons: [],
+        ...observedAtOf(value)
       })
     }
   }
   return out
+}
+
+/** `{ observedAt }` when the finding carries a time, else nothing (keeps JSON lean). */
+function observedAtOf(value: string): { observedAt?: string } {
+  const at = extractObservedAt(value)
+  return at ? { observedAt: at } : {}
 }
 
 const SEVERITY_RANK: Record<Severity, number> = { critical: 4, high: 3, medium: 2, low: 1, info: 0 }
