@@ -12,7 +12,7 @@ const BTN = 'px-3 py-1.5 rounded-lg text-xs font-medium transition-colors disabl
  * see this player's checks by every checker. Shown only for the capabilities
  * the site granted; the site re-checks each call regardless.
  */
-export function SitePanel({ compact = false }: { compact?: boolean }) {
+export function SitePanel() {
   const { t, i18n } = useTranslation()
   const { status, capabilities, updateRequired } = useAuthStore()
   const { report, caseInfo } = useScanStore()
@@ -64,7 +64,7 @@ export function SitePanel({ compact = false }: { compact?: boolean }) {
   const uploadedId = upload?.ok && upload.url ? upload.url.split('/').pop() : null
 
   return (
-    <div className={`rounded-2xl border border-[color:var(--line)] bg-panel ${compact ? 'p-4' : 'p-5 mb-6'}`}>
+    <div className="rounded-2xl border border-[color:var(--line)] bg-panel p-5 mb-6">
       <p className="text-[10px] font-semibold uppercase tracking-wider text-ink-dim">{t('site.title')}</p>
 
       {updateRequired ? (

@@ -103,7 +103,7 @@ Custos has a slim **icon‑only sidebar** down the left edge. Hover any icon to 
 | **Results** | Review and export findings. A badge shows the total count. |
 | **Manual** | One‑click shortcuts to open Windows folders, registry keys, and references. |
 | **Utilities** | Links to trusted third‑party forensic tools. |
-| **Settings** | Interface (Classic / Focus), color theme (4) and your 97437.dev account. |
+| **Settings** | Color theme (4), detection signatures and your 97437.dev account. |
 
 ---
 
@@ -147,19 +147,6 @@ Custos explains the problem instead of closing silently. It names a cause only w
 | Anything else | "Unexpected error" with the exact error text and a **Show log file** button — never a guessed fix |
 
 A corrupted settings file no longer prevents Custos from starting — it is reset automatically.
-
-## Two interfaces: Classic and Focus
-
-Pick one in **Settings → Interface** — it switches instantly and is remembered.
-
-| | **Classic** | **Focus** (new) |
-|---|---|---|
-| Layout | Icon sidebar, separate Scan and Results pages | One top bar; the whole check on a single screen |
-| During a scan | Progress ring | Progress ring + a live grid of all 21 checks (waiting / running / done / failed) |
-| Results | Stacked cards | Verdict rail (risk gauge, reason, coverage, case, export) beside a workspace with **Evidence / Timeline / Checks** tabs, severity grouping, filters and search |
-| Keyboard | — | **Ctrl+K** command palette · **Ctrl+Enter** start a check · **Ctrl+E** export the report |
-
-Both interfaces share the same scanners, verdicts, triage and exports.
 
 ## Reading your results
 
@@ -317,10 +304,9 @@ Clicking a tool opens its official download page in your browser:
 
 ## Settings
 
-The **Settings** page has four sections:
+The **Settings** page has three sections:
 
-- **Interface** — choose **Classic** or **Focus** (see [Two interfaces](#two-interfaces-classic-and-focus)); the switch is instant and remembered.
-- **Color theme** — **Espresso** (warm coffee‑noir, the default), **Graphite** (cool blue), **Emerald** (mint green) or **Violet** (lavender). Works in both interfaces, switches instantly, and is remembered — even the window background at launch matches.
+- **Color theme** — **Espresso** (warm coffee‑noir, the default), **Graphite** (cool blue), **Emerald** (mint green) or **Violet** (lavender). Switches instantly and is remembered — even the window background at launch matches.
 - **Detection signatures** — whether scans use only the built‑in signatures or also the extra ones published on the site, with a **Check now** button.
 - **Account** — sign in with your 97437.dev account (optional). Your name is then recorded as *checked by* on exported reports.
 

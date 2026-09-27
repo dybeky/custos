@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react'
 import { HashRouter, Routes, Route, Navigate } from 'react-router-dom'
-import { ModernShell } from './modern/ModernShell'
 import { Header } from './components/layout/Header'
 import { Sidebar } from './components/layout/Sidebar'
 import { AnimatedBackground } from './components/layout/AnimatedBackground'
@@ -26,7 +25,7 @@ import type { UpdateInfo } from '../shared/types'
 import './i18n'
 
 export function App() {
-  const { loadSettings, isLoading, uiMode } = useSettingsStore()
+  const { loadSettings, isLoading } = useSettingsStore()
   const { selectedGame } = useGameStore()
   const [update, setUpdate] = useState<UpdateInfo | null>(null)
   const [checkFailed, setCheckFailed] = useState(false)
@@ -88,28 +87,16 @@ export function App() {
     )
   }
 
-  const overlays = (
-    <>
-      <GamePicker />
-      {update && <UpdateModal info={update} onClose={() => setUpdate(null)} />}
-      {checkFailed && <UpdateCheckFailedToast onDone={() => setCheckFailed(false)} />}
-      {showPromo && <WebsitePromoToast onDone={() => setPromoDone(true)} />}
-    </>
-  )
-
   return (
     <ErrorBoundary>
       <HashRouter>
-        {uiMode === 'modern' ? (
-          <>
-            <ModernShell />
-            {overlays}
-          </>
-        ) : (
-          <div className="h-screen w-screen bg-background text-text-primary flex flex-col overflow-hidden relative">
-            <AnimatedBackground />
-            {overlays}
-            <div className="relative z-10 flex flex-col flex-1 overflow-hidden">
+        <div className="h-screen w-screen bg-background text-text-primary flex flex-col overflow-hidden relative">
+          <AnimatedBackground />
+          <GamePicker />
+          {update && <UpdateModal info={update} onClose={() => setUpdate(null)} />}
+          {checkFailed && <UpdateCheckFailedToast onDone={() => setCheckFailed(false)} />}
+          {showPromo && <WebsitePromoToast onDone={() => setPromoDone(true)} />}
+          <div className="relative z-10 flex flex-col flex-1 overflow-hidden">
             <Header />
 
             <div className="flex flex-1 overflow-hidden relative z-10">
@@ -130,9 +117,8 @@ export function App() {
                 </Routes>
               </main>
             </div>
-            </div>
           </div>
-        )}
+        </div>
       </HashRouter>
     </ErrorBoundary>
   )

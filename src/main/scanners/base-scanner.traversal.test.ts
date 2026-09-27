@@ -25,6 +25,21 @@ function makeScanner(): TestScanner {
   return new TestScanner(matcher, settings)
 }
 
+// Directory symlinks need admin rights or Developer Mode on Windows; where the
+// OS refuses them the symlink cases are skipped (the junction cases below
+// cover the same invariant without elevation).
+const canSymlink = ((): boolean => {
+  const probe = mkdtempSync(join(tmpdir(), 'custos-probe-'))
+  try {
+    symlinkSync(probe, join(probe, 'link'), 'dir')
+    return true
+  } catch {
+    return false
+  } finally {
+    rmSync(probe, { recursive: true, force: true })
+  }
+})()
+
 let root: string
 let outside: string
 
@@ -55,7 +70,7 @@ describe('BaseScanner.scanFolder traversal', () => {
     expect(found).not.toContain(join(root, 'benign'))
   })
 
-  it('does not follow a directory link that escapes the scan root', async () => {
+  it.skipIf(!canSymlink)('does not follow a directory link that escapes the scan root', async () => {
     mkdirSync(join(outside, 'cheat-secret'))
     writeFileSync(join(outside, 'cheat-secret', 'cheat.dll'), 'x')
     symlinkSync(outside, join(root, 'link'), 'dir')
@@ -98,7 +113,7 @@ describe('BaseScanner.scanFolder traversal', () => {
     expect(ticked).toBe(true)
   })
 
-  it('terminates (does not hang) on a self-referential directory loop', async () => {
+  it.skipIf(!canSymlink)('terminates (does not hang) on a self-referential directory loop', async () => {
     mkdirSync(join(root, 'cheat-tool'))
     symlinkSync(root, join(root, 'cheat-tool', 'loop'), 'dir')
 

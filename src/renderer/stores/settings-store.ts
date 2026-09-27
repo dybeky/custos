@@ -1,5 +1,4 @@
 import { create } from 'zustand'
-import type { UiMode } from '../../shared/types'
 import { DEFAULT_THEME, isColorTheme, type ColorTheme } from '../../shared/themes'
 
 const THEME_CACHE_KEY = 'custos-theme'
@@ -28,13 +27,11 @@ export function applyTheme(theme: ColorTheme): void {
 let saveDebounceTimer: ReturnType<typeof setTimeout> | null = null
 
 interface SettingsState {
-  uiMode: UiMode
   colorTheme: ColorTheme
   isLoading: boolean
   version: string
 
   // Actions
-  setUiMode: (value: UiMode) => void
   setColorTheme: (value: ColorTheme) => void
   setVersion: (version: string) => void
   loadSettings: () => Promise<void>
@@ -42,15 +39,9 @@ interface SettingsState {
 }
 
 export const useSettingsStore = create<SettingsState>((set, get) => ({
-  uiMode: 'classic',
   colorTheme: readCachedTheme(),
   isLoading: true,
   version: '',
-
-  setUiMode: (value) => {
-    set({ uiMode: value })
-    get().saveSettings()
-  },
 
   setColorTheme: (value) => {
     applyTheme(value)
@@ -64,10 +55,9 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
     try {
       const settings = await window.electronAPI.getSettings()
       const version = await window.electronAPI.getVersion()
-      const uiMode: UiMode = settings.uiMode === 'modern' ? 'modern' : 'classic'
       const colorTheme = isColorTheme(settings.colorTheme) ? settings.colorTheme : DEFAULT_THEME
       applyTheme(colorTheme)
-      set({ uiMode, colorTheme, version, isLoading: false })
+      set({ colorTheme, version, isLoading: false })
     } catch (error) {
       console.error('Failed to load settings:', error)
       set({ isLoading: false })
@@ -80,7 +70,7 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
     saveDebounceTimer = setTimeout(async () => {
       saveDebounceTimer = null
       try {
-        await window.electronAPI.setSettings({ uiMode: get().uiMode, colorTheme: get().colorTheme })
+        await window.electronAPI.setSettings({ colorTheme: get().colorTheme })
       } catch (error) {
         console.error('Failed to save settings:', error)
       }

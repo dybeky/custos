@@ -30,7 +30,6 @@ export const appStore = new Store<AppStoreSchema>({
   clearInvalidConfig: true,
   defaults: {
     settings: {
-      uiMode: 'classic',
       colorTheme: 'espresso'
     },
     auth: {},

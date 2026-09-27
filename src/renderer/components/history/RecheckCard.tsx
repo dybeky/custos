@@ -9,7 +9,7 @@ import { bandChipClass } from '../../utils/report-view'
  * evidence that appeared or disappeared since. Rendered only when the same
  * player (by SteamID, else name) was checked before.
  */
-export function RecheckCard({ compact = false }: { compact?: boolean }) {
+export function RecheckCard() {
   const { t, i18n } = useTranslation()
   const { previous, openHistory } = useScanStore()
   const [open, setOpen] = useState(false)
@@ -20,7 +20,7 @@ export function RecheckCard({ compact = false }: { compact?: boolean }) {
   const changed = diff.added.length > 0 || diff.removed.length > 0
 
   return (
-    <div className={`rounded-2xl border border-[color:var(--line)] bg-panel ${compact ? 'p-4' : 'p-5 mb-6'}`}>
+    <div className="rounded-2xl border border-[color:var(--line)] bg-panel p-5 mb-6">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <p className="text-[10px] font-semibold uppercase tracking-wider text-ink-dim">{t('recheck.title')}</p>

@@ -56,12 +56,8 @@ export interface ScannerInfo {
 }
 
 // Settings types
-export type UiMode = 'classic' | 'modern'
-
 export interface UserSettings {
-  /** Which interface shell to render. 'classic' is the original layout. */
-  uiMode: UiMode
-  /** Color theme applied to either interface. */
+  /** Color theme of the interface. */
   colorTheme: ColorTheme
 }
 
