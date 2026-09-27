@@ -37,6 +37,23 @@ module.exports = tseslint.config(
     },
   },
 
+  // Tests stub Electron, IPC and store internals; loose typing there is
+  // deliberate and keeps fakes short.
+  {
+    files: ['src/**/*.test.{ts,tsx}', 'src/**/*.spec.{ts,tsx}'],
+    rules: {
+      '@typescript-eslint/no-explicit-any': 'off',
+    },
+  },
+
+  // The logger is the one place allowed to write to the console.
+  {
+    files: ['src/main/services/logger.ts'],
+    rules: {
+      'no-console': 'off',
+    },
+  },
+
   // React Hooks rules for renderer only
   {
     files: ['src/renderer/**/*.{ts,tsx}'],
@@ -44,6 +61,8 @@ module.exports = tseslint.config(
       'react-hooks': reactHooks,
     },
     rules: {
+      // The renderer has no file logger; surfacing failures in DevTools is intended.
+      'no-console': ['warn', { allow: ['warn', 'error'] }],
       'react-hooks/rules-of-hooks': 'error',
       'react-hooks/exhaustive-deps': 'warn',
     },
