@@ -4,6 +4,7 @@ import { useAppHealthStore } from '../../stores/app-health-store'
 import { useGameStore } from '../../stores/game-store'
 import { GAMES } from '../../../shared/games'
 import { UserMenu } from '../auth/UserMenu'
+import { alpha } from '../../utils/color'
 
 export function Header() {
   const { t } = useTranslation()
@@ -15,9 +16,9 @@ export function Header() {
   }, [initialize])
 
   const statusColors = {
-    healthy: '#8FBF9F',
-    warning: '#e3a45c',
-    error: '#e0604c'
+    healthy: 'var(--ok)',
+    warning: 'var(--amber)',
+    error: 'var(--alert)'
   }
 
   const statusTitles = {
@@ -66,7 +67,7 @@ export function Header() {
               className="relative w-2 h-2 rounded-full"
               style={{
                 backgroundColor: statusColors[status],
-                boxShadow: `0 0 8px ${statusColors[status]}aa`
+                boxShadow: `0 0 8px ${alpha(statusColors[status], 0.67)}`
               }}
             />
           </span>

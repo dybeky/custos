@@ -20,6 +20,7 @@ import { appStore } from './services/app-store'
 import { safeOpenExternal, safeOpenPath } from './utils/safe-open'
 import { normalizeRevealPath } from './utils/url-policy'
 import { HistoryStore } from './services/history-store'
+import { COLOR_THEMES, DEFAULT_THEME, isColorTheme } from '../shared/themes'
 import type { HistoryEntry, HistorySummary } from '../shared/history'
 import { join } from 'path'
 import { AuthLoginPayloadSchema, AuthUploadAvatarPayloadSchema } from './auth/auth-ipc-schema'
@@ -32,7 +33,8 @@ const execFileP = promisify(execFile)
 
 // Strict schema for partial user settings — rejects unknown properties
 const UserSettingsPartialSchema = z.object({
-  uiMode: z.enum(['classic', 'modern']).optional()
+  uiMode: z.enum(['classic', 'modern']).optional(),
+  colorTheme: z.enum(COLOR_THEMES).optional()
 }).strict()
 
 /**
@@ -42,9 +44,10 @@ const UserSettingsPartialSchema = z.object({
  * Returns a valid UserSettings, defaulting uiMode to 'classic'.
  */
 export function migrateSettings(raw: unknown): UserSettings {
-  const obj = raw && typeof raw === 'object' ? (raw as { uiMode?: unknown }) : {}
+  const obj = raw && typeof raw === 'object' ? (raw as { uiMode?: unknown; colorTheme?: unknown }) : {}
   return {
-    uiMode: obj.uiMode === 'modern' ? 'modern' : 'classic'
+    uiMode: obj.uiMode === 'modern' ? 'modern' : 'classic',
+    colorTheme: isColorTheme(obj.colorTheme) ? obj.colorTheme : DEFAULT_THEME
   }
 }
 

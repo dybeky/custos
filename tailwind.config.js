@@ -1,66 +1,69 @@
+/** Color from a theme channel variable, with Tailwind alpha support. */
+const c = (name) => `rgb(var(--${name}-rgb) / <alpha-value>)`
+
 /** @type {import('tailwindcss').Config} */
 module.exports = {
   content: ['./src/renderer/**/*.{js,ts,jsx,tsx,html}'],
   theme: {
     extend: {
       colors: {
-        // ── Coffee-noir design-system tokens: black & white with coffee accents ──
-        bg: '#0a0908',
-        panel: '#141110',
-        'panel-2': '#1c1815',
-        ink: '#f4f0ea',
-        'ink-dim': '#a89f93',
-        scan: '#c89a6a',
-        'scan-dim': '#8a7b68',
-        alert: '#e0604c',
-        amber: '#e3a45c',
-        'on-accent': '#14100c',
+        // ── Themeable design tokens ──
+        // Every color resolves to a CSS channel variable defined per theme in
+        // styles/index.css, so utilities keep alpha support (bg-scan/10) and
+        // switching <html data-theme> recolors the whole app.
+        bg: c('bg'),
+        panel: c('panel'),
+        'panel-2': c('panel-2'),
+        ink: c('ink'),
+        'ink-dim': c('ink-dim'),
+        scan: c('scan'),
+        'scan-2': c('scan-2'),
+        'scan-dim': c('scan-dim'),
+        alert: c('alert'),
+        amber: c('amber'),
+        ok: c('ok'),
+        'on-accent': c('on-accent'),
         // ── Legacy tokens (kept so existing components don't break) ──
-        // Warm near-black base
         background: {
-          DEFAULT: '#0a0908',
-          surface: '#141110',
-          elevated: '#1c1815'
+          DEFAULT: c('bg'),
+          surface: c('panel'),
+          elevated: c('panel-2')
         },
-        // The single coffee accent family — the only palette in the app
         accent: {
-          lavender: '#D9BC9A',
-          purple: '#8a7b68',
-          sky: '#8a7b68',
-          blue: '#c89a6a'
+          lavender: c('scan-2'),
+          purple: c('scan-dim'),
+          sky: c('scan-dim'),
+          blue: c('scan')
         },
         primary: {
-          DEFAULT: '#c89a6a',
-          hover: '#D9BC9A',
-          muted: 'rgba(200, 154, 106, 0.12)'
+          DEFAULT: c('scan'),
+          hover: c('scan-2'),
+          muted: 'rgb(var(--scan-rgb) / 0.12)'
         },
-        // Legacy token name, remapped onto the coffee palette
         aurora: {
-          purple: '#8a7b68',
-          blue: '#c89a6a'
+          purple: c('scan-dim'),
+          blue: c('scan')
         },
-        // Semantic status colors — kept only for scan results & health,
-        // desaturated so the UI still reads black-and-white-first
         success: {
-          DEFAULT: '#8FBF9F',
-          muted: 'rgba(143, 191, 159, 0.12)'
+          DEFAULT: c('ok'),
+          muted: 'rgb(var(--ok-rgb) / 0.12)'
         },
         error: {
-          DEFAULT: '#e0604c',
-          muted: 'rgba(217, 142, 142, 0.12)'
+          DEFAULT: c('alert'),
+          muted: 'rgb(var(--alert-rgb) / 0.12)'
         },
         warning: {
-          DEFAULT: '#e3a45c',
-          muted: 'rgba(217, 179, 128, 0.12)'
+          DEFAULT: c('amber'),
+          muted: 'rgb(var(--amber-rgb) / 0.12)'
         },
         text: {
-          primary: 'rgba(237, 231, 222, 0.95)',
-          secondary: 'rgba(237, 231, 222, 0.6)',
-          muted: 'rgba(237, 231, 222, 0.4)'
+          primary: 'rgb(var(--ink-rgb) / 0.95)',
+          secondary: 'rgb(var(--ink-rgb) / 0.6)',
+          muted: 'rgb(var(--ink-rgb) / 0.4)'
         },
         border: {
-          DEFAULT: 'rgba(237, 231, 222, 0.08)',
-          hover: 'rgba(200, 164, 126, 0.25)'
+          DEFAULT: 'rgb(var(--ink-rgb) / 0.08)',
+          hover: 'rgb(var(--scan-rgb) / 0.25)'
         }
       },
       fontFamily: {
@@ -82,9 +85,9 @@ module.exports = {
       },
       boxShadow: {
         'glass': '0 8px 32px rgba(0, 0, 0, 0.3)',
-        'glow': '0 0 32px -10px rgba(200, 164, 126, 0.25)',
-        'glow-success': '0 0 20px rgba(143, 191, 159, 0.2)',
-        'glow-purple': '0 0 15px rgba(200, 164, 126, 0.3)'
+        'glow': '0 0 32px -10px rgb(var(--scan-rgb) / 0.25)',
+        'glow-success': '0 0 20px rgb(var(--ok-rgb) / 0.2)',
+        'glow-purple': '0 0 15px rgb(var(--scan-rgb) / 0.3)'
       },
       backdropBlur: {
         'glass': '20px'

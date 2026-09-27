@@ -1,3 +1,4 @@
+import type { ColorTheme } from './themes'
 import type { GameId } from './games'
 
 // Scan result types
@@ -60,6 +61,8 @@ export type UiMode = 'classic' | 'modern'
 export interface UserSettings {
   /** Which interface shell to render. 'classic' is the original layout. */
   uiMode: UiMode
+  /** Color theme applied to either interface. */
+  colorTheme: ColorTheme
 }
 
 // Desktop auth providers. 'google'/'github' are interactive OAuth via the

@@ -6,8 +6,8 @@
  * while the app shell renders at z-10. Motion is disabled under
  * prefers-reduced-motion (see .animate-blob-* in index.css).
  */
-const CARAMEL = '#c89a6a'
-const CREAM = '#f4f0ea'
+const CARAMEL = 'var(--scan)'
+const CREAM = 'var(--ink)'
 
 export function AnimatedBackground() {
   return (

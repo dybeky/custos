@@ -24,14 +24,18 @@ import { migrateSettings } from '../ipc-handlers'
 
 describe('migrateSettings (drops legacy keys)', () => {
   it('strips the legacy theme and language keys', () => {
-    expect(migrateSettings({ language: 'ru', theme: 'tropical' })).toEqual({ uiMode: 'classic' })
+    expect(migrateSettings({ language: 'ru', theme: 'tropical' })).toEqual({ uiMode: 'classic', colorTheme: 'espresso' })
   })
   it('defaults for junk input', () => {
-    expect(migrateSettings({ theme: 'aurora' })).toEqual({ uiMode: 'classic' })
-    expect(migrateSettings(null)).toEqual({ uiMode: 'classic' })
+    expect(migrateSettings({ theme: 'aurora' })).toEqual({ uiMode: 'classic', colorTheme: 'espresso' })
+    expect(migrateSettings(null)).toEqual({ uiMode: 'classic', colorTheme: 'espresso' })
   })
   it('keeps a valid interface mode and rejects junk', () => {
-    expect(migrateSettings({ language: 'en', uiMode: 'modern' })).toEqual({ uiMode: 'modern' })
-    expect(migrateSettings({ uiMode: 'neon' })).toEqual({ uiMode: 'classic' })
+    expect(migrateSettings({ language: 'en', uiMode: 'modern' })).toEqual({ uiMode: 'modern', colorTheme: 'espresso' })
+    expect(migrateSettings({ uiMode: 'neon' })).toEqual({ uiMode: 'classic', colorTheme: 'espresso' })
+  })
+  it('keeps a valid color theme and falls back to espresso for junk or retired themes', () => {
+    expect(migrateSettings({ colorTheme: 'emerald' })).toEqual({ uiMode: 'classic', colorTheme: 'emerald' })
+    expect(migrateSettings({ colorTheme: 'aurora' })).toEqual({ uiMode: 'classic', colorTheme: 'espresso' })
   })
 })

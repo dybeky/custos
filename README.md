@@ -103,7 +103,7 @@ Custos has a slim **icon‑only sidebar** down the left edge. Hover any icon to 
 | **Results** | Review and export findings. A badge shows the total count. |
 | **Manual** | One‑click shortcuts to open Windows folders, registry keys, and references. |
 | **Utilities** | Links to trusted third‑party forensic tools. |
-| **Settings** | Interface (Classic / Focus) and your 97437.dev account. |
+| **Settings** | Interface (Classic / Focus), color theme (4) and your 97437.dev account. |
 
 ---
 
@@ -317,9 +317,10 @@ Clicking a tool opens its official download page in your browser:
 
 ## Settings
 
-The **Settings** page has two sections:
+The **Settings** page has three sections:
 
 - **Interface** — choose **Classic** or **Focus** (see [Two interfaces](#two-interfaces-classic-and-focus)); the switch is instant and remembered.
+- **Color theme** — **Espresso** (warm coffee‑noir, the default), **Graphite** (cool blue), **Emerald** (mint green) or **Violet** (lavender). Works in both interfaces, switches instantly, and is remembered — even the window background at launch matches.
 - **Account** — sign in with your 97437.dev account (optional). Your name is then recorded as *checked by* on exported reports.
 
 Custos is English‑only. Scanners still read artifacts from Windows in any display language (for example, `ipconfig` output on a Russian‑language Windows is parsed correctly).

@@ -216,7 +216,7 @@ export function ResultsWorkspace({ report }: { report: ScanReport }) {
 
               {groups.length === 0 ? (
                 <div className="py-16 text-center">
-                  <div className="mx-auto w-11 h-11 rounded-full bg-[#8FBF9F]/10 text-[#8FBF9F] flex items-center justify-center">
+                  <div className="mx-auto w-11 h-11 rounded-full bg-ok/10 text-ok flex items-center justify-center">
                     <IconCheck className="w-5 h-5" />
                   </div>
                   <p className="mt-3 text-sm text-ink">{query ? t('modern.filter.noMatches') : t(`modern.filter.empty.${filter}`)}</p>
@@ -255,7 +255,7 @@ export function ResultsWorkspace({ report }: { report: ScanReport }) {
             <div className="flex flex-col divide-y divide-[color:var(--line)]">
               {report.scanners.map((s) => (
                 <div key={s.id} className="flex items-center gap-3 py-2.5">
-                  <span className={`w-5 h-5 rounded-md flex items-center justify-center ${s.success ? (s.count ? 'bg-alert/10 text-alert' : 'bg-[#8FBF9F]/10 text-[#8FBF9F]') : 'bg-amber/10 text-amber'}`}>
+                  <span className={`w-5 h-5 rounded-md flex items-center justify-center ${s.success ? (s.count ? 'bg-alert/10 text-alert' : 'bg-ok/10 text-ok') : 'bg-amber/10 text-amber'}`}>
                     {s.success ? <IconCheck className="w-3.5 h-3.5" /> : <IconX className="w-3.5 h-3.5" />}
                   </span>
                   <div className="flex-1 min-w-0">

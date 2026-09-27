@@ -7,6 +7,7 @@ import { RoleName } from '../components/ui/RoleName'
 import { LoginModal } from '../components/auth/LoginModal'
 import { roleInfo } from '../utils/roles'
 import { InterfacePicker } from '../components/settings/InterfacePicker'
+import { ThemePicker } from '../components/settings/ThemePicker'
 
 export function Settings() {
   const { t } = useTranslation()
@@ -38,6 +39,16 @@ export function Settings() {
           </CardHeader>
           <CardContent>
             <InterfacePicker />
+          </CardContent>
+        </Card>
+
+        {/* Color theme — applies to both interfaces instantly */}
+        <Card className="mb-4">
+          <CardHeader>
+            <CardTitle>{t('settings.theme.title')}</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ThemePicker />
           </CardContent>
         </Card>
 

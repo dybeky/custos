@@ -1,13 +1,14 @@
 import { motion } from 'framer-motion'
 import type { VerdictBand } from '../../../shared/types'
+import { alpha } from '../../utils/color'
 
 /** Colour per verdict band (CSS values so SVG strokes can use them). */
 export const BAND_COLOR: Record<VerdictBand, string> = {
-  clean: '#8FBF9F',
-  low: '#c89a6a',
-  medium: '#e3a45c',
-  high: '#e0604c',
-  critical: '#ff4f3a'
+  clean: 'var(--ok)',
+  low: 'var(--scan)',
+  medium: 'var(--amber)',
+  high: 'var(--alert)',
+  critical: 'var(--alert)'
 }
 
 const R = 80
@@ -34,7 +35,7 @@ export function VerdictGauge({ score, band, label }: { score: number; band: Verd
           initial={{ strokeDashoffset: ARC }}
           animate={{ strokeDashoffset: ARC - filled }}
           transition={{ duration: 1.1, ease: [0.22, 1, 0.36, 1] }}
-          style={{ filter: `drop-shadow(0 0 10px ${color}55)` }}
+          style={{ filter: `drop-shadow(0 0 10px ${alpha(color, 0.33)})` }}
         />
       </svg>
       <div className="absolute inset-x-0 bottom-0 text-center">
