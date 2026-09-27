@@ -301,8 +301,8 @@
     },
     "antiforensics": {
       "name": "Anti-Forensics Scanner",
-      "desc": "Detecting cleared logs, wiped Prefetch and trace cleaners",
-      "help": "Looks for signs that traces were removed before the check: Prefetch recording disabled or the folder wiped, Windows event logs cleared recently, and trace cleaners (CCleaner, PrivaZer, BleachBit, SDelete, USB Oblivion…) run in the last few days. Not proof of cheating on its own — but it explains why other scanners may come back empty."
+      "desc": "Detecting cleared logs, wiped Prefetch, trace cleaners and blocked Windows tools",
+      "help": "Looks for signs that traces were removed before the check — Prefetch disabled or wiped, event logs cleared recently, trace cleaners (CCleaner, PrivaZer, BleachBit, SDelete, USB Oblivion…) run in the last few days — and for Windows components switched off so checks or checking tools cannot run: tools blocked via Image File Execution Options or DisallowRun (Task Manager, Registry Editor, Process Explorer, Everything, Custos…), Task Manager / Registry Editor / Command Prompt disabled by policy, the Event Log, BAM or DNS Client service disabled, or reg.exe itself blocked. Only these specific signs are reported, and legitimate setups (Process Explorer replacing Task Manager, parental DisallowRun lists for games) are ignored. Not proof of cheating on its own — but it explains why other scanners may come back empty."
     },
     "manual-shortcuts": {
       "name": "Folder & settings shortcuts",
@@ -511,8 +511,8 @@
       "lone-match": "An isolated name match — likely a coincidence until something confirms it.",
       "environment-only": "Only information about the system, no cheat evidence.",
       "incomplete-coverage": "{{failed}} of {{total}} checks did not complete — the picture is incomplete. Run Custos as Administrator and scan again.",
-      "trace-cleaning": "Signs that traces were removed before the check (cleared logs, wiped Prefetch or a cleaner run) — other results may be incomplete.",
-      "trace-cleaning-with-leads": "Traces were cleaned AND cheat leads remain — a combination that warrants a close look."
+      "trace-cleaning": "Signs that traces were removed or Windows components were switched off before the check (cleared logs, wiped Prefetch, a cleaner run, blocked checking tools) — other results may be incomplete.",
+      "trace-cleaning-with-leads": "Traces were cleaned or checking tools blocked, AND cheat leads remain — a combination that warrants a close look."
     }
   },
   "severity": {

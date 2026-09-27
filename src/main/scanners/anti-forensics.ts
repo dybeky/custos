@@ -141,3 +141,141 @@ export function assessLogClears(
   if (sec !== null) out.push(`${TRACE_PREFIX} The Security audit log was cleared ${formatWhen(sec, nowMs)}`)
   return out
 }
+
+// ── System tampering: components switched off so checks or tools can't run ──
+
+/** Label for findings about blocked tools / disabled components. */
+export const TAMPER_PREFIX = '[System tampering]'
+
+/**
+ * Programs a checker (or Custos itself) relies on. Blocking any of these from
+ * starting has no everyday purpose on a gaming PC.
+ */
+export const CHECKER_TOOLS: ReadonlySet<string> = new Set([
+  // Windows tools checkers open by hand
+  'taskmgr.exe', 'regedit.exe', 'cmd.exe', 'powershell.exe', 'pwsh.exe', 'eventvwr.exe', 'resmon.exe', 'perfmon.exe',
+  // Tools Custos runs under the hood — blocking them silently empties scanners
+  'reg.exe', 'wevtutil.exe', 'schtasks.exe', 'tasklist.exe', 'ipconfig.exe', 'fsutil.exe', 'mountvol.exe', 'whoami.exe',
+  // Sysinternals / process inspectors
+  'procexp.exe', 'procexp64.exe', 'procexp64a.exe', 'procmon.exe', 'procmon64.exe', 'autoruns.exe', 'autoruns64.exe',
+  'tcpview.exe', 'tcpview64.exe', 'systeminformer.exe', 'processhacker.exe',
+  // File / history viewers used in manual checks
+  'everything.exe', 'everything64.exe', 'lastactivityview.exe', 'usbdeview.exe', 'shellbagsview.exe',
+  'shellbagsexplorer.exe', 'browsinghistoryview.exe', 'executedprogramslist.exe', 'winprefetchview.exe',
+  // Custos itself
+  'custos.exe', 'custos-x64.exe', 'custos-arm64.exe'
+])
+
+/** Legit IFEO use: Process Explorer / System Informer "Replace Task Manager". */
+const TASKMGR_REPLACEMENTS = /\b(procexp(64a?)?|systeminformer|processhacker)\.exe\b/i
+
+export interface IfeoDebugger {
+  exe: string
+  debugger: string
+}
+
+/**
+ * Parse `reg query "<IFEO key>" /s /v Debugger` output into (exe, debugger)
+ * pairs. Key lines start with HKEY_; value lines are `Debugger REG_SZ data`.
+ * Only structure is parsed, so localized "End of search" lines don't matter.
+ */
+export function parseIfeoDebuggers(output: string): IfeoDebugger[] {
+  const out: IfeoDebugger[] = []
+  let exe: string | null = null
+  for (const raw of output.split(/\r?\n/)) {
+    const line = raw.trim()
+    if (/^HKEY_/i.test(line)) {
+      const m = /Image File Execution Options\\([^\\]+)$/i.exec(line)
+      exe = m ? m[1].toLowerCase() : null
+      continue
+    }
+    const v = /^Debugger\s+REG_(?:EXPAND_)?SZ\s+(.*)$/i.exec(line)
+    if (v && exe) out.push({ exe, debugger: v[1].trim() })
+  }
+  return out
+}
+
+/** Checker tools redirected via IFEO "Debugger" so they cannot start. */
+export function assessIfeoBlocking(entries: IfeoDebugger[]): string[] {
+  const seen = new Set<string>()
+  const out: string[] = []
+  for (const { exe, debugger: dbg } of entries) {
+    if (!CHECKER_TOOLS.has(exe) || seen.has(exe) || !dbg) continue
+    if (exe === 'taskmgr.exe' && TASKMGR_REPLACEMENTS.test(dbg)) continue
+    seen.add(exe)
+    out.push(`${TAMPER_PREFIX} ${exe} is blocked from starting — Image File Execution Options redirects it to "${dbg}"`)
+  }
+  return out
+}
+
+/** Parse the value lines of `reg query <key>` (no /s): name → data. */
+export function parseRegValues(output: string): Map<string, string> {
+  const m = new Map<string, string>()
+  for (const raw of output.split(/\r?\n/)) {
+    const v = /^\s+(\S(?:.*?\S)?)\s+REG_[A-Z_]+\s+(.*)$/.exec(raw)
+    if (v) m.set(v[1].toLowerCase(), v[2].trim())
+  }
+  return m
+}
+
+/**
+ * DisallowRun: Explorer refuses to start the listed programs. Only enabled
+ * lists that name checker tools are reported — parents commonly use the same
+ * policy to block games, which is none of our business.
+ */
+export function assessDisallowRun(enabled: number | null, listOutput: string): string[] {
+  if (enabled !== 1) return []
+  const blocked = [...parseRegValues(listOutput).values()]
+    .map((v) => v.toLowerCase())
+    .filter((v) => CHECKER_TOOLS.has(v))
+  if (blocked.length === 0) return []
+  return [`${TAMPER_PREFIX} Windows policy DisallowRun blocks checking tools: ${[...new Set(blocked)].join(', ')}`]
+}
+
+export interface ToolPolicies {
+  disableTaskMgr: number | null
+  disableRegistryTools: number | null
+  disableCmd: number | null
+}
+
+/** Group-policy switches that disable the tools used in a manual check. */
+export function assessToolPolicies(p: ToolPolicies): string[] {
+  const out: string[] = []
+  if (p.disableTaskMgr === 1) {
+    out.push(`${TAMPER_PREFIX} Task Manager is disabled by policy (DisableTaskMgr) — running processes cannot be inspected`)
+  }
+  if (p.disableRegistryTools !== null && p.disableRegistryTools >= 1) {
+    out.push(`${TAMPER_PREFIX} Registry Editor is disabled by policy (DisableRegistryTools = ${p.disableRegistryTools})`)
+  }
+  if (p.disableCmd !== null && p.disableCmd >= 1) {
+    out.push(`${TAMPER_PREFIX} Command Prompt is disabled by policy (DisableCMD = ${p.disableCmd})`)
+  }
+  return out
+}
+
+/** Service Start value 4 = disabled. Null (service absent / unreadable) is ignored. */
+export function assessDisabledServices(start: { eventLog: number | null; bam: number | null; dnsCache: number | null }): string[] {
+  const out: string[] = []
+  if (start.eventLog === 4) {
+    out.push(`${TAMPER_PREFIX} The Windows Event Log service is disabled — system events, including log clears, are not recorded`)
+  }
+  if (start.bam === 4) {
+    out.push(`${TAMPER_PREFIX} The BAM driver is disabled — program launches are not recorded in BAM`)
+  }
+  if (start.dnsCache === 4) {
+    out.push(`${TAMPER_PREFIX} The DNS Client service is disabled — visited domains are not cached`)
+  }
+  return out
+}
+
+/**
+ * reg.exe itself refused to run (DisableRegistryTools = 1 blocks it too).
+ * Every registry-based check — BAM, Amcache, ShellBags, Registry — then
+ * returns nothing, so say so explicitly.
+ */
+export function assessRegBlocked(stderrs: string[]): string[] {
+  const blocked = stderrs.some((e) => /registry editing has been disabled by your administrator/i.test(e))
+  return blocked
+    ? [`${TAMPER_PREFIX} reg.exe is blocked by policy — registry-based checks (BAM, Amcache, ShellBags, Registry) cannot read anything`]
+    : []
+}
