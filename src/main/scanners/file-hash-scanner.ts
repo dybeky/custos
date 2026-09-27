@@ -1,5 +1,7 @@
 import { createHash } from 'crypto'
-import { createReadStream, existsSync, readdirSync, realpathSync, statSync } from 'fs'
+import { createReadStream, existsSync } from 'fs'
+import type { Dirent } from 'fs'
+import { readdir, realpath, stat } from 'fs/promises'
 import { basename, join } from 'path'
 import { homedir, tmpdir } from 'os'
 import { BaseScanner, ScannerEventEmitter } from './base-scanner'
@@ -52,7 +54,7 @@ export class FileHashScanner extends BaseScanner {
 
     // Collect all candidate file paths up to the cap, then hash them.
     const filePaths: string[] = []
-    this.collectFiles(targetDirs, filePaths)
+    await this.collectFiles(targetDirs, filePaths)
 
     const findings: string[] = []
     const total = filePaths.length
@@ -67,7 +69,7 @@ export class FileHashScanner extends BaseScanner {
       }
 
       try {
-        const stats = statSync(filePath)
+        const stats = await stat(filePath)
         if (stats.size > MAX_FILE_SIZE_BYTES) continue
 
         const hash = await hashFile(filePath)
@@ -92,7 +94,7 @@ export class FileHashScanner extends BaseScanner {
    * Walk all target directories up to MAX_DEPTH and collect regular file paths
    * into `out`, stopping once MAX_FILES is reached or `this.cancelled` is set.
    */
-  private collectFiles(dirs: string[], out: string[]): void {
+  private async collectFiles(dirs: string[], out: string[]): Promise<void> {
     // Shared across roots so a junction from one target into another is only
     // walked once; each target is its own containment root.
     const visited = new Set<string>()
@@ -100,23 +102,23 @@ export class FileHashScanner extends BaseScanner {
       if (this.cancelled || out.length >= MAX_FILES) break
       let root: string
       try {
-        root = realpathSync.native(dir)
+        root = await realpath(dir)
       } catch {
         continue
       }
       if (visited.has(root)) continue
       visited.add(root)
-      this.walkDir(dir, 0, out, root, visited)
+      await this.walkDir(dir, 0, out, root, visited)
     }
   }
 
-  private walkDir(dir: string, depth: number, out: string[], root: string, visited: Set<string>): void {
+  private async walkDir(dir: string, depth: number, out: string[], root: string, visited: Set<string>): Promise<void> {
     if (depth > MAX_DEPTH) return
     if (this.cancelled || out.length >= MAX_FILES) return
 
-    let entries
+    let entries: Dirent[]
     try {
-      entries = readdirSync(dir, { withFileTypes: true })
+      entries = await readdir(dir, { withFileTypes: true })
     } catch {
       return
     }
@@ -134,14 +136,14 @@ export class FileHashScanner extends BaseScanner {
         // or has already been walked (junction loop).
         let real: string
         try {
-          real = realpathSync.native(fullPath)
+          real = await realpath(fullPath)
         } catch {
           continue
         }
         if (visited.has(real)) continue
         if (!isWithin(root, real)) continue
         visited.add(real)
-        this.walkDir(fullPath, depth + 1, out, root, visited)
+        await this.walkDir(fullPath, depth + 1, out, root, visited)
       } else if (entry.isFile()) {
         out.push(fullPath)
       }

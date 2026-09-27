@@ -11,7 +11,7 @@ import { relative, isAbsolute } from 'path'
  * location against the canonical root closes that hole regardless of the
  * reparse mechanism.
  *
- * Both arguments must be canonical absolute paths (e.g. from realpathSync).
+ * Both arguments must be canonical absolute paths (e.g. from fs.promises.realpath).
  */
 export function isWithin(root: string, child: string): boolean {
   const rel = relative(root, child)
