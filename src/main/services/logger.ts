@@ -1,6 +1,6 @@
 import { app } from 'electron'
 import { writeFileSync, appendFileSync, existsSync } from 'fs'
-import { join, dirname } from 'path'
+import { join } from 'path'
 import { homedir, platform, release, arch, cpus, totalmem, freemem } from 'os'
 
 type LogLevel = 'INFO' | 'WARN' | 'ERROR' | 'CRASH' | 'BUG' | 'DEBUG'
@@ -42,23 +42,19 @@ export class Logger {
     try {
       this.logFilePath = join(Logger.resolveLogDir(), fileName)
     } catch {
-      // Fallback to user's home directory
-      this.logFilePath = join(homedir(), fileName)
+      // No session folder: log to the console only rather than leave a file
+      // somewhere on the checked PC.
+      this.logFilePath = null
     }
   }
 
   /**
-   * Directory the log file lives in: next to the .exe the user actually ran.
-   *
-   * The portable build self-extracts to a temp folder and runs from there, so
-   * `app.getPath('exe')` points at a directory that is deleted on exit — logs
-   * written there vanish. electron-builder's portable launcher exposes the real
-   * location via PORTABLE_EXECUTABLE_DIR; prefer it when present.
+   * Directory the log file lives in: this launch's session folder (see
+   * ephemeral.ts), wiped when Custos quits — nothing is left on the checked
+   * PC. The crash dialogs' "Show log file" opens it while the app is running.
    */
   private static resolveLogDir(): string {
-    const portableDir = process.env.PORTABLE_EXECUTABLE_DIR
-    if (portableDir) return portableDir
-    return dirname(app.getPath('exe'))
+    return app.getPath('userData')
   }
 
   /**

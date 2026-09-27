@@ -34,7 +34,7 @@ vi.mock('../services/logger', () => ({
 }))
 vi.mock('../utils/safe-open', () => ({ safeOpenExternal: h.openExternal }))
 
-import { installCrashHandlers, applyGpuFallback } from './crash-handler'
+import { installCrashHandlers, applyGpuFallback, NO_GPU_FLAG } from './crash-handler'
 
 beforeEach(() => {
   vi.clearAllMocks()
@@ -66,21 +66,23 @@ describe('crash handler', () => {
     expect(h.dialog.showErrorBox).toHaveBeenCalled()
   })
 
-  it('after a GPU crash: disables acceleration for next launch and restarts on request', async () => {
+  it('after a GPU crash: restarts without acceleration on request, saving nothing', async () => {
     installCrashHandlers()
     h.dialog.showMessageBoxSync.mockReturnValueOnce(1) // [driver page, Restart, log] → Restart
     h.listeners['child-process-gone']({}, { type: 'GPU', reason: 'crashed', exitCode: 1 })
     await vi.waitFor(() => expect(h.app.relaunch).toHaveBeenCalled())
-    expect(h.store.diagnostics).toEqual({ disableGpu: true })
+    const { args } = h.app.relaunch.mock.calls[0][0] as { args: string[] }
+    expect(args.filter((a) => a === NO_GPU_FLAG)).toHaveLength(1)
+    expect(h.app.quit).toHaveBeenCalled() // a normal quit, so the session folder is wiped
+    expect(h.store).toEqual({})
     const opts = h.dialog.showMessageBoxSync.mock.calls[0][0] as any
     expect(opts.buttons[0]).toBe('Open NVIDIA driver downloads')
   })
 
-  it('applies the persisted GPU fallback at startup', () => {
-    applyGpuFallback()
+  it('starts without acceleration only when relaunched with the flag', () => {
+    applyGpuFallback(['custos.exe'])
     expect(h.app.disableHardwareAcceleration).not.toHaveBeenCalled()
-    h.store.diagnostics = { disableGpu: true }
-    applyGpuFallback()
+    applyGpuFallback(['custos.exe', NO_GPU_FLAG])
     expect(h.app.disableHardwareAcceleration).toHaveBeenCalled()
   })
 })

@@ -197,7 +197,11 @@ The verdict, counts, key evidence, timeline and exports update instantly — not
 
 #### History and re-checks
 
-Every check is saved on this PC automatically (the latest 100) — open **History** to search by player, reopen a past report (read‑only) or delete it. When you check a player again — matched by the SteamID64 in the **Player** field, or by name — a **Compared to the previous check** card shows the verdict then vs. now and exactly which leads are **new** and which are **gone** since last time.
+Checks run in the current session are listed in **History** — search by player, reopen a past report (read‑only) or delete it. When you check a player again in the same session — matched by the SteamID64 in the **Player** field, or by name — a **Compared to the previous check** card shows the verdict then vs. now and exactly which leads are **new** and which are **gone**. To keep a check, **upload it to the site**: the player's card there lists every check by every checker.
+
+#### Nothing is left on the PC
+
+Custos runs on the player's computer, so it keeps everything it writes — settings, sign‑in, saved checks, caches and its log — in a temporary folder that is deleted when Custos closes, together with its `custos://` sign‑in link registration. If Custos was killed before it could clean up, the leftovers are removed on the next launch (along with the `%APPDATA%\custos` folder and log files older versions left). Export or upload a report before closing if you need it. Windows' own records of programs being run (Prefetch, Amcache and similar) are not touched — erasing them is exactly what Custos flags as anti‑forensics.
 
 #### Exporting your report
 

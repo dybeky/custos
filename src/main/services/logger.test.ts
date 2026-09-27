@@ -10,7 +10,10 @@ vi.mock('fs', () => ({ writeFileSync, appendFileSync, existsSync }))
 
 // electron is only used to locate the log path / app version.
 vi.mock('electron', () => ({
-  app: { getPath: () => '/tmp', getVersion: () => '1.0.0' }
+  app: {
+    getPath: (name: string) => (name === 'userData' ? '/tmp/custos-session-0123456789abcdef' : '/tmp'),
+    getVersion: () => '1.0.0'
+  }
 }))
 
 import { Logger } from './logger'
@@ -49,13 +52,13 @@ describe('Logger file writing', () => {
 })
 
 describe('Logger log location', () => {
-  it('writes next to the launched portable .exe, not the temp extraction dir', () => {
+  it("writes into the session folder (wiped on quit), never next to the player's .exe", () => {
     const prev = process.env.PORTABLE_EXECUTABLE_DIR
     process.env.PORTABLE_EXECUTABLE_DIR = '/portable/home'
     try {
       const log = new Logger()
       log.init()
-      expect(log.getLogPath()).toMatch(/^[\\/]portable[\\/]home[\\/]custos-log-\d{4}-\d{2}-\d{2}\.txt$/)
+      expect(log.getLogPath()).toMatch(/^[\\/]tmp[\\/]custos-session-0123456789abcdef[\\/]custos-log-\d{4}-\d{2}-\d{2}\.txt$/)
     } finally {
       if (prev === undefined) delete process.env.PORTABLE_EXECUTABLE_DIR
       else process.env.PORTABLE_EXECUTABLE_DIR = prev
