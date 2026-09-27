@@ -24,10 +24,14 @@ export class KeywordMatcher {
       // Build pattern index map for findKeyword
       escaped.forEach((p, i) => this.patternIndexMap.set(p, i))
 
-      // Create pattern with word boundaries
-      // Use non-alphanumeric as word boundary: (?<![a-zA-Z0-9]) and (?![a-zA-Z0-9])
+      // Word boundaries: a keyword must start after a non-alphanumeric char and
+      // end before one — so "cheater" / "TitaniumBackup" do not match. A run of
+      // trailing DIGITS is still allowed ("Aimbot2.exe", "Fecurity64.dll",
+      // "undead2024"), since version/arch suffixes are the most common way a
+      // renamed cheat build dodges an exact-word match; digits followed by a
+      // letter ("aimbot2x") still do not match.
       this.compiledPattern = new RegExp(
-        `(?<![a-zA-Z0-9])(${escaped.join('|')})(?![a-zA-Z0-9])`,
+        `(?<![a-zA-Z0-9])(${escaped.join('|')})(?!\\d*[a-zA-Z])`,
         'i'
       )
     }

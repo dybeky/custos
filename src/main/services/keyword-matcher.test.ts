@@ -25,6 +25,22 @@ describe('KeywordMatcher', () => {
       expect(matcher.containsKeyword('uncheatable')).toBe(false)
     })
 
+    it('should match a keyword with a trailing version/arch digit suffix', () => {
+      const matcher = new KeywordMatcher({ patterns: ['aimbot', 'fecurity'], exactMatch: [] })
+
+      expect(matcher.containsKeyword('Aimbot2.exe')).toBe(true)
+      expect(matcher.containsKeyword('C:\\tools\\Fecurity64.dll')).toBe(true)
+      expect(matcher.containsKeyword('fecurity2024')).toBe(true)
+      expect(matcher.findKeyword('Aimbot2.exe')).toBe('aimbot')
+    })
+
+    it('should not match when letters follow the digit suffix', () => {
+      const matcher = new KeywordMatcher({ patterns: ['aimbot'], exactMatch: [] })
+
+      expect(matcher.containsKeyword('aimbot2x.exe')).toBe(false)
+      expect(matcher.containsKeyword('aimbots.exe')).toBe(false)
+    })
+
     it('should be case insensitive', () => {
       const matcher = new KeywordMatcher({
         patterns: ['Cheat', 'HACK'],
