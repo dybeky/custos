@@ -259,6 +259,10 @@ export const IPC_CHANNELS = {
   SCAN_REPORT: 'scan:report',
   SCAN_ERROR: 'scan:error',
   SCAN_REANALYZE: 'scan:reanalyze',
+  HISTORY_LIST: 'history:list',
+  HISTORY_GET: 'history:get',
+  HISTORY_DELETE: 'history:delete',
+  HISTORY_SET_CASE: 'history:set-case',
   TRIAGE_GET: 'triage:get',
 
   // Scanner info

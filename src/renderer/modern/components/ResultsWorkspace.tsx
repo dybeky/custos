@@ -13,6 +13,9 @@ import { ActivityTimeline } from '../../components/report/ActivityTimeline'
 import { useExportReport } from '../commands'
 import { filterCounts, groupFindings, type FindingFilter } from '../findings-filter'
 import { VerdictGauge } from './VerdictGauge'
+import { RecheckCard } from '../../components/history/RecheckCard'
+import { HistoryBanner } from '../../components/history/HistoryBanner'
+import { useNavigate } from 'react-router-dom'
 import { IconAlert, IconCheck, IconDownload, IconRefresh, IconSearch, IconX } from '../icons'
 
 type Tab = 'findings' | 'timeline' | 'checks'
@@ -31,6 +34,7 @@ function formatDuration(ms: number): string {
  */
 export function ResultsWorkspace({ report }: { report: ScanReport }) {
   const { t } = useTranslation()
+  const navigate = useNavigate()
   const { startScan, caseInfo, setCaseInfo, whitelist, unignoreSignature } = useScanStore()
   const { selectedGame } = useGameStore()
   const exportReport = useExportReport()
@@ -56,6 +60,7 @@ export function ResultsWorkspace({ report }: { report: ScanReport }) {
         initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.3 }}
         className="flex flex-col gap-3 overflow-y-auto pr-1"
       >
+        <HistoryBanner onBack={() => navigate('/history')} />
         <section className="m-surface p-5">
           <VerdictGauge score={report.verdict.score} band={report.verdict.band} label={t(`verdict.band.${report.verdict.band}`)} />
           <p className="mt-4 text-sm text-ink text-center leading-snug">
@@ -81,6 +86,8 @@ export function ResultsWorkspace({ report }: { report: ScanReport }) {
           </dl>
           <p className="mt-3 text-[11px] text-ink-dim/80 text-center">{t('verdict.leadsNotProof')}</p>
         </section>
+
+        <RecheckCard compact />
 
         <section className="m-surface p-4">
           <label htmlFor="m-case-player" className="text-[10px] font-semibold uppercase tracking-wider text-ink-dim">{t('case.player')}</label>

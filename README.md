@@ -208,6 +208,10 @@ The verdict, counts, key evidence, timeline and exports update instantly — not
 > [!WARNING]
 > **A finding is a lead, not a conviction.** A matched keyword might be a real cheat — or a file with a coincidentally similar name, an old leftover, or something harmless. Read the actual path or value, weigh the context, and corroborate across more than one scanner before drawing a conclusion.
 
+#### History and re-checks
+
+Every check is saved on this PC automatically (the latest 100) — open **History** to search by player, reopen a past report (read‑only) or delete it. When you check a player again — matched by the SteamID64 in the **Player** field, or by name — a **Compared to the previous check** card shows the verdict then vs. now and exactly which leads are **new** and which are **gone** since last time.
+
 #### Exporting your report
 
 | Button | File | Best for |

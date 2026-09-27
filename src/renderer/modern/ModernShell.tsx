@@ -4,6 +4,7 @@ import { TopBar } from './components/TopBar'
 import { CommandPalette } from './components/CommandPalette'
 import { CheckPage } from './pages/CheckPage'
 import { ToolsPage } from './pages/ToolsPage'
+import { HistoryPage } from './pages/HistoryPage'
 import { LiveScan } from '../pages/LiveScan'
 import { Dashboard } from '../pages/Dashboard'
 import { Settings } from '../pages/Settings'
@@ -57,6 +58,7 @@ export function ModernShell() {
         <Routes>
           <Route path="/" element={<CheckPage />} />
           <Route path="/live" element={<LiveScan />} />
+          <Route path="/history" element={<HistoryPage />} />
           <Route path="/tools" element={<ToolsPage />} />
           <Route path="/system" element={<Dashboard />} />
           <Route path="/settings" element={<Settings />} />

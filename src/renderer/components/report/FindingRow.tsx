@@ -22,12 +22,13 @@ const ACTION = 'px-2 py-0.5 rounded-md text-[10px] font-medium transition-colors
  */
 export function FindingRow({ value, finding, hideSeverity = false }: Props) {
   const { t } = useTranslation()
-  const { dismissFinding, restoreFinding, ignoreSignature, unignoreSignature } = useScanStore()
+  const { dismissFinding, restoreFinding, ignoreSignature, unignoreSignature, viewingHistory } = useScanStore()
   const [missing, setMissing] = useState(false)
   const path = extractLocalPath(value)
 
   const suppressed = !!finding && (finding.dismissed || finding.whitelisted)
-  const canTriage = !!finding && finding.severity !== 'info'
+  // A saved check is read-only: triage re-scores the live scan in main.
+  const canTriage = !!finding && finding.severity !== 'info' && !viewingHistory
   const canIgnoreSignature = canTriage && !!finding?.matched && finding.category !== 'hash'
 
   const stop = (fn: () => void) => (e: React.MouseEvent) => {
@@ -72,7 +73,7 @@ export function FindingRow({ value, finding, hideSeverity = false }: Props) {
             {t('triage.reveal')}
           </button>
         )}
-        {finding && suppressed && (
+        {finding && suppressed && !viewingHistory && (
           <button
             onClick={stop(() =>
               finding.whitelisted && finding.matched

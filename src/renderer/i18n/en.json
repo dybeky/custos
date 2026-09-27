@@ -145,7 +145,8 @@
     "manual": "Manual",
     "utilities": "Utilities",
     "settings": "Settings",
-    "profile": "Profile"
+    "profile": "Profile",
+    "history": "History"
   },
   "gamePicker": {
     "title": "Choose your game",
@@ -613,7 +614,8 @@
       "check": "Check",
       "live": "Live",
       "tools": "Tools",
-      "system": "System"
+      "system": "System",
+      "history": "History"
     },
     "palette": {
       "open": "Command palette",
@@ -676,5 +678,39 @@
       }
     },
     "timelineEmpty": "No timestamped activity in this scan"
+  },
+  "history": {
+    "title": "Check history",
+    "subtitle": "Every check is saved on this PC (the latest 100). Re-checks of the same player are compared automatically.",
+    "search": "Search by player…",
+    "empty": "No saved checks yet — run a check and it will appear here.",
+    "noMatches": "No checks match this player.",
+    "noPlayer": "No player recorded",
+    "leads_one": "{{count}} lead",
+    "leads_other": "{{count}} leads",
+    "open": "Open",
+    "delete": "Delete",
+    "confirmDelete": "Delete",
+    "cancel": "Cancel",
+    "viewing": "Viewing a saved check from {{when}} — read-only.",
+    "back": "Back to history"
+  },
+  "recheck": {
+    "title": "Compared to the previous check of this player",
+    "previousOn": "Previous check: {{when}}.",
+    "open": "Open it",
+    "added_zero": "No new leads",
+    "added_one": "+{{count}} new lead",
+    "added_other": "+{{count}} new leads",
+    "removed_zero": "Nothing gone",
+    "removed_one": "−{{count}} no longer found",
+    "removed_other": "−{{count}} no longer found",
+    "unchanged_one": "{{count}} unchanged",
+    "unchanged_other": "{{count}} unchanged",
+    "noChange": "Nothing changed since the previous check.",
+    "show": "Show what changed",
+    "hide": "Hide changes",
+    "addedTitle": "New since the previous check",
+    "removedTitle": "Gone since the previous check"
   }
 }

@@ -19,6 +19,9 @@ import { checkForUpdate } from './services/updater'
 import { appStore } from './services/app-store'
 import { safeOpenExternal, safeOpenPath } from './utils/safe-open'
 import { normalizeRevealPath } from './utils/url-policy'
+import { HistoryStore } from './services/history-store'
+import type { HistoryEntry, HistorySummary } from '../shared/history'
+import { join } from 'path'
 import { AuthLoginPayloadSchema, AuthUploadAvatarPayloadSchema } from './auth/auth-ipc-schema'
 import type { AuthService } from './auth/auth-service'
 import { GAMES, type GameId } from '../shared/games'
@@ -57,6 +60,27 @@ let lastScan: { results: ScanResult[]; context: Omit<AnalyzeContext, 'suppressio
 const SuppressionSchema = z.object({
   whitelistedSignatures: z.array(z.string().max(200)).max(500),
   dismissedFindingIds: z.array(z.string().regex(/^[0-9a-f]{16}$/)).max(10_000)
+}).strict()
+
+// Saved checks (userData/history). Created lazily: app paths need 'ready'.
+let historyStore: HistoryStore | null = null
+function history(): HistoryStore {
+  historyStore ??= new HistoryStore(join(app.getPath('userData'), 'history'))
+  return historyStore
+}
+
+/** Best-effort save; a history failure must never fail the scan itself. */
+function saveToHistory(report: ScanReport, results: ScanResult[]): void {
+  history().save(report, results).catch((err) =>
+    logger.warn('Could not save check to history', { error: err instanceof Error ? err.message : String(err) })
+  )
+}
+
+const HistoryIdSchema = z.string().regex(/^[A-Za-z0-9_-]{1,80}$/)
+const HistoryCaseSchema = z.object({
+  id: HistoryIdSchema,
+  player: z.string().max(200),
+  notes: z.string().max(5000)
 }).strict()
 
 /** Persisted triage settings, tolerant of a missing or malformed store entry. */
@@ -171,6 +195,7 @@ export function setupIpcHandlers(mainWindow: BrowserWindow): void {
           ...context,
           suppression: { whitelistedSignatures: loadTriage().whitelistedSignatures, dismissedFindingIds: [] }
         })
+        saveToHistory(report, results)
         safeSend(IPC_CHANNELS.SCAN_REPORT, report)
         safeSend(IPC_CHANNELS.SCAN_COMPLETE, results)
         return results
@@ -196,10 +221,32 @@ export function setupIpcHandlers(mainWindow: BrowserWindow): void {
     const whitelistedSignatures = [...new Set(parsed.data.whitelistedSignatures.map(s => s.trim()).filter(Boolean))]
     appStore.set('triage', { whitelistedSignatures })
     if (!lastScan) return null
-    return analyze(lastScan.results, {
+    const report = analyze(lastScan.results, {
       ...lastScan.context,
       suppression: { whitelistedSignatures, dismissedFindingIds: parsed.data.dismissedFindingIds }
     })
+    saveToHistory(report, lastScan.results)
+    return report
+  })
+
+  // ── Check history ─────────────────────────────────────────────────────
+  ipcMain.handle(IPC_CHANNELS.HISTORY_LIST, (): Promise<HistorySummary[]> => history().list())
+
+  ipcMain.handle(IPC_CHANNELS.HISTORY_GET, (_e, id: unknown): Promise<HistoryEntry | null> => {
+    const parsed = HistoryIdSchema.safeParse(id)
+    return parsed.success ? history().get(parsed.data) : Promise.resolve(null)
+  })
+
+  ipcMain.handle(IPC_CHANNELS.HISTORY_DELETE, (_e, id: unknown): Promise<HistorySummary[]> => {
+    const parsed = HistoryIdSchema.safeParse(id)
+    if (!parsed.success) throw new Error('Invalid history id')
+    return history().remove(parsed.data)
+  })
+
+  ipcMain.handle(IPC_CHANNELS.HISTORY_SET_CASE, (_e, payload: unknown): Promise<HistorySummary[]> => {
+    const parsed = HistoryCaseSchema.safeParse(payload)
+    if (!parsed.success) throw new Error(`Invalid case payload: ${parsed.error.message}`)
+    return history().setCase(parsed.data.id, { player: parsed.data.player, notes: parsed.data.notes })
   })
 
   // Cancel scan

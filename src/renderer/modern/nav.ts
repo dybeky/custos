@@ -2,6 +2,7 @@
 export const MODERN_NAV = [
   { path: '/', key: 'check' },
   { path: '/live', key: 'live' },
+  { path: '/history', key: 'history' },
   { path: '/tools', key: 'tools' },
   { path: '/system', key: 'system' }
 ] as const

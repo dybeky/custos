@@ -2,6 +2,7 @@ import { contextBridge, ipcRenderer } from 'electron'
 import { IPC_CHANNELS, ScanResult, ScanProgress, UserSettings, ScannerInfo, OsInfo, ScannerCapability, ScannerName, LiveFinding, LiveScanStatus, ScanReport } from '../shared/types'
 import type { ChangelogGroup, UpdateInfo, AuthState, AuthProvider, SuppressionState, TriageSettings } from '../shared/types'
 import type { GameId } from '../shared/games'
+import type { HistoryEntry, HistorySummary } from '../shared/history'
 
 export type AuthChangedCallback = (state: AuthState) => void
 
@@ -41,6 +42,19 @@ const api = {
   reanalyze: (suppression: SuppressionState): Promise<ScanReport | null> => {
     return ipcRenderer.invoke(IPC_CHANNELS.SCAN_REANALYZE, suppression)
   },
+
+  /** Saved checks, newest first. */
+  listHistory: (): Promise<HistorySummary[]> => ipcRenderer.invoke(IPC_CHANNELS.HISTORY_LIST),
+
+  /** Load one saved check (report + raw results + case). */
+  getHistory: (id: string): Promise<HistoryEntry | null> => ipcRenderer.invoke(IPC_CHANNELS.HISTORY_GET, id),
+
+  /** Delete a saved check; resolves with the updated list. */
+  deleteHistory: (id: string): Promise<HistorySummary[]> => ipcRenderer.invoke(IPC_CHANNELS.HISTORY_DELETE, id),
+
+  /** Attach player + notes to a saved check; resolves with the updated list. */
+  setHistoryCase: (id: string, player: string, notes: string): Promise<HistorySummary[]> =>
+    ipcRenderer.invoke(IPC_CHANNELS.HISTORY_SET_CASE, { id, player, notes }),
 
   /** Persisted triage settings (the signature whitelist). */
   getTriage: (): Promise<TriageSettings> => {
