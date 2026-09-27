@@ -1,6 +1,5 @@
 import { app, BrowserWindow, dialog, shell } from 'electron'
 import { logger } from '../services/logger'
-import { appStore } from '../services/app-store'
 import { safeOpenExternal } from '../utils/safe-open'
 import {
   diagnoseError, diagnoseLoadFailure, diagnoseProcessGone, gpuVendorFromId,
@@ -12,8 +11,8 @@ import {
  *
  * - An uncaught exception in main → a dialog with the diagnosed cause (and a
  *   download button only when the cause is certain), then exit.
- * - The GPU process crashing → hardware acceleration is switched off for the
- *   next launch and the user is offered a restart (+ their vendor's driver page).
+ * - The GPU process crashing → the user is offered a restart with hardware
+ *   acceleration off (+ their vendor's driver page).
  * - The window process dying or its page failing to load → a dialog with
  *   Reload / the fix.
  */
@@ -21,11 +20,17 @@ import {
 let dialogOpen = false
 let gpuReported = false
 
+/**
+ * Relaunch flag set after a GPU-process crash. Passed on the command line
+ * rather than saved, because Custos keeps nothing on the checked PC.
+ */
+export const NO_GPU_FLAG = '--custos-disable-gpu'
+
 /** Must run before app 'ready': honour a GPU fallback chosen after a crash. */
-export function applyGpuFallback(): void {
-  if (appStore.get('diagnostics')?.disableGpu) {
+export function applyGpuFallback(argv: readonly string[] = process.argv): void {
+  if (argv.includes(NO_GPU_FLAG)) {
     app.disableHardwareAcceleration()
-    logger.info('Hardware acceleration disabled after a previous graphics crash')
+    logger.info('Hardware acceleration disabled after a graphics crash')
   }
 }
 
@@ -95,11 +100,11 @@ export function installCrashHandlers(): void {
       const d = diagnoseProcessGone({ type: details.type, reason: details.reason, exitCode: details.exitCode }, await detectGpuVendor())
       if (!d) return
       gpuReported = true
-      appStore.set('diagnostics', { ...(appStore.get('diagnostics') ?? {}), disableGpu: true })
       const choice = presentOnce(d, 'restart', BrowserWindow.getAllWindows()[0])
       if (choice === 'primary' || choice === 'fix') {
-        app.relaunch()
-        app.exit(0)
+        const args = process.argv.slice(1).filter((a) => a !== NO_GPU_FLAG)
+        app.relaunch({ args: [...args, NO_GPU_FLAG] })
+        app.quit()
       }
     })()
   })

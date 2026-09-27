@@ -623,7 +623,7 @@
   },
   "history": {
     "title": "Check history",
-    "subtitle": "Every check is saved on this PC (the latest 100). Re-checks of the same player are compared automatically.",
+    "subtitle": "Checks from this session. Custos keeps nothing on this PC after it closes — upload a check to the site to keep it. Re-checks of the same player are compared automatically.",
     "search": "Search by player…",
     "empty": "No saved checks yet — run a check and it will appear here.",
     "noMatches": "No checks match this player.",
@@ -679,7 +679,7 @@
       "rate_limited": "Too many requests — try again in a few minutes.",
       "too_large": "This check is too large to upload.",
       "invalid_report": "The site rejected this check.",
-      "not_found": "This check is no longer saved on this PC.",
+      "not_found": "This check is no longer available in this session.",
       "network": "Could not reach the site.",
       "disabled": "Site features are turned off."
     }

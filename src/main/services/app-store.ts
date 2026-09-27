@@ -13,15 +13,10 @@ export interface AppStoreSchema {
   settings: UserSettings
   auth: AuthRecord
   triage: TriageSettings
-  diagnostics: DiagnosticsState
 }
 
-/** Persisted recovery choices made after a crash. */
-export interface DiagnosticsState {
-  /** Set after a GPU-process crash: start with hardware acceleration off. */
-  disableGpu?: boolean
-}
-
+// Lives in this launch's session folder (see ephemeral.ts) and is wiped on
+// quit, like everything else Custos writes.
 export const appStore = new Store<AppStoreSchema>({
   // A config.json corrupted by a crash or power loss would otherwise throw at
   // import time and stop Custos from starting at all, before any error could
@@ -33,7 +28,6 @@ export const appStore = new Store<AppStoreSchema>({
       colorTheme: 'espresso'
     },
     auth: {},
-    triage: { whitelistedSignatures: [] },
-    diagnostics: {}
+    triage: { whitelistedSignatures: [] }
   }
 })

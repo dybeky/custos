@@ -1,3 +1,7 @@
+// First: moves every app path into a per-launch temp folder that is wiped on
+// quit (nothing is left on the checked PC). Must run before anything below
+// resolves userData.
+import './ephemeral'
 import { app, BrowserWindow, safeStorage, shell } from 'electron'
 import { join, resolve } from 'path'
 import { fileURLToPath } from 'url'
