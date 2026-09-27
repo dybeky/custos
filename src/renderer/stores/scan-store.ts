@@ -2,6 +2,7 @@ import { create } from 'zustand'
 import { ScanResult, ScanProgress, ScannerInfo, ScanReport } from '../../shared/types'
 import type { GameId } from '../../shared/games'
 import { evidenceFindings } from '../utils/report-view'
+import { diffReports, findPrevious, type HistorySummary, type ReportDiff } from '../../shared/history'
 
 export type ScanStatus = 'idle' | 'scanning' | 'completed' | 'error'
 
@@ -27,6 +28,18 @@ interface ScanState {
   /** Who is being checked + checker notes; kept across scans until edited. */
   caseInfo: { player: string; notes: string }
   setCaseInfo: (patch: Partial<{ player: string; notes: string }>) => void
+
+  /** Saved checks (newest first). */
+  history: HistorySummary[]
+  /** The same player's previous check and what changed since, if any. */
+  previous: { summary: HistorySummary; diff: ReportDiff } | null
+  /** True while a saved check (not the live scan) is displayed — triage is off. */
+  viewingHistory: boolean
+  loadHistory: () => Promise<void>
+  /** Recompute `previous` for the current report + player. */
+  refreshPrevious: () => Promise<void>
+  openHistory: (id: string) => Promise<boolean>
+  deleteHistory: (id: string) => Promise<void>
 
   // Actions
   setStatus: (status: ScanStatus) => void
@@ -56,6 +69,33 @@ const computeDerivedValues = (results: ScanResult[]) => ({
   _successfulScans: results.filter((result) => result.success).length,
   _failedScans: results.filter((result) => !result.success).length
 })
+
+let caseSyncTimer: ReturnType<typeof setTimeout> | null = null
+
+/** History IPC exists (false in unit tests that stub only part of the bridge). */
+function hasHistoryApi(): boolean {
+  const api = (globalThis as { window?: { electronAPI?: Partial<Window['electronAPI']> } }).window?.electronAPI
+  return typeof api?.listHistory === 'function' && typeof api?.setHistoryCase === 'function'
+}
+
+/**
+ * Save player/notes into the displayed check's history entry (debounced), then
+ * look again for that player's previous check — the player is what links them.
+ */
+function scheduleCaseSync(get: () => ScanState, set: (p: Partial<ScanState>) => void): void {
+  if (caseSyncTimer) clearTimeout(caseSyncTimer)
+  caseSyncTimer = setTimeout(async () => {
+    caseSyncTimer = null
+    const { report, caseInfo } = get()
+    if (!report || !hasHistoryApi()) return
+    try {
+      set({ history: await window.electronAPI.setHistoryCase(report.id, caseInfo.player, caseInfo.notes) })
+    } catch {
+      // the check may not be saved yet — the next edit retries
+    }
+    void get().refreshPrevious()
+  }, 600)
+}
 
 /**
  * Push new triage choices to main, which re-scores the last scan and persists
@@ -91,7 +131,68 @@ export const useScanStore = create<ScanState>((set, get) => ({
   dismissedIds: [],
   whitelist: [],
   caseInfo: { player: '', notes: '' },
-  setCaseInfo: (patch) => set((state) => ({ caseInfo: { ...state.caseInfo, ...patch } })),
+  setCaseInfo: (patch) => {
+    set((state) => ({ caseInfo: { ...state.caseInfo, ...patch } }))
+    scheduleCaseSync(get, set)
+  },
+
+  history: [],
+  previous: null,
+  viewingHistory: false,
+
+  loadHistory: async () => {
+    try {
+      set({ history: await window.electronAPI.listHistory() })
+    } catch {
+      // history is optional
+    }
+  },
+
+  refreshPrevious: async () => {
+    const { report, caseInfo } = get()
+    if (!report) return set({ previous: null })
+    try {
+      const history = await window.electronAPI.listHistory()
+      set({ history })
+      const summary = findPrevious(history, report.id, report.meta.scannedAt, caseInfo.player)
+      if (!summary) return set({ previous: null })
+      const entry = await window.electronAPI.getHistory(summary.id)
+      // The report may have changed while we were loading.
+      if (!entry || get().report?.id !== report.id) return
+      set({ previous: { summary, diff: diffReports(entry.report, get().report!) } })
+    } catch {
+      set({ previous: null })
+    }
+  },
+
+  openHistory: async (id) => {
+    if (get().status === 'scanning') return false
+    const entry = await window.electronAPI.getHistory(id).catch(() => null)
+    if (!entry) return false
+    set({
+      status: 'completed',
+      progress: null,
+      error: null,
+      results: entry.results,
+      ...computeDerivedValues(entry.results),
+      report: entry.report,
+      _evidenceCount: evidenceFindings(entry.report).length,
+      dismissedIds: [],
+      caseInfo: { ...entry.case },
+      viewingHistory: true,
+      previous: null
+    })
+    void get().refreshPrevious()
+    return true
+  },
+
+  deleteHistory: async (id) => {
+    try {
+      set({ history: await window.electronAPI.deleteHistory(id) })
+    } catch {
+      // keep the current list
+    }
+  },
 
   setStatus: (status) => set({ status }),
   setProgress: (progress) => set({ progress }),
@@ -113,7 +214,10 @@ export const useScanStore = create<ScanState>((set, get) => ({
 
   setError: (error) => set({ error, status: error ? 'error' : 'idle' }),
 
-  setReport: (report) => set({ report, _evidenceCount: report ? evidenceFindings(report).length : null }),
+  setReport: (report) => {
+    set({ report, _evidenceCount: report ? evidenceFindings(report).length : null })
+    if (report && hasHistoryApi()) void get().refreshPrevious()
+  },
 
   reset: () => set({
     status: 'idle',
@@ -126,7 +230,9 @@ export const useScanStore = create<ScanState>((set, get) => ({
     _successfulScans: 0,
     _failedScans: 0,
     _evidenceCount: null,
-    dismissedIds: []
+    dismissedIds: [],
+    previous: null,
+    viewingHistory: false
   }),
 
   startScan: async (gameId) => {

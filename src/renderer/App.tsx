@@ -7,6 +7,7 @@ import { AnimatedBackground } from './components/layout/AnimatedBackground'
 import { Dashboard } from './pages/Dashboard'
 import { Scan } from './pages/Scan'
 import { Results } from './pages/Results'
+import { History } from './pages/History'
 import { Manual } from './pages/Manual'
 import { Utilities } from './pages/Utilities'
 import { Settings } from './pages/Settings'
@@ -120,6 +121,7 @@ export function App() {
                   <Route path="/scan" element={<Scan />} />
                   <Route path="/live" element={<LiveScan />} />
                   <Route path="/results" element={<Results />} />
+                  <Route path="/history" element={<History />} />
                   <Route path="/manual" element={<Manual />} />
                   <Route path="/utilities" element={<Utilities />} />
                   <Route path="/settings" element={<Settings />} />

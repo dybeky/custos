@@ -13,6 +13,9 @@ import {
 import { ActivityTimeline } from '../components/report/ActivityTimeline'
 import { FindingRow } from '../components/report/FindingRow'
 import { CaseCard } from '../components/report/CaseCard'
+import { RecheckCard } from '../components/history/RecheckCard'
+import { HistoryBanner } from '../components/history/HistoryBanner'
+import { useNavigate } from 'react-router-dom'
 import { useAuthStore } from '../stores/auth-store'
 import { IgnoredSignatures } from '../components/report/IgnoredSignatures'
 import { buildTextReport, buildJsonReport, downloadText, exportFileStem } from '../utils/report-export'
@@ -20,6 +23,7 @@ import { SCANNER_DISPLAY_TO_ID } from '../../shared/scanners-meta'
 
 export function Results() {
   const { t, i18n } = useTranslation()
+  const navigate = useNavigate()
   const { results, status, _totalFindings, _evidenceCount, report, caseInfo } = useScanStore()
   const [expandedScanner, setExpandedScanner] = useState<string | null>(null)
   const hasResults = results.length > 0
@@ -45,6 +49,7 @@ export function Results() {
   return (
     <div className="flex-1 p-6 overflow-y-auto">
       <div className="animate-fade-in">
+        <HistoryBanner onBack={() => navigate('/history')} />
         {report && (
           <Card className="mb-6">
             <CardContent>
@@ -79,6 +84,7 @@ export function Results() {
             </CardContent>
           </Card>
         )}
+        <RecheckCard />
         {correlations.length > 0 && report && (
           <Card className="mb-6">
             <CardContent>

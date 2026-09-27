@@ -161,3 +161,70 @@ describe('triage actions', () => {
     expect(useScanStore.getState().report?.id).toBe('scan-1')
   })
 })
+
+describe('history actions', () => {
+  const past: ScanReport = {
+    ...report, id: 'scan-old', meta: { ...report.meta, scannedAt: '2026-06-10T00:00:00.000Z' },
+    verdict: { ...report.verdict, band: 'clean', score: 0 }, findings: []
+  }
+  const current: ScanReport = {
+    ...report, id: 'scan-new',
+    findings: [{
+      id: 'n1', scannerId: 'appdata', value: 'C:\\x\\undead', category: 'file', matched: 'undead', severity: 'medium',
+      baseSeverity: 'medium', confidence: 'low', baseConfidence: 'low', correlationId: null, reasons: []
+    }]
+  }
+  const summaries = [
+    { id: 'scan-old', scannedAt: past.meta.scannedAt, player: 'Neo 76561198012345678', playerKey: 'steam:76561198012345678', band: 'clean' as const, score: 0, leads: 0, gameId: null }
+  ]
+
+  beforeEach(() => {
+    useScanStore.getState().reset()
+    useScanStore.setState({ caseInfo: { player: '', notes: '' }, history: [] })
+    ;(globalThis as any).window = {
+      electronAPI: {
+        listHistory: async () => summaries,
+        getHistory: async (id: string) => (id === 'scan-old' ? { id, savedAt: '', report: past, results: [], case: { player: 'Neo 76561198012345678', notes: 'x' } } : null),
+        setHistoryCase: async () => summaries,
+        deleteHistory: async () => []
+      }
+    }
+  })
+
+  it('finds the previous check of the same player and diffs it', async () => {
+    useScanStore.setState({ caseInfo: { player: 'NewNick (76561198012345678)', notes: '' } })
+    useScanStore.setState({ report: current })
+    await useScanStore.getState().refreshPrevious()
+    const prev = useScanStore.getState().previous
+    expect(prev?.summary.id).toBe('scan-old')
+    expect(prev?.diff.added.map((f) => f.id)).toEqual(['n1'])
+    expect([prev?.diff.bandFrom, prev?.diff.bandTo]).toEqual(['clean', 'low'])
+  })
+
+  it('has no previous check for an unknown player', async () => {
+    useScanStore.setState({ caseInfo: { player: 'Morpheus', notes: '' }, report: current })
+    await useScanStore.getState().refreshPrevious()
+    expect(useScanStore.getState().previous).toBeNull()
+  })
+
+  it('opens a saved check read-only with its case, and a new scan leaves history mode', async () => {
+    expect(await useScanStore.getState().openHistory('scan-old')).toBe(true)
+    const s = useScanStore.getState()
+    expect(s.viewingHistory).toBe(true)
+    expect(s.status).toBe('completed')
+    expect(s.report?.id).toBe('scan-old')
+    expect(s.caseInfo).toEqual({ player: 'Neo 76561198012345678', notes: 'x' })
+    useScanStore.getState().reset()
+    expect(useScanStore.getState().viewingHistory).toBe(false)
+  })
+
+  it('refuses to open a missing check', async () => {
+    expect(await useScanStore.getState().openHistory('nope')).toBe(false)
+  })
+
+  it('deletes a saved check', async () => {
+    useScanStore.setState({ history: summaries })
+    await useScanStore.getState().deleteHistory('scan-old')
+    expect(useScanStore.getState().history).toEqual([])
+  })
+})
