@@ -1,6 +1,6 @@
 {
   "auth": { "enabled": true, "webBaseUrl": "https://97437.dev" },
-  "signatures": { "publicKey": "" },
+  "signatures": { "publicKey": "MCowBQYDK2VwAyEA+TE+pVjmekPknQPikRcziRd3mkkIKT8sDrAfsCQm99w=" },
   "app": {
     "timeouts": {
       "defaultProcessTimeoutMs": 10000,
