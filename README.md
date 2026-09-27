@@ -134,6 +134,20 @@ This is the core workflow. It takes under a minute.
 
 ---
 
+## If Custos won't start or crashes
+
+Custos explains the problem instead of closing silently. It names a cause only when it is certain, and offers a download only when one install fixes it:
+
+| What happened | What Custos shows |
+|---|---|
+| Microsoft Visual C++ runtime missing | The cause + a button to Microsoft's official download page |
+| Wrong build for the processor, mismatched or damaged files | The cause + a button to the latest Custos release |
+| Graphics driver crashed | Restarts with hardware acceleration off (remembered), + your GPU vendor's driver page when known |
+| Disk full, access denied, out of memory, window crashed | The cause and what to do |
+| Anything else | "Unexpected error" with the exact error text and a **Show log file** button — never a guessed fix |
+
+A corrupted settings file no longer prevents Custos from starting — it is reset automatically.
+
 ## Two interfaces: Classic and Focus
 
 Pick one in **Settings → Interface** — it switches instantly and is remembered.
@@ -252,7 +266,7 @@ A full forensic scan runs **17 scanners**.
 | 14 | **Scheduled Tasks** | The Task Scheduler, for entries used to keep cheats running (persistence). |
 | 15 | **File Hash** | SHA‑256 fingerprints of files in Downloads/Desktop/Temp vs. known cheat hashes. |
 | 16 | **Window & Module** | Window titles and loaded modules of running programs vs. the keyword list. |
-| 17 | **Anti‑Forensics** | Signs traces were removed before the check: Prefetch disabled or wiped, event logs cleared in the last 14 days, trace cleaners (CCleaner, PrivaZer, BleachBit, SDelete, USB Oblivion…) run in the last 3 days. Raises the verdict to at least **Medium**, or **High** if cheat leads remain. |
+| 17 | **Anti‑Forensics** | Signs traces were removed before the check (Prefetch disabled or wiped, event logs cleared in the last 14 days, trace cleaners run in the last 3 days) **and Windows components switched off so checks can't run**: checking tools blocked via Image File Execution Options or DisallowRun, Task Manager / Registry Editor / Command Prompt disabled by policy, Event Log / BAM / DNS Client disabled, or reg.exe blocked. Legit setups (Process Explorer replacing Task Manager, parental game blocks) are ignored. Raises the verdict to at least **Medium**, or **High** if cheat leads remain. |
 
 </details>
 

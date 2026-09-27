@@ -219,8 +219,8 @@ export function computeVerdict(findings: AnalyzedFinding[], correlations: Correl
     const hasLeads = findings.some(f => f.category !== 'antiforensics' && f.matched && f.severity !== 'info')
     const floor: VerdictBand = hasLeads ? 'high' : 'medium'
     const reason: ScoreReason = hasLeads
-      ? { code: 'trace-cleaning-with-leads', direction: 'up', text: 'Traces were cleaned and cheat leads remain' }
-      : { code: 'trace-cleaning', direction: 'up', text: 'Signs that traces were removed before the check' }
+      ? { code: 'trace-cleaning-with-leads', direction: 'up', text: 'Traces were cleaned or tools blocked, and cheat leads remain' }
+      : { code: 'trace-cleaning', direction: 'up', text: 'Signs that traces were removed or Windows tools were blocked before the check' }
     if (BAND_SCORE[floor] > BAND_SCORE[band]) {
       band = floor
       reasons.unshift(reason)
