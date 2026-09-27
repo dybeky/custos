@@ -1,9 +1,10 @@
 import { existsSync } from 'fs'
-import { readdir } from 'fs/promises'
+import { readdir, stat } from 'fs/promises'
 import { join } from 'path'
 import { BaseScanner, ScannerEventEmitter } from './base-scanner'
 import { ScanResult } from '../../shared/types'
 import { AppConfig } from '../services/config-service'
+import { formatTimestamp } from '../utils/format'
 
 export class PrefetchScanner extends BaseScanner {
   readonly name = 'Prefetch Scanner'
@@ -52,10 +53,24 @@ export class PrefetchScanner extends BaseScanner {
       const fileNameWithoutExt = file.replace(/\.pf$/i, '')
 
       if (this.keywordMatcher.containsKeyword(fileNameWithoutExt)) {
-        results.push(join(prefetchPath, file))
+        results.push(await this.describe(join(prefetchPath, file)))
       }
     }
 
     return this.createSuccessResult(results, startTime)
+  }
+
+  /**
+   * `<path> | last run <time>`. Windows rewrites a prefetch file shortly after
+   * each launch, so its last-write time is the program's last run — when a
+   * cheat was used is often as telling as the fact that it was.
+   */
+  private async describe(pfPath: string): Promise<string> {
+    try {
+      const { mtime } = await stat(pfPath)
+      return `${pfPath} | last run ${formatTimestamp(mtime)}`
+    } catch {
+      return pfPath
+    }
   }
 }
