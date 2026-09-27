@@ -14,10 +14,17 @@ import { configService } from './services/config-service'
 import { findCallbackInArgv } from './auth/callback-parser'
 import { isAllowedAuthUrl } from './utils/url-policy'
 import { IPC_CHANNELS } from '../shared/types'
+import { applyGpuFallback, installCrashHandlers, watchWindow } from './diagnostics/crash-handler'
 
 // Window background shown before the renderer paints; matches the CSS `--bg`
 // token so there is no flash of a different colour on launch.
 const bgColor = '#0a0908'
+
+// Explain crashes instead of exiting silently, and start without GPU
+// acceleration if the graphics driver crashed last time. Both must be in place
+// before 'ready'.
+installCrashHandlers()
+applyGpuFallback()
 
 let mainWindow: BrowserWindow | null = null
 let authService: AuthService | null = null
@@ -83,6 +90,8 @@ function createWindow(): void {
   // Deny every renderer permission request (camera, mic, notifications,
   // clipboard, etc.). This is a forensic tool; it needs none of them.
   mainWindow.webContents.session.setPermissionRequestHandler((_wc, _permission, callback) => callback(false))
+
+  watchWindow(mainWindow)
 
   mainWindow.on('ready-to-show', () => {
     mainWindow?.show()

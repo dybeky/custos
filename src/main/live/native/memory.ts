@@ -33,10 +33,19 @@ function loadMemoryjs(): typeof import('memoryjs') | null {
   try {
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     _cached = require('memoryjs') as typeof import('memoryjs')
-  } catch {
+  } catch (err) {
     _cached = null
+    _loadError = err
   }
   return _cached
+}
+
+let _loadError: unknown = null
+
+/** The error memoryjs failed to load with on Windows (null if it loaded or never tried). */
+export function getMemoryNativeLoadError(): unknown {
+  loadMemoryjs()
+  return _loadError
 }
 
 // ── Public capability flag ───────────────────────────────────────────────────

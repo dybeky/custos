@@ -9,7 +9,8 @@ import { ipcMain, BrowserWindow } from 'electron'
 import { IPC_CHANNELS, LiveScanStatus, LiveFinding } from '../shared/types'
 import { GAMES, type GameId } from '../shared/games'
 import { logger } from './services/logger'
-import { isMemoryNativeAvailable } from './live/native/memory'
+import { isMemoryNativeAvailable, getMemoryNativeLoadError } from './live/native/memory'
+import { diagnoseError } from './diagnostics/diagnose'
 import { findGameProcess } from './live/process-locator'
 import { runLiveScan } from './live/live-orchestrator'
 
@@ -31,8 +32,13 @@ export function setupLiveIpcHandlers(mainWindow: BrowserWindow): void {
     const names = gameId ? GAMES[gameId].processNames : undefined
     const nativeAvailable = isMemoryNativeAvailable()
     const game = nativeAvailable ? findGameProcess(names) : null
+    // Only surface a recognised cause (e.g. missing VC++ runtime) — an
+    // unrecognised one keeps the generic "native unavailable" banner.
+    const loadError = nativeAvailable ? null : getMemoryNativeLoadError()
+    const diagnosis = loadError ? diagnoseError(loadError) : null
     return {
       nativeAvailable,
+      ...(diagnosis && diagnosis.id !== 'unexpected' ? { nativeDiagnosis: diagnosis } : {}),
       platform: process.platform,
       arch: process.arch,
       gameRunning: game !== null,

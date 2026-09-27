@@ -28,6 +28,7 @@ export class Logger {
   private logBuffer: string[] = []
   private isWriting = false
   private writeQueue: string[] = []
+  private fatalHandler: ((error: Error) => void) | null = null
 
   constructor() {
     this.setupGlobalHandlers()
@@ -271,6 +272,16 @@ LOG ENTRIES:
     process.on('uncaughtException', (error) => {
       this.crash('Uncaught Exception', error)
 
+      // Let the crash handler explain the failure to the user first (it blocks
+      // on a dialog); it must never prevent the exit below.
+      if (this.fatalHandler) {
+        try {
+          this.fatalHandler(error)
+        } catch {
+          // reporting failed — still exit
+        }
+      }
+
       // Give time to write log before exit
       setTimeout(() => {
         process.exit(1)
@@ -290,6 +301,14 @@ LOG ENTRIES:
         stack: warning.stack
       })
     })
+  }
+
+  /**
+   * Register a callback run once an uncaught exception has been logged and
+   * before the process exits — used to show the user what went wrong.
+   */
+  setFatalHandler(handler: (error: Error) => void): void {
+    this.fatalHandler = handler
   }
 
   /**
