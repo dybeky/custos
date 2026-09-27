@@ -30,7 +30,8 @@ export const appStore = new Store<AppStoreSchema>({
   clearInvalidConfig: true,
   defaults: {
     settings: {
-      uiMode: 'classic'
+      uiMode: 'classic',
+      colorTheme: 'espresso'
     },
     auth: {},
     triage: { whitelistedSignatures: [] },

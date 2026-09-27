@@ -70,7 +70,7 @@ export function ScanProgress() {
               <span className="w-4 h-4 flex items-center justify-center shrink-0">
                 {r ? (
                   r.success
-                    ? <IconCheck className={`w-3.5 h-3.5 ${r.findings.length ? 'text-alert' : 'text-[#8FBF9F]'}`} />
+                    ? <IconCheck className={`w-3.5 h-3.5 ${r.findings.length ? 'text-alert' : 'text-ok'}`} />
                     : <IconX className="w-3.5 h-3.5 text-amber" />
                 ) : running ? (
                   <span className="w-2 h-2 rounded-full bg-scan m-pulse-dot" />

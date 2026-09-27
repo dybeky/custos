@@ -14,6 +14,7 @@ import { configService } from './services/config-service'
 import { findCallbackInArgv } from './auth/callback-parser'
 import { isAllowedAuthUrl } from './utils/url-policy'
 import { IPC_CHANNELS } from '../shared/types'
+import { THEME_SWATCHES, isColorTheme } from '../shared/themes'
 import { applyGpuFallback, installCrashHandlers, watchWindow } from './diagnostics/crash-handler'
 
 // Window background shown before the renderer paints; matches the CSS `--bg`
@@ -25,6 +26,12 @@ const bgColor = '#0a0908'
 // before 'ready'.
 installCrashHandlers()
 applyGpuFallback()
+
+/** Background for the saved theme, falling back to the default Espresso base. */
+function windowBackground(): string {
+  const theme = (appStore.get('settings') as { colorTheme?: unknown } | undefined)?.colorTheme
+  return isColorTheme(theme) ? THEME_SWATCHES[theme].bg : bgColor
+}
 
 let mainWindow: BrowserWindow | null = null
 let authService: AuthService | null = null
@@ -75,7 +82,7 @@ function createWindow(): void {
     show: false,
     frame: false,
     titleBarStyle: 'hidden',
-    backgroundColor: bgColor,
+    backgroundColor: windowBackground(),
     icon: join(__dirname, '../../resources/icon.ico'),
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),

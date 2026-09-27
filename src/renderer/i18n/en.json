@@ -18,6 +18,17 @@
       "modern": "Focus",
       "modernDesc": "Minimal and keyboard-first: the whole check on one screen, Ctrl+K command palette.",
       "new": "New"
+    },
+    "theme": {
+      "title": "Color theme",
+      "espresso": "Espresso",
+      "espressoDesc": "Warm coffee-noir — the original look.",
+      "graphite": "Graphite",
+      "graphiteDesc": "Cool graphite with an electric-blue accent.",
+      "emerald": "Emerald",
+      "emeraldDesc": "Deep green-black with a mint accent.",
+      "violet": "Violet",
+      "violetDesc": "Ink-violet with a soft lavender accent."
     }
   },
   "dashboard": {
@@ -635,7 +646,8 @@
       "exportTxt": "Export report (TXT)",
       "exportJson": "Export report (JSON)",
       "profile": "Profile",
-      "classic": "Switch to classic interface"
+      "classic": "Switch to classic interface",
+      "theme": "Theme: {{name}}"
     },
     "check": {
       "eyebrow": "Forensic check",

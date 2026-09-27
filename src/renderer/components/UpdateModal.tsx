@@ -2,15 +2,16 @@ import { useTranslation } from 'react-i18next'
 import { Modal } from './ui/Modal'
 import { Button } from './ui/Button'
 import type { UpdateInfo } from '../../shared/types'
+import { alpha } from '../utils/color'
 
 // Accent color per changelog group — keeps the emoji-free changelog readable.
 const ACCENT: Record<string, string> = {
-  New: '#c89a6a',
-  Fixes: '#8FBF9F',
-  Performance: '#8a7b68',
-  Improvements: '#8a7b68'
+  New: 'var(--scan)',
+  Fixes: 'var(--ok)',
+  Performance: 'var(--scan-dim)',
+  Improvements: 'var(--scan-dim)'
 }
-const ACCENT_DEFAULT = '#c89a6a'
+const ACCENT_DEFAULT = 'var(--scan)'
 
 export function UpdateModal({ info, onClose }: { info: UpdateInfo; onClose: () => void }) {
   const { t } = useTranslation()
@@ -27,7 +28,7 @@ export function UpdateModal({ info, onClose }: { info: UpdateInfo; onClose: () =
               <div className="flex items-center gap-2 mb-1.5">
                 <span
                   className="h-3 w-1 rounded-full shrink-0"
-                  style={{ backgroundColor: accent, boxShadow: `0 0 8px ${accent}66` }}
+                  style={{ backgroundColor: accent, boxShadow: `0 0 8px ${alpha(accent, 0.4)}` }}
                 />
                 <h3
                   className="text-2xs font-bold tracking-[0.18em] uppercase font-display"

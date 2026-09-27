@@ -1,16 +1,41 @@
 import { create } from 'zustand'
 import type { UiMode } from '../../shared/types'
+import { DEFAULT_THEME, isColorTheme, type ColorTheme } from '../../shared/themes'
+
+const THEME_CACHE_KEY = 'custos-theme'
+
+/** Last theme, cached so the first paint is already in the right colors. */
+function readCachedTheme(): ColorTheme {
+  try {
+    const v = globalThis.localStorage?.getItem(THEME_CACHE_KEY)
+    return isColorTheme(v) ? v : DEFAULT_THEME
+  } catch {
+    return DEFAULT_THEME
+  }
+}
+
+/** Switch the document to `theme` (CSS reads <html data-theme>) and cache it. */
+export function applyTheme(theme: ColorTheme): void {
+  if (typeof document !== 'undefined') document.documentElement.dataset.theme = theme
+  try {
+    globalThis.localStorage?.setItem(THEME_CACHE_KEY, theme)
+  } catch {
+    // storage unavailable — the saved setting still applies after load
+  }
+}
 
 // Module-level debounce timer — avoids storing timers in React state
 let saveDebounceTimer: ReturnType<typeof setTimeout> | null = null
 
 interface SettingsState {
   uiMode: UiMode
+  colorTheme: ColorTheme
   isLoading: boolean
   version: string
 
   // Actions
   setUiMode: (value: UiMode) => void
+  setColorTheme: (value: ColorTheme) => void
   setVersion: (version: string) => void
   loadSettings: () => Promise<void>
   saveSettings: () => Promise<void>
@@ -18,11 +43,18 @@ interface SettingsState {
 
 export const useSettingsStore = create<SettingsState>((set, get) => ({
   uiMode: 'classic',
+  colorTheme: readCachedTheme(),
   isLoading: true,
   version: '',
 
   setUiMode: (value) => {
     set({ uiMode: value })
+    get().saveSettings()
+  },
+
+  setColorTheme: (value) => {
+    applyTheme(value)
+    set({ colorTheme: value })
     get().saveSettings()
   },
 
@@ -33,7 +65,9 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
       const settings = await window.electronAPI.getSettings()
       const version = await window.electronAPI.getVersion()
       const uiMode: UiMode = settings.uiMode === 'modern' ? 'modern' : 'classic'
-      set({ uiMode, version, isLoading: false })
+      const colorTheme = isColorTheme(settings.colorTheme) ? settings.colorTheme : DEFAULT_THEME
+      applyTheme(colorTheme)
+      set({ uiMode, colorTheme, version, isLoading: false })
     } catch (error) {
       console.error('Failed to load settings:', error)
       set({ isLoading: false })
@@ -46,7 +80,7 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
     saveDebounceTimer = setTimeout(async () => {
       saveDebounceTimer = null
       try {
-        await window.electronAPI.setSettings({ uiMode: get().uiMode })
+        await window.electronAPI.setSettings({ uiMode: get().uiMode, colorTheme: get().colorTheme })
       } catch (error) {
         console.error('Failed to save settings:', error)
       }

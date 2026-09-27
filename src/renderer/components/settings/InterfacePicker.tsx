@@ -5,7 +5,7 @@ import { useSettingsStore } from '../../stores/settings-store'
 /** Miniature of the classic layout: icon sidebar + stacked cards. */
 function ClassicPreview() {
   return (
-    <div className="h-full w-full flex bg-[#0a0908]">
+    <div className="h-full w-full flex bg-bg">
       <div className="w-4 border-r border-white/5 flex flex-col items-center gap-1 pt-2">
         {[0, 1, 2, 3].map((i) => <span key={i} className={`w-2 h-2 rounded-sm ${i === 1 ? 'bg-scan/70' : 'bg-white/10'}`} />)}
       </div>
@@ -22,7 +22,7 @@ function ClassicPreview() {
 /** Miniature of the modern layout: top nav + verdict rail + evidence pane. */
 function ModernPreview() {
   return (
-    <div className="h-full w-full flex flex-col bg-[#0a0908]">
+    <div className="h-full w-full flex flex-col bg-bg">
       <div className="h-3 border-b border-white/5 flex items-center justify-center gap-1">
         {[0, 1, 2].map((i) => <span key={i} className={`w-3 h-1 rounded-full ${i === 0 ? 'bg-white/40' : 'bg-white/10'}`} />)}
       </div>

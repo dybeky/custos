@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Card } from '../components/ui/Card'
 import { InfoTip } from '../components/ui/InfoTip'
+import { alpha } from '../utils/color'
 
 const ERROR_TOAST_MS = 6000
 
@@ -81,7 +82,7 @@ export function Manual() {
       titleKey: 'manual.systemTools',
       helpKey: 'help.manual.systemTools',
       icon: toolIcon,
-      accent: '#c89a6a',
+      accent: 'var(--scan)',
       action: 'path',
       showHint: true,
       items: [
@@ -94,7 +95,7 @@ export function Manual() {
       titleKey: 'manual.folders',
       helpKey: 'help.manual.folders',
       icon: folderIcon,
-      accent: '#8a7b68',
+      accent: 'var(--scan-dim)',
       action: 'path',
       showHint: true,
       items: [
@@ -111,7 +112,7 @@ export function Manual() {
       titleKey: 'manual.games',
       helpKey: 'help.manual.games',
       icon: gameIcon,
-      accent: '#8a7b68',
+      accent: 'var(--scan-dim)',
       action: 'path',
       showHint: true,
       items: [
@@ -124,7 +125,7 @@ export function Manual() {
       titleKey: 'manual.registry',
       helpKey: 'help.manual.registry',
       icon: registryIcon,
-      accent: '#c89a6a',
+      accent: 'var(--scan)',
       action: 'registry',
       grid: true,
       items: [
@@ -145,7 +146,7 @@ export function Manual() {
       descKey: 'manual.telegramBotsDesc',
       helpKey: 'help.manual.telegram',
       icon: telegramIcon,
-      accent: '#8a7b68',
+      accent: 'var(--scan-dim)',
       action: 'external',
       items: [
         { label: '@undeadsellerbot', target: 'https://t.me/undeadsellerbot' },
@@ -158,7 +159,7 @@ export function Manual() {
       descKey: 'manual.additionalResourcesDesc',
       helpKey: 'help.manual.resources',
       icon: globeIcon,
-      accent: '#D9BC9A',
+      accent: 'var(--scan-2)',
       action: 'external',
       showHint: true,
       items: [
@@ -207,7 +208,7 @@ export function Manual() {
               <div className="flex items-center gap-3 mb-4">
                 <span
                   className="shrink-0 w-9 h-9 rounded-xl flex items-center justify-center [&>svg]:w-[18px] [&>svg]:h-[18px]"
-                  style={{ background: `${cat.accent}1f`, color: cat.accent }}
+                  style={{ background: alpha(cat.accent, 0.12), color: cat.accent }}
                 >
                   {cat.icon}
                 </span>
@@ -222,7 +223,7 @@ export function Manual() {
                 </div>
                 <span
                   className="shrink-0 text-2xs font-mono px-2 py-0.5 rounded-full"
-                  style={{ background: `${cat.accent}1a`, color: cat.accent }}
+                  style={{ background: alpha(cat.accent, 0.1), color: cat.accent }}
                 >
                   {cat.items.length}
                 </span>
@@ -245,7 +246,7 @@ export function Manual() {
                     {/* Icon chip */}
                     <span
                       className="shrink-0 w-7 h-7 rounded-lg flex items-center justify-center transition-transform duration-200 group-hover:scale-110 [&>svg]:w-[15px] [&>svg]:h-[15px]"
-                      style={{ background: `${cat.accent}1f`, color: cat.accent }}
+                      style={{ background: alpha(cat.accent, 0.12), color: cat.accent }}
                     >
                       {cat.icon}
                     </span>

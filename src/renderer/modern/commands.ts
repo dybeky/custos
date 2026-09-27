@@ -5,6 +5,7 @@ import { useSettingsStore } from '../stores/settings-store'
 import { useGameStore } from '../stores/game-store'
 import { useAuthStore } from '../stores/auth-store'
 import { MODERN_NAV } from './nav'
+import { COLOR_THEMES } from '../../shared/themes'
 import { buildJsonReport, buildTextReport, downloadText, exportFileStem } from '../utils/report-export'
 
 export interface Command {
@@ -50,7 +51,7 @@ export function useModernCommands(): Command[] {
   const { t } = useTranslation()
   const navigate = useNavigate()
   const { status, results, startScan, cancelScan } = useScanStore()
-  const { setUiMode } = useSettingsStore()
+  const { setUiMode, colorTheme, setColorTheme } = useSettingsStore()
   const { selectedGame } = useGameStore()
   const exportReport = useExportReport()
 
@@ -81,6 +82,10 @@ export function useModernCommands(): Command[] {
   )
 
   cmds.push(
+    ...COLOR_THEMES.filter((th) => th !== colorTheme).map((th): Command => ({
+      id: `theme-${th}`, group: 'preferences', label: t('modern.cmd.theme', { name: t(`settings.theme.${th}`) }),
+      keywords: 'theme color colour palette', run: () => setColorTheme(th)
+    })),
     { id: 'classic', group: 'preferences', label: t('modern.cmd.classic'), keywords: 'classic interface ui layout', run: () => setUiMode('classic') }
   )
   return cmds

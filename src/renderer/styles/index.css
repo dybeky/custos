@@ -87,21 +87,45 @@
 @tailwind utilities;
 
 /* ============================================
-   SINGLE PALETTE — black & white with warm coffee accents
-   #c89a6a scan · #f4f0ea ink · #8a7b68 scan-dim · #e3a45c amber · #e0604c alert
-   Single canonical coffee-noir theme — one :root, no data-theme switching.
+   COLOR THEMES
+   Every color in the app derives from these channel variables ("R G B"),
+   so Tailwind utilities keep alpha support (bg-scan/10) and a theme only
+   swaps channels. Espresso (coffee-noir) is the default; the others are
+   selected with <html data-theme="…">.
    ============================================ */
 
-/* ============================================
-   ESPRESSO DESIGN TOKENS
-   ============================================ */
-
-:root {
-  --bg:#0a0908; --panel:#141110; --panel-2:#1c1815;
-  --ink:#f4f0ea; --ink-dim:#a89f93; --scan:#c89a6a; --scan-dim:#8a7b68;
-  --alert:#e0604c; --amber:#e3a45c; --on-accent:#14100c;
-  --line:rgba(244,240,234,.10); --line-strong:rgba(244,240,234,.18);
+:root, :root[data-theme="espresso"] {
+  --bg-rgb:10 9 8; --panel-rgb:20 17 16; --panel-2-rgb:28 24 21; --ink-rgb:244 240 234; --ink-dim-rgb:168 159 147;
+  --scan-rgb:200 154 106; --scan-2-rgb:217 188 154; --scan-dim-rgb:138 123 104; --alert-rgb:224 96 76; --amber-rgb:227 164 92; --ok-rgb:143 191 159; --on-accent-rgb:20 16 12;
   --glow:200,154,106;
+}
+
+:root[data-theme="graphite"] {
+  --bg-rgb:10 12 16; --panel-rgb:18 22 29; --panel-2-rgb:26 31 40; --ink-rgb:238 242 248; --ink-dim-rgb:154 164 178;
+  --scan-rgb:91 157 255; --scan-2-rgb:147 191 255; --scan-dim-rgb:93 107 128; --alert-rgb:240 96 90; --amber-rgb:240 179 92; --ok-rgb:111 207 151; --on-accent-rgb:7 16 31;
+  --glow:91,157,255;
+}
+
+:root[data-theme="emerald"] {
+  --bg-rgb:7 11 9; --panel-rgb:15 22 18; --panel-2-rgb:22 32 26; --ink-rgb:236 245 239; --ink-dim-rgb:147 168 155;
+  --scan-rgb:62 207 142; --scan-2-rgb:134 227 184; --scan-dim-rgb:90 122 104; --alert-rgb:239 95 85; --amber-rgb:232 181 90; --ok-rgb:155 226 143; --on-accent-rgb:4 20 12;
+  --glow:62,207,142;
+}
+
+:root[data-theme="violet"] {
+  --bg-rgb:11 10 16; --panel-rgb:21 19 29; --panel-2-rgb:30 26 41; --ink-rgb:241 238 250; --ink-dim-rgb:164 157 182;
+  --scan-rgb:167 139 250; --scan-2-rgb:201 184 255; --scan-dim-rgb:111 102 137; --alert-rgb:242 95 122; --amber-rgb:240 180 94; --ok-rgb:127 212 168; --on-accent-rgb:18 11 36;
+  --glow:167,139,250;
+}
+
+/* Derived tokens — identical for every theme. */
+:root {
+  --bg: rgb(var(--bg-rgb)); --panel: rgb(var(--panel-rgb)); --panel-2: rgb(var(--panel-2-rgb));
+  --ink: rgb(var(--ink-rgb)); --ink-dim: rgb(var(--ink-dim-rgb));
+  --scan: rgb(var(--scan-rgb)); --scan-2: rgb(var(--scan-2-rgb)); --scan-dim: rgb(var(--scan-dim-rgb));
+  --alert: rgb(var(--alert-rgb)); --amber: rgb(var(--amber-rgb)); --ok: rgb(var(--ok-rgb));
+  --on-accent: rgb(var(--on-accent-rgb));
+  --line: rgb(var(--ink-rgb) / .10); --line-strong: rgb(var(--ink-rgb) / .18);
 }
 html, body { background: var(--bg); color: var(--ink); }
 
@@ -115,17 +139,17 @@ html, body { background: var(--bg); color: var(--ink); }
    ============================================ */
 
 :root {
-  --theme-primary: #c89a6a;
-  --theme-primary-hover: #D9BC9A;
-  --theme-primary-muted: rgba(200, 164, 126, 0.12);
-  --theme-glow: rgba(200, 164, 126, 0.25);
-  --theme-bg: #0a0908;
-  --theme-surface: #141110;
-  --theme-elevated: #1c1815;
-  /* Caramel buttons are light, so button text is the dark base for contrast */
-  --theme-text-btn: #14100c;
-  --theme-border: rgba(237, 231, 222, 0.08);
-  --theme-border-hover: rgba(200, 164, 126, 0.25);
+  --theme-primary: var(--scan);
+  --theme-primary-hover: var(--scan-2);
+  --theme-primary-muted: rgb(var(--scan-rgb) / .12);
+  --theme-glow: rgb(var(--scan-rgb) / .25);
+  --theme-bg: var(--bg);
+  --theme-surface: var(--panel);
+  --theme-elevated: var(--panel-2);
+  /* Accent buttons are light, so button text is the dark base for contrast */
+  --theme-text-btn: var(--on-accent);
+  --theme-border: rgb(var(--ink-rgb) / .08);
+  --theme-border-hover: rgb(var(--scan-rgb) / .25);
 }
 
 /* ============================================
@@ -294,7 +318,7 @@ body {
 
 /* Theme gradient text — quiet caramel-to-cream, no animation */
 .theme-gradient-text {
-  background: linear-gradient(90deg, #c89a6a, #f4f0ea);
+  background: linear-gradient(90deg, var(--scan), var(--ink));
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -350,7 +374,7 @@ body {
    ============================================ */
 
 .glass {
-  background: rgba(23, 20, 17, 0.55);
+  background: rgb(var(--panel-rgb) / .55);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
 }
@@ -381,8 +405,8 @@ body {
 }
 
 @keyframes badgeBreathe {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(200, 164, 126, 0.0); }
-  50%      { box-shadow: 0 0 14px 1px rgba(200, 164, 126, 0.22); }
+  0%, 100% { box-shadow: 0 0 0 0 rgba(var(--glow), 0); }
+  50%      { box-shadow: 0 0 14px 1px rgba(var(--glow), .22); }
 }
 
 /* Expanding radar ring behind a status dot. Color comes from the element's
@@ -407,7 +431,7 @@ body {
   bottom: 0;
   left: 0;
   width: 28%;
-  background: linear-gradient(100deg, transparent, rgba(237, 231, 222, 0.22), transparent);
+  background: linear-gradient(100deg, transparent, rgb(var(--ink-rgb) / .22), transparent);
   animation: badgeSheen 3.8s ease-in-out infinite;
   pointer-events: none;
 }
@@ -454,7 +478,7 @@ body {
 }
 
 .m-surface {
-  background: rgba(20, 17, 16, .72);
+  background: rgb(var(--panel-rgb) / .72);
   border: 1px solid var(--line);
   border-radius: 16px;
   backdrop-filter: blur(12px);
