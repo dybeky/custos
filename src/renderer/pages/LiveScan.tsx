@@ -54,10 +54,19 @@ export function LiveScan() {
     fetchStatus()
   }, [fetchStatus])
 
-  // Tear down any live-scan listeners only on unmount.
+  // Track whether a scan is in flight without re-running the unmount effect.
+  const scanningRef = useRef(false)
+  useEffect(() => {
+    scanningRef.current = phase === 'scanning'
+  }, [phase])
+
+  // On unmount, tear down listeners and cancel an in-flight scan: its results
+  // live in this component's state and would be lost anyway, and leaving it
+  // running would block the next start with "already in progress".
   useEffect(() => {
     return () => {
       clearSubs()
+      if (scanningRef.current) window.electronAPI.cancelLiveScan().catch(() => {})
     }
   }, [])
 

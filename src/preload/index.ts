@@ -142,6 +142,11 @@ const api = {
     return ipcRenderer.invoke(IPC_CHANNELS.LIVE_SCAN_START, gameId)
   },
 
+  /** Cancel the running live scan (stops before the next detector). */
+  cancelLiveScan: (): Promise<void> => {
+    return ipcRenderer.invoke(IPC_CHANNELS.LIVE_SCAN_CANCEL)
+  },
+
   /** Subscribe to per-detector progress events during a live scan. Returns unsubscribe fn. */
   onLiveScanProgress: (callback: LiveScanProgressCallback): (() => void) => {
     const listener = (_event: Electron.IpcRendererEvent, payload: Parameters<LiveScanProgressCallback>[0]): void => {

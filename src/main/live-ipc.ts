@@ -78,4 +78,11 @@ export function setupLiveIpcHandlers(mainWindow: BrowserWindow): void {
       liveAbortController = null
     }
   })
+
+  // ── live:scan:cancel ─────────────────────────────────────────────────────
+  // Cooperative: the orchestrator stops before the next detector and still
+  // closes the process handle. No-op when no live scan is running.
+  ipcMain.handle(IPC_CHANNELS.LIVE_SCAN_CANCEL, (): void => {
+    liveAbortController?.abort()
+  })
 }
