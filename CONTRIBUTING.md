@@ -32,11 +32,15 @@ scanners continue to work normally.
 
 ## How to verify
 
-Before opening a pull request, confirm all three gates pass:
+Before opening a pull request, confirm the same gates CI runs pass:
 
 ```bash
-npm run typecheck && npm run lint && npm run test
+npm run typecheck && npm run lint && npm run test && npm run build
 ```
+
+`npm run lint` runs with `--max-warnings 0`: a new warning fails CI, so fix it
+(or, where it is genuinely intended, disable the rule for that line with a
+comment explaining why) rather than letting warnings pile up.
 
 ## Commit style
 
