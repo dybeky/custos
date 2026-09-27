@@ -11,14 +11,6 @@
     "account": "Account",
     "accountAnon": "Sign in to show your 97437.dev identity in Custos.",
     "accountAuthed": "Signed in to 97437.dev",
-    "interface": {
-      "title": "Interface",
-      "classic": "Classic",
-      "classicDesc": "The original layout: icon sidebar and separate Scan / Results pages.",
-      "modern": "Focus",
-      "modernDesc": "Minimal and keyboard-first: the whole check on one screen, Ctrl+K command palette.",
-      "new": "New"
-    },
     "theme": {
       "title": "Color theme",
       "espresso": "Espresso",
@@ -628,78 +620,6 @@
     "notes": "Notes",
     "notesPlaceholder": "What you observed, what the player said, decision…",
     "foundOnPc": "Found on this PC:"
-  },
-  "modern": {
-    "nav": {
-      "label": "Main navigation",
-      "check": "Check",
-      "live": "Live",
-      "tools": "Tools",
-      "system": "System",
-      "history": "History"
-    },
-    "palette": {
-      "open": "Command palette",
-      "short": "Search",
-      "placeholder": "Type a command…",
-      "empty": "No matching commands",
-      "group": {
-        "actions": "Actions",
-        "navigate": "Go to",
-        "preferences": "Preferences"
-      }
-    },
-    "cmd": {
-      "start": "Start check",
-      "rescan": "Run a new check",
-      "cancel": "Cancel check",
-      "exportTxt": "Export report (TXT)",
-      "exportJson": "Export report (JSON)",
-      "profile": "Profile",
-      "classic": "Switch to classic interface",
-      "theme": "Theme: {{name}}"
-    },
-    "check": {
-      "eyebrow": "Forensic check",
-      "title": "Ready when you are",
-      "subtitle": "Reads the traces Windows keeps about every program run and matches them against known cheats. Nothing on the PC is changed.",
-      "start": "Start",
-      "playerPlaceholder": "Player nickname or SteamID (optional)",
-      "checksReady": "{{ready}} of {{total}} checks available",
-      "scanning": "Checking the system…",
-      "preparing": "Preparing checks…",
-      "cancel": "Cancel",
-      "leadsSoFar_one": "{{count}} lead so far",
-      "leadsSoFar_other": "{{count}} leads so far"
-    },
-    "stats": {
-      "leads": "Leads",
-      "checks": "Checks",
-      "time": "Time"
-    },
-    "actions": {
-      "report": "Report",
-      "rescan": "New check"
-    },
-    "tabs": {
-      "findings": "Evidence",
-      "checks": "Checks"
-    },
-    "filter": {
-      "evidence": "Evidence",
-      "info": "System",
-      "suppressed": "Hidden",
-      "all": "All",
-      "search": "Search findings…",
-      "noMatches": "Nothing matches the search",
-      "empty": {
-        "evidence": "No evidence — nothing matched a known cheat",
-        "info": "No system information",
-        "suppressed": "Nothing is hidden",
-        "all": "No findings"
-      }
-    },
-    "timelineEmpty": "No timestamped activity in this scan"
   },
   "history": {
     "title": "Check history",

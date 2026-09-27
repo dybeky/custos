@@ -38,20 +38,18 @@ const execFileP = promisify(execFile)
 
 // Strict schema for partial user settings — rejects unknown properties
 const UserSettingsPartialSchema = z.object({
-  uiMode: z.enum(['classic', 'modern']).optional(),
   colorTheme: z.enum(COLOR_THEMES).optional()
 }).strict()
 
 /**
- * Normalize persisted settings: drop legacy keys (`theme`, and `language` from
- * when the app shipped a Russian UI) and any other extras, so an old blob
- * still validates against the strict partial schema on the next SETTINGS_SET.
- * Returns a valid UserSettings, defaulting uiMode to 'classic'.
+ * Normalize persisted settings: drop legacy keys (`theme`; `language` from
+ * when the app shipped a Russian UI; `uiMode` from the retired "Focus"
+ * interface) and any other extras, so an old blob still validates against
+ * the strict partial schema on the next SETTINGS_SET.
  */
 export function migrateSettings(raw: unknown): UserSettings {
-  const obj = raw && typeof raw === 'object' ? (raw as { uiMode?: unknown; colorTheme?: unknown }) : {}
+  const obj = raw && typeof raw === 'object' ? (raw as { colorTheme?: unknown }) : {}
   return {
-    uiMode: obj.uiMode === 'modern' ? 'modern' : 'classic',
     colorTheme: isColorTheme(obj.colorTheme) ? obj.colorTheme : DEFAULT_THEME
   }
 }

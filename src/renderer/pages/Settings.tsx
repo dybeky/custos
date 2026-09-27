@@ -6,7 +6,6 @@ import { Avatar } from '../components/ui/Avatar'
 import { RoleName } from '../components/ui/RoleName'
 import { LoginModal } from '../components/auth/LoginModal'
 import { roleInfo } from '../utils/roles'
-import { InterfacePicker } from '../components/settings/InterfacePicker'
 import { ThemePicker } from '../components/settings/ThemePicker'
 import { SignatureStatusCard } from '../components/settings/SignatureStatusCard'
 
@@ -33,17 +32,7 @@ export function Settings() {
           <p className="text-ink-dim mt-1">{t('settings.subtitle')}</p>
         </div>
 
-        {/* Interface — classic vs modern shell, applied instantly */}
-        <Card className="mb-4">
-          <CardHeader>
-            <CardTitle>{t('settings.interface.title')}</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <InterfacePicker />
-          </CardContent>
-        </Card>
-
-        {/* Color theme — applies to both interfaces instantly */}
+        {/* Color theme — applies instantly */}
         <Card className="mb-4">
           <CardHeader>
             <CardTitle>{t('settings.theme.title')}</CardTitle>
