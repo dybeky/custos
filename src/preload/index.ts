@@ -91,11 +91,6 @@ const api = {
     return ipcRenderer.invoke(IPC_CHANNELS.SYSTEM_GET_OS_INFO)
   },
 
-  // Deprecated alias kept for backward compatibility
-  getWindowsVersion: (): Promise<OsInfo> => {
-    return ipcRenderer.invoke(IPC_CHANNELS.SYSTEM_GET_OS_INFO)
-  },
-
   // Per-scanner capabilities for the current OS
   getCapabilities: (): Promise<ScannerCapability[]> => {
     return ipcRenderer.invoke(IPC_CHANNELS.SYSTEM_GET_CAPABILITIES)
