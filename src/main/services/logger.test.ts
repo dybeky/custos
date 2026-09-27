@@ -47,3 +47,18 @@ describe('Logger file writing', () => {
     expect(appendFileSync).toHaveBeenCalledTimes(1) // batched entry
   })
 })
+
+describe('Logger log location', () => {
+  it('writes next to the launched portable .exe, not the temp extraction dir', () => {
+    const prev = process.env.PORTABLE_EXECUTABLE_DIR
+    process.env.PORTABLE_EXECUTABLE_DIR = '/portable/home'
+    try {
+      const log = new Logger()
+      log.init()
+      expect(log.getLogPath()).toMatch(/^[\\/]portable[\\/]home[\\/]custos-log-\d{4}-\d{2}-\d{2}\.txt$/)
+    } finally {
+      if (prev === undefined) delete process.env.PORTABLE_EXECUTABLE_DIR
+      else process.env.PORTABLE_EXECUTABLE_DIR = prev
+    }
+  })
+})

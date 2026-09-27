@@ -180,8 +180,10 @@ export function setupIpcHandlers(mainWindow: BrowserWindow): void {
     if (!parsed.success) {
       throw new Error(`Invalid settings: ${parsed.error.message}`)
     }
-    const current = appStore.get('settings')
-    const updated = { ...current, ...parsed.data }
+    // Normalize the persisted blob first so legacy keys (e.g. `theme`) are
+    // never spread back into the store alongside the update.
+    const current = migrateSettings(appStore.get('settings'))
+    const updated: UserSettings = { ...current, ...parsed.data }
     appStore.set('settings', updated)
     return updated
   })
