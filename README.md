@@ -156,9 +156,27 @@ If any check could not finish — usually "access denied" because Custos was not
 
 When one cheat signature shows up across several independent checks, it is listed under **Key evidence** with every check that saw it. This is the strongest kind of lead Custos produces — start your investigation here.
 
+#### Activity timeline
+
+Every lead that carries a time — a program's last run (Prefetch), execution records (BAM), site visits, event‑log clears, cleaner runs — is laid out newest first, with how long before the scan it happened. Activity from the **24 hours before the check** is highlighted: a cheat's last run followed minutes later by CCleaner is exactly the pattern to ask about.
+
+#### Case details
+
+The **Case** card records who you are checking (nickname or SteamID — Steam accounts found on the PC fill it in one click), your notes, and your Custos account as *checked by*. All of it goes at the top of the exported report.
+
 #### Per‑scanner findings
 
 Below, each scanner gets its own **collapsible card**. Click to expand and see its individual findings — file paths, registry values, or other strings — each tagged with a severity. The badge shows how many leads a scanner produced: **red** for evidence, **grey** for system information only, **amber "!"** when the check did not complete (the reason is shown under its name).
+
+Hover a finding to act on it:
+
+| Action | Effect |
+|---|---|
+| **Show in folder** | Selects the file in Explorer — it is never opened or run. |
+| **False positive** | Excludes the finding from this scan's verdict (it stays visible, struck through, with **Restore**). |
+| **Always ignore "…"** | Stops counting that signature on every future scan — for a legitimate program that shares a cheat's name. Ignored signatures are listed on the Results page and can be removed with one click. |
+
+The verdict, counts, key evidence, timeline and exports update instantly — nothing is rescanned.
 
 > [!WARNING]
 > **A finding is a lead, not a conviction.** A matched keyword might be a real cheat — or a file with a coincidentally similar name, an old leftover, or something harmless. Read the actual path or value, weigh the context, and corroborate across more than one scanner before drawing a conclusion.
