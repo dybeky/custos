@@ -15,7 +15,7 @@ const h = vi.hoisted(() => {
       disableHardwareAcceleration: vi.fn(),
       getGPUInfo: vi.fn(async () => ({ gpuDevice: [{ vendorId: 0x10de, active: true }] }))
     },
-    dialog: { showMessageBoxSync: vi.fn(() => 0), showErrorBox: vi.fn() },
+    dialog: { showMessageBoxSync: vi.fn((..._args: any[]) => 0), showErrorBox: vi.fn() },
     shell: { showItemInFolder: vi.fn() },
     fatal: { fn: null as null | ((e: Error) => void) },
     openExternal: vi.fn()
