@@ -1,21 +1,32 @@
 import { createHash } from 'crypto'
 import type {
-  ScanResult, AnalyzedFinding, HashTrust, Confidence, Correlation, Severity, ScoreReason,
+  ScanResult, AnalyzedFinding, Confidence, FindingCategory, Correlation, Severity, ScoreReason,
   Verdict, VerdictBand, ScanReport, SuppressionState, ScannerName
 } from '../../shared/types'
 import type { GameId } from '../../shared/games'
 import { scannerIdFromDisplayName } from '../../shared/scanners-meta'
 import { SCANNER_POLICY, DEFAULT_POLICY, RISK_ENGINE_VERSION } from './scanner-policy'
+import { isKnownHashFinding, hashTokenOf } from './finding-tags'
 
 function findingId(scannerId: string, value: string): string {
   return createHash('sha1').update(`${scannerId}\n${value}`).digest('hex').slice(0, 16)
 }
 
+/** Categories whose unmatched findings describe the machine, not cheat evidence. */
+const CONTEXT_CATEGORIES: ReadonlySet<FindingCategory> = new Set(['context', 'environment'])
+
 /**
  * Classify raw scanner output into structured findings. A finding string is only
  * EVIDENCE — base severity comes from the scanner's policy, base confidence
- * starts LOW (a name match is a coincidence until corroborated). A file-hash
- * finding is the exception: it is a content match, so it starts high-confidence.
+ * starts LOW (a name match is a coincidence until corroborated).
+ *
+ * Two exceptions:
+ *  - A file-hash finding tagged as a known-hash content match is strong
+ *    evidence: category `hash`, verified, high confidence. A file-hash finding
+ *    that is only a FILE-NAME keyword match is an ordinary `file` lead.
+ *  - A context/environment finding with no keyword match (e.g. the Steam
+ *    accounts present on the PC, "Steam not found") is informational: it is
+ *    kept for the investigator but can never raise the verdict on its own.
  */
 export function classifyFindings(
   results: ScanResult[],
@@ -27,22 +38,34 @@ export function classifyFindings(
     const scannerId = scannerIdFromDisplayName(r.scannerName)
     if (!scannerId) continue // defensive: unknown display name (should not occur)
     const policy = SCANNER_POLICY[scannerId] ?? DEFAULT_POLICY
-    const isHash = policy.category === 'hash'
     for (const value of r.findings) {
-      const hashTrust: HashTrust | undefined = isHash ? 'verified' : undefined
-      const matched = isHash ? value : findKeyword(value)
-      const baseConfidence: Confidence = isHash ? 'high' : 'low'
+      const keyword = findKeyword(value)
+      const isHash = policy.category === 'hash' && isKnownHashFinding(value)
+
+      let category: FindingCategory = policy.category
+      let severity: Severity = policy.baseSeverity
+      if (policy.category === 'hash' && !isHash) {
+        // Filename-only match from the hash scanner: a file lead, not a hash.
+        category = 'file'
+        severity = SCANNER_POLICY.appdata.baseSeverity
+      } else if (!isHash && keyword === null && CONTEXT_CATEGORIES.has(category)) {
+        severity = 'info'
+      }
+
+      const confidence: Confidence = isHash ? 'high' : 'low'
       out.push({
         id: findingId(scannerId, value),
         scannerId,
         value,
-        category: policy.category,
-        matched: matched ?? null,
-        hashTrust,
-        severity: policy.baseSeverity,
-        baseSeverity: policy.baseSeverity,
-        confidence: baseConfidence,
-        baseConfidence,
+        category,
+        // A hash match correlates on its keyword when the file name also
+        // matches one, otherwise on the hash itself.
+        matched: isHash ? (keyword ?? hashTokenOf(value) ?? value) : keyword,
+        hashTrust: isHash ? 'verified' : undefined,
+        severity,
+        baseSeverity: severity,
+        confidence,
+        baseConfidence: confidence,
         correlationId: null,
         reasons: []
       })
@@ -218,6 +241,19 @@ export function analyze(results: ScanResult[], ctx: AnalyzeContext): ScanReport 
   const activeCorrelations = correlations.filter(c => active.some(f => f.correlationId === c.id))
   const verdict = computeVerdict(active, activeCorrelations)
 
+  // A verdict is only as good as the checks behind it. When scanners failed
+  // (typically "access denied" without admin rights, or a timeout) say so, so
+  // a "clean" result on a half-scanned machine is never taken at face value.
+  const failed = results.filter(r => !r.success).length
+  if (failed > 0) {
+    verdict.reasons.push({
+      code: 'incomplete-coverage',
+      direction: 'neutral',
+      text: `${failed} of ${results.length} checks did not complete — coverage is incomplete`,
+      params: { failed, total: results.length }
+    })
+  }
+
   const scanners = results.map(r => ({
     id: (scannerIdFromDisplayName(r.scannerName) ?? (r.scannerName as ScannerName)),
     name: r.scannerName,
@@ -227,7 +263,7 @@ export function analyze(results: ScanResult[], ctx: AnalyzeContext): ScanReport 
     count: r.findings.length
   }))
 
-  return {
+  const report: ScanReport = {
     id: ctx.scanId,
     meta: {
       appVersion: ctx.appVersion,
@@ -243,4 +279,16 @@ export function analyze(results: ScanResult[], ctx: AnalyzeContext): ScanReport 
     correlations,
     scanners
   }
+  report.contentHash = reportContentHash(report)
+  return report
+}
+
+/**
+ * SHA-256 over the report's canonical JSON (everything except the hash
+ * itself). Printed on exports so a report shared with other staff can be
+ * checked for after-the-fact edits: re-hash the JSON and compare.
+ */
+export function reportContentHash(report: ScanReport): string {
+  const { contentHash: _omit, ...body } = report
+  return createHash('sha256').update(JSON.stringify(body)).digest('hex')
 }

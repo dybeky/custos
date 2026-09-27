@@ -28,8 +28,9 @@ const api = {
     return ipcRenderer.invoke(IPC_CHANNELS.GET_SCANNERS)
   },
 
-  startScan: (scannerIds?: ScannerName[]): Promise<ScanResult[]> => {
-    return ipcRenderer.invoke(IPC_CHANNELS.SCAN_START, scannerIds)
+  /** Start a forensic scan. `gameId` is stamped into the report's metadata. */
+  startScan: (scannerIds?: ScannerName[], gameId?: GameId): Promise<ScanResult[]> => {
+    return ipcRenderer.invoke(IPC_CHANNELS.SCAN_START, scannerIds, gameId)
   },
 
   cancelScan: (): Promise<void> => {

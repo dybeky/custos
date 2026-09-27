@@ -9,6 +9,7 @@ import { ScanResult } from '../../shared/types'
 import { KeywordMatcher } from '../services/keyword-matcher'
 import { ScanSettings, configService } from '../services/config-service'
 import { isWithin } from '../utils/path-safety'
+import { formatFileHashFinding } from '../intel/finding-tags'
 
 /** Maximum file size to hash (100 MB). Files larger than this are skipped. */
 const MAX_FILE_SIZE_BYTES = 100 * 1024 * 1024
@@ -78,8 +79,7 @@ export class FileHashScanner extends BaseScanner {
         const isKeywordMatch = this.keywordMatcher.containsKeyword(name)
 
         if (isKnownHash || isKeywordMatch) {
-          const reason = isKnownHash ? 'known-hash' : 'keyword'
-          findings.push(`${filePath} [sha256:${hash.slice(0, 16)}…] (${reason})`)
+          findings.push(formatFileHashFinding(filePath, hash, isKnownHash))
         }
       } catch {
         // Skip files that are locked, unreadable, or disappeared

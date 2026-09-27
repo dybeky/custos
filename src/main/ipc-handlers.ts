@@ -18,6 +18,7 @@ import { appStore } from './services/app-store'
 import { safeOpenExternal, safeOpenPath } from './utils/safe-open'
 import { AuthLoginPayloadSchema, AuthUploadAvatarPayloadSchema } from './auth/auth-ipc-schema'
 import type { AuthService } from './auth/auth-service'
+import { GAMES, type GameId } from '../shared/games'
 import type { AuthState } from '../shared/types'
 import { z } from 'zod'
 
@@ -85,10 +86,13 @@ export function setupIpcHandlers(mainWindow: BrowserWindow): void {
   const SIGNATURE_VERSION = 'bundled-1'
 
   // Start scan
-  ipcMain.handle(IPC_CHANNELS.SCAN_START, async (_event, scannerIds?: ScannerName[]): Promise<ScanResult[]> => {
+  ipcMain.handle(IPC_CHANNELS.SCAN_START, async (_event, scannerIds?: ScannerName[], gameId?: GameId): Promise<ScanResult[]> => {
     // Runtime shape validation — TypeScript types are erased at the IPC boundary.
     if (scannerIds !== undefined && (!Array.isArray(scannerIds) || scannerIds.some(id => typeof id !== 'string'))) {
       throw new Error('Invalid scannerIds: expected an array of strings')
+    }
+    if (gameId !== undefined && gameId !== null && !Object.hasOwn(GAMES, gameId)) {
+      throw new Error('Invalid gameId')
     }
     if (scanSession.isScanning) {
       logger.warn('Scan already in progress')
@@ -137,7 +141,7 @@ export function setupIpcHandlers(mainWindow: BrowserWindow): void {
           durationMs: Date.now() - scanStartedAt,
           appVersion: app.getVersion(),
           signatureVersion: SIGNATURE_VERSION,
-          gameId: null,
+          gameId: gameId ?? null,
           os: osMetaFromOsInfo(getOsInfo()),
           findKeyword: (value: string) => scannerFactory.getKeywordMatcher().findKeyword(value),
           suppression: { whitelistedSignatures: [], dismissedFindingIds: [] }

@@ -5,6 +5,7 @@ import { Button } from '../components/ui/Button'
 import { CircularProgress } from '../components/ui/Progress'
 import { InfoTip } from '../components/ui/InfoTip'
 import { useScanStore } from '../stores/scan-store'
+import { useGameStore } from '../stores/game-store'
 import { featureName, featureHelp } from '../utils/feature-i18n'
 
 export function Scan() {
@@ -20,6 +21,7 @@ export function Scan() {
     setError,
     reset
   } = useScanStore()
+  const { selectedGame } = useGameStore()
 
   // Scan events are wired once at the app root (subscribeToScanEvents), so a
   // scan keeps updating the store while the user is on another page.
@@ -31,7 +33,7 @@ export function Scan() {
     reset()
     setStatus('scanning')
     try {
-      await window.electronAPI.startScan()
+      await window.electronAPI.startScan(undefined, selectedGame ?? undefined)
     } catch (error) {
       // Ignore a rejection that lands after the user already cancelled.
       if (useScanStore.getState().status !== 'scanning') return
