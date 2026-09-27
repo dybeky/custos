@@ -1,7 +1,7 @@
 // src/main/auth/auth-service.ts
 import { generateState, generatePkce } from './pkce'
 import { parseCallback } from './callback-parser'
-import type { AuthClient } from './auth-client'
+import type { AuthClient, DevicePollResult } from './auth-client'
 import type { TokenStore } from './token-store'
 import type { AuthConfig } from '../services/config-service'
 import type { AuthState, AuthProvider, PublicUser, DeviceProgress } from '../../shared/types'
@@ -179,11 +179,17 @@ export class AuthService {
       return { ok: false, error: (e as Error).message || 'upload_failed' }
     }
     // Refresh so avatarVersion bumps and the version-keyed Avatar refetches.
-    const session = await this.client.getSession(token)
-    if (session) {
-      this.user = session.user
-      this.tokens.saveUser(session.user)
-      this.emit()
+    // The upload already succeeded, so a failed refresh must not turn it into
+    // an error; the new avatar simply shows up on the next session check.
+    try {
+      const session = await this.client.getSession(token)
+      if (session) {
+        this.user = session.user
+        this.tokens.saveUser(session.user)
+        this.emit()
+      }
+    } catch {
+      // transient — keep the current user
     }
     return { ok: true }
   }
@@ -196,7 +202,15 @@ export class AuthService {
     this.user = this.tokens.loadUser()
     this.status = this.user ? 'authed' : 'anon'
     this.emit()
-    const session = await this.client.getSession(token)
+    let session: { user: PublicUser } | null
+    try {
+      session = await this.client.getSession(token)
+    } catch {
+      // Offline / timeout / 5xx: the token may well still be valid. Keep the
+      // cached login rather than signing the user out over a transient failure;
+      // the next launch re-validates.
+      return
+    }
     if (!session) {
       // banned/deleted/401 → silent wipe → anonymous (§4.5)
       this.tokens.clear()
@@ -245,7 +259,14 @@ export class AuthService {
       await new Promise((r) => setTimeout(r, intervalMs))
       // cancel/logout/login may have landed during the sleep — don't even poll.
       if (myEpoch !== this.deviceEpoch) return
-      const res = await this.client.pollDeviceToken(deviceCode)
+      let res: DevicePollResult
+      try {
+        res = await this.client.pollDeviceToken(deviceCode)
+      } catch {
+        // Network error / timeout on a single poll is transient: keep polling
+        // until the flow's deadline instead of stranding the UI in 'polling'.
+        continue
+      }
       // Re-check AFTER the poll await too: cancellation may have landed while
       // the poll was in flight. A stale result (incl. a token) is discarded —
       // no emit, no completeAuth, no silent re-login.

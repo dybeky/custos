@@ -99,6 +99,15 @@ describe('AuthService.validateOnStartup', () => {
     expect(tokens.load()).toBeNull()
     expect(svc.getState().status).toBe('anon')
   })
+  it('keeps the cached login when the session check fails transiently (offline / 5xx)', async () => {
+    const { svc, tokens } = build()
+    tokens.save('b'); tokens.saveUser(user)
+    ;(svc as any).client.getSession = vi.fn(async () => { throw new Error('session unavailable: http 503') })
+    await expect(svc.validateOnStartup()).resolves.toBeUndefined()
+    expect(tokens.load()).toBe('b')
+    expect(svc.getState().status).toBe('authed')
+    expect(svc.getState().user?.id).toBe('u1')
+  })
   it('stays authed and refreshes the user on a valid session', async () => {
     const { svc, tokens } = build()
     tokens.save('b'); tokens.saveUser(user)
@@ -180,6 +189,22 @@ describe('AuthService.login (device-code flow)', () => {
     expect(pollDeviceToken).toHaveBeenCalledTimes(2)
     await done
 
+    expect(svc.getState().status).toBe('authed')
+  })
+
+  it('a network error on one poll is transient: keeps polling and completes', async () => {
+    vi.useFakeTimers()
+    const requestDeviceCode = vi.fn(async () => deviceCode)
+    const pollDeviceToken = vi.fn()
+      .mockRejectedValueOnce(new TypeError('fetch failed'))
+      .mockResolvedValueOnce({ kind: 'token' as const, token: 'tok', user })
+    const { svc } = build({ requestDeviceCode, pollDeviceToken } as any)
+
+    const done = svc.login('device')
+    await vi.advanceTimersByTimeAsync(2000)
+    await expect(done).resolves.toBeUndefined()
+
+    expect(pollDeviceToken).toHaveBeenCalledTimes(2)
     expect(svc.getState().status).toBe('authed')
   })
 
@@ -370,6 +395,16 @@ describe('AuthService.uploadAvatar', () => {
     expect(uploadAvatar).toHaveBeenCalledWith('b', bytes, 'image/webp')
     expect(svc.getState().user?.avatarVersion).toBe(2) // bumped via refresh
     expect(states.at(-1)?.user?.avatarVersion).toBe(2) // re-emitted to the renderer
+  })
+
+  it('still reports success when the post-upload session refresh fails', async () => {
+    const { svc } = await authedSvc()
+    ;(svc as any).client.uploadAvatar = vi.fn(async () => {})
+    ;(svc as any).client.getSession = vi.fn(async () => { throw new Error('session unavailable: network') })
+
+    const res = await svc.uploadAvatar(new ArrayBuffer(8), 'image/webp')
+    expect(res).toEqual({ ok: true })
+    expect(svc.getState().status).toBe('authed')
   })
 
   it('surfaces the upload error and does NOT refresh the session on failure', async () => {
