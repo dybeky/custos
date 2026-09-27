@@ -4,58 +4,34 @@ import { AnimatePresence, motion } from 'framer-motion'
 import { Card, CardContent } from '../components/ui/Card'
 import { Button } from '../components/ui/Button'
 import { InfoTip } from '../components/ui/InfoTip'
-import { useScanStore } from '../stores/scan-store'
+import { useScanStore, shownFindingCount } from '../stores/scan-store'
 import { SCANNER_NAME_TO_ID, featureName, featureHelp } from '../utils/feature-i18n'
-import { buildSeverityLookup, severityKey, severityChipClass, bandChipClass } from '../utils/report-view'
+import {
+  buildSeverityLookup, severityKey, severityChipClass, bandChipClass,
+  reasonText, coverageReason, rankedCorrelations, scannerEvidenceCount
+} from '../utils/report-view'
+import { buildTextReport, buildJsonReport, downloadText, exportFileStem } from '../utils/report-export'
 import { SCANNER_DISPLAY_TO_ID } from '../../shared/scanners-meta'
 
 export function Results() {
-  const { t } = useTranslation()
-  const { results, status, _totalFindings, report } = useScanStore()
+  const { t, i18n } = useTranslation()
+  const { results, status, _totalFindings, _evidenceCount, report } = useScanStore()
   const [expandedScanner, setExpandedScanner] = useState<string | null>(null)
   const hasResults = results.length > 0
   const severityLookup = buildSeverityLookup(report)
+  const findingCount = shownFindingCount({ _evidenceCount, _totalFindings })
+  const contextOnly = report !== null && findingCount === 0 && _totalFindings > 0
+  const coverage = coverageReason(report)
+  const correlations = rankedCorrelations(report)
+  const primaryReason = report?.verdict.reasons.find(r => r.code !== 'incomplete-coverage')
 
   const handleExport = () => {
-    const content = results
-      .map(r => {
-        const id = SCANNER_NAME_TO_ID[r.scannerName]
-        const header = `=== ${id ? featureName(t, id, r.scannerName) : r.scannerName} ===`
-        const findings = r.findings.length > 0
-          ? r.findings.join('\n')
-          : t('results.noFindings')
-        return `${header}\n${findings}`
-      })
-      .join('\n\n')
-
-    const blob = new Blob([content], { type: 'text/plain' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = `custos-scan-${new Date().toISOString().split('T')[0]}.txt`
-    a.click()
-    URL.revokeObjectURL(url)
+    const text = buildTextReport(t, report, results, i18n.language)
+    downloadText(text, `${exportFileStem(report)}.txt`, 'text/plain')
   }
 
   const handleExportJSON = () => {
-    const data = {
-      exportDate: new Date().toISOString(),
-      results: results.map(r => ({
-        scannerName: r.scannerName,
-        success: r.success,
-        findings: r.findings,
-        duration: r.duration,
-        hasFindings: r.hasFindings,
-        error: r.error
-      }))
-    }
-    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = `custos-scan-${new Date().toISOString().split('T')[0]}.json`
-    a.click()
-    URL.revokeObjectURL(url)
+    downloadText(buildJsonReport(report, results), `${exportFileStem(report)}.json`, 'application/json')
   }
 
   return (
@@ -71,7 +47,9 @@ export function Results() {
                   </div>
                   <div>
                     <h2 className="text-lg font-bold text-ink font-display">{t('verdict.title')}</h2>
-                    <p className="text-sm text-ink-dim">{report.verdict.rationale}</p>
+                    <p className="text-sm text-ink-dim">
+                      {primaryReason ? reasonText(t, primaryReason) : report.verdict.rationale}
+                    </p>
                   </div>
                 </div>
                 <div className="text-right">
@@ -79,9 +57,45 @@ export function Results() {
                   <div className="text-xs text-ink-dim">{t('verdict.score')}</div>
                 </div>
               </div>
+              {coverage && (
+                <div className="mt-3 flex items-start gap-2 rounded-xl border border-amber/30 bg-amber/10 px-3 py-2 text-xs text-amber">
+                  <svg className="w-4 h-4 shrink-0 mt-px" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                  </svg>
+                  <span>{reasonText(t, coverage)}</span>
+                </div>
+              )}
               <p className="mt-3 text-xs text-ink-dim/80 border-t border-[color:var(--line)] pt-3">
                 {t('verdict.leadsNotProof')}
               </p>
+            </CardContent>
+          </Card>
+        )}
+        {correlations.length > 0 && report && (
+          <Card className="mb-6">
+            <CardContent>
+              <div className="flex items-center gap-1.5 mb-3">
+                <h3 className="text-sm font-bold text-ink font-display">{t('verdict.keyEvidence')}</h3>
+                <InfoTip title={t('verdict.keyEvidence')} text={t('verdict.keyEvidenceHint')} />
+              </div>
+              <div className="space-y-2">
+                {correlations.map(c => (
+                  <div key={c.id} className="flex items-start gap-3 rounded-xl bg-panel-2 px-3 py-2">
+                    <span className={`shrink-0 px-1.5 py-0.5 rounded text-[10px] font-bold uppercase ${severityChipClass(c.severity)}`}>
+                      {t(`severity.${c.severity}`)}
+                    </span>
+                    <div className="min-w-0">
+                      <p className="text-sm font-mono text-ink break-all">{c.signature}</p>
+                      <p className="text-xs text-ink-dim">
+                        {t('verdict.seenIn', { count: c.strength })}:{' '}
+                        {c.scannerIds
+                          .map(id => featureName(t, id, report.scanners.find(s => s.id === id)?.name ?? id))
+                          .join(', ')}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </CardContent>
           </Card>
         )}
@@ -91,9 +105,9 @@ export function Results() {
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-4">
                 <div className={`w-16 h-16 rounded-2xl flex items-center justify-center ${
-                  _totalFindings > 0 ? 'bg-alert/10' : 'bg-scan/10'
+                  findingCount > 0 ? 'bg-alert/10' : 'bg-scan/10'
                 }`}>
-                  {_totalFindings > 0 ? (
+                  {findingCount > 0 ? (
                     <svg className="w-8 h-8 text-alert" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                     </svg>
@@ -107,9 +121,11 @@ export function Results() {
                   <h2 className="text-xl font-bold text-ink font-display">
                     {t('results.scanResults')}
                   </h2>
-                  <p className={`text-sm ${_totalFindings > 0 ? 'text-alert' : 'text-scan'}`}>
-                    {_totalFindings > 0
-                      ? `${_totalFindings} ${t('results.threatsFound')}`
+                  <p className={`text-sm ${findingCount > 0 ? 'text-alert' : 'text-scan'}`}>
+                    {findingCount > 0
+                      ? `${findingCount} ${t('results.evidenceFound')}`
+                      : contextOnly
+                      ? t('results.contextOnly')
                       : t('results.noThreatsFound')}
                   </p>
                 </div>
@@ -147,6 +163,11 @@ export function Results() {
               const scannerLabel = scannerId
                 ? featureName(t, scannerId, result.scannerName)
                 : result.scannerName
+              // With a report, only evidence counts as a hit; scanners that
+              // only produced system information (e.g. Steam accounts) stay neutral.
+              const evidenceCount = report
+                ? (scannerId ? scannerEvidenceCount(report, scannerId) : 0)
+                : result.findings.length
               return (
               <div
                 key={result.scannerName}
@@ -163,25 +184,35 @@ export function Results() {
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
                         <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
-                          result.hasFindings ? 'bg-alert/10 text-alert' : 'bg-scan/10 text-scan'
+                          !result.success
+                            ? 'bg-amber/10 text-amber'
+                            : evidenceCount > 0
+                            ? 'bg-alert/10 text-alert'
+                            : result.hasFindings
+                            ? 'bg-panel-2 text-ink-dim'
+                            : 'bg-scan/10 text-scan'
                         }`}>
-                          {result.hasFindings ? (
-                            <span className="text-sm font-bold">{result.findings.length}</span>
+                          {!result.success ? (
+                            <span className="text-sm font-bold">!</span>
+                          ) : result.hasFindings ? (
+                            <span className="text-sm font-bold">{evidenceCount > 0 ? evidenceCount : result.findings.length}</span>
                           ) : (
                             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                             </svg>
                           )}
                         </div>
-                        <div>
+                        <div className="min-w-0">
                           <div className="flex items-center gap-1.5">
                             <p className="text-sm font-medium text-ink">{scannerLabel}</p>
                             {scannerId && (
                               <InfoTip title={scannerLabel} text={featureHelp(t, scannerId)} />
                             )}
                           </div>
-                          <p className="text-xs text-ink-dim">
-                            {result.duration}ms
+                          <p className={`text-xs ${result.success ? 'text-ink-dim' : 'text-amber'}`}>
+                            {result.success
+                              ? `${result.duration}ms`
+                              : `${t('results.checkFailed')}${result.error ? `: ${result.error}` : ''}`}
                           </p>
                         </div>
                       </div>

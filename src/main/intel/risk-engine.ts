@@ -155,6 +155,7 @@ export function computeVerdict(findings: AnalyzedFinding[], correlations: Correl
   const reasons: ScoreReason[] = []
 
   if (findings.length === 0) {
+    reasons.push({ code: 'no-findings', direction: 'neutral', text: 'No findings' })
     return { score: 0, band: 'clean', rationale: 'No findings', reasons }
   }
 
@@ -184,7 +185,7 @@ export function computeVerdict(findings: AnalyzedFinding[], correlations: Correl
     reasons.push({ code: 'verified-hash', direction: 'up', text: 'A verified known-cheat file hash matched' })
   } else if (strong3) {
     band = 'critical'
-    reasons.push({ code: 'corroboration', direction: 'up', text: 'A signature was corroborated across 3+ artifact types' })
+    reasons.push({ code: 'strong-corroboration', direction: 'up', text: 'A signature was corroborated across 3+ artifact types' })
   } else if (strong2 || crossRuntimeFile || communityHashCorroborated) {
     band = 'high'
     reasons.push({ code: 'corroboration', direction: 'up', text: 'A signature was corroborated across multiple artifacts' })

@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import { ScanResult, ScanProgress, ScannerInfo, ScanReport } from '../../shared/types'
+import { evidenceFindings } from '../utils/report-view'
 
 export type ScanStatus = 'idle' | 'scanning' | 'completed' | 'error'
 
@@ -16,6 +17,8 @@ interface ScanState {
   _hasFindings: boolean
   _successfulScans: number
   _failedScans: number
+  /** Evidence (non-informational, active) findings in the analyzed report; null until it arrives. */
+  _evidenceCount: number | null
 
   // Actions
   setStatus: (status: ScanStatus) => void
@@ -49,6 +52,7 @@ export const useScanStore = create<ScanState>((set) => ({
   _hasFindings: false,
   _successfulScans: 0,
   _failedScans: 0,
+  _evidenceCount: null,
 
   setStatus: (status) => set({ status }),
   setProgress: (progress) => set({ progress }),
@@ -70,7 +74,7 @@ export const useScanStore = create<ScanState>((set) => ({
 
   setError: (error) => set({ error, status: error ? 'error' : 'idle' }),
 
-  setReport: (report) => set({ report }),
+  setReport: (report) => set({ report, _evidenceCount: report ? evidenceFindings(report).length : null }),
 
   reset: () => set({
     status: 'idle',
@@ -81,7 +85,8 @@ export const useScanStore = create<ScanState>((set) => ({
     _totalFindings: 0,
     _hasFindings: false,
     _successfulScans: 0,
-    _failedScans: 0
+    _failedScans: 0,
+    _evidenceCount: null
   })
 }))
 
@@ -127,4 +132,13 @@ export function subscribeToScanEvents(api: ScanEventsApi = window.electronAPI): 
     })
   ]
   return () => unsubs.forEach((unsub) => unsub())
+}
+
+/**
+ * The number to show users as "findings": evidence from the analyzed report
+ * once available (excludes system information such as Steam accounts), else
+ * the raw count while a scan is still streaming in.
+ */
+export function shownFindingCount(state: Pick<ScanState, '_evidenceCount' | '_totalFindings'>): number {
+  return state._evidenceCount ?? state._totalFindings
 }
