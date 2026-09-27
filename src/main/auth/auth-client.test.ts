@@ -1,6 +1,6 @@
 // src/main/auth/auth-client.test.ts
 import { describe, it, expect, vi } from 'vitest'
-import { AuthClient } from './auth-client'
+import { AuthClient, SessionUnavailableError } from './auth-client'
 import type { PublicUser } from '../../shared/types'
 
 const BASE = 'http://localhost:3000'
@@ -58,6 +58,26 @@ describe('AuthClient.getSession', () => {
   it('returns null for a banned account', async () => {
     const c = new AuthClient(BASE, mockFetch(() => json({ user: { ...user, status: 'banned' } })))
     expect(await c.getSession('t')).toBeNull()
+  })
+  it('returns null on 403', async () => {
+    const c = new AuthClient(BASE, mockFetch(() => json({}, 403)))
+    expect(await c.getSession('t')).toBeNull()
+  })
+  it('throws SessionUnavailableError on 5xx / 429 instead of reporting an invalid session', async () => {
+    for (const status of [500, 502, 503, 429]) {
+      const c = new AuthClient(BASE, mockFetch(() => json({}, status)))
+      await expect(c.getSession('t')).rejects.toBeInstanceOf(SessionUnavailableError)
+    }
+  })
+  it('throws SessionUnavailableError on a network failure', async () => {
+    const c = new AuthClient(BASE, mockFetch(() => { throw new TypeError('fetch failed') }))
+    await expect(c.getSession('t')).rejects.toBeInstanceOf(SessionUnavailableError)
+  })
+  it('passes an abort signal so a stalled request cannot hang', async () => {
+    let seen: RequestInit | undefined
+    const c = new AuthClient(BASE, mockFetch((_u, init) => { seen = init; return json({ user }) }))
+    await c.getSession('t')
+    expect(seen?.signal).toBeInstanceOf(AbortSignal)
   })
 })
 

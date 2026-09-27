@@ -29,11 +29,31 @@ export type DevicePollResult =
   | { kind: 'denied' }
   | { kind: 'error'; code?: string }
 
+/** Upper bound for any single auth request, so a stalled server can never hang a flow. */
+export const AUTH_REQUEST_TIMEOUT_MS = 15_000
+
+/**
+ * The session could not be verified for a transient reason (network error,
+ * timeout, 5xx, 429). Distinct from a definitive "invalid session" (null), so
+ * callers can keep a cached login instead of wiping it on a server hiccup.
+ */
+export class SessionUnavailableError extends Error {
+  constructor(reason: string) {
+    super(`session unavailable: ${reason}`)
+    this.name = 'SessionUnavailableError'
+  }
+}
+
 export class AuthClient {
   constructor(private baseUrl: string, private fetchImpl: typeof fetch = fetch) {}
 
   private url(path: string): string {
     return `${this.baseUrl.replace(/\/$/, '')}${path}`
+  }
+
+  /** fetch with a hard timeout; rejects on network failure or timeout. */
+  private request(path: string, init: RequestInit = {}): Promise<Response> {
+    return this.fetchImpl(this.url(path), { ...init, signal: AbortSignal.timeout(AUTH_REQUEST_TIMEOUT_MS) })
   }
 
   buildStartUrl(state: string, codeChallenge: string, provider: Exclude<AuthProvider, 'device'>): string {
@@ -76,7 +96,7 @@ export class AuthClient {
   }
 
   async exchange(args: { state: string; code: string; codeVerifier: string }): Promise<{ token: string; user: PublicUser }> {
-    const res = await this.fetchImpl(this.url('/api/desktop/token/exchange'), {
+    const res = await this.request('/api/desktop/token/exchange', {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({ state: args.state, code: args.code, code_verifier: args.codeVerifier })
@@ -87,11 +107,24 @@ export class AuthClient {
     return { token: parsed.token, user: this.withAvatar(parsed.user) }
   }
 
+  /**
+   * Resolve the current session for `token`.
+   * @returns the user for an active session, or null when the session is
+   *   definitively invalid (401/403, banned/deleted, or no user).
+   * @throws SessionUnavailableError on transient failures (network, timeout,
+   *   5xx, 429) — the session may still be valid, so callers must not wipe it.
+   */
   async getSession(token: string): Promise<{ user: PublicUser } | null> {
-    const res = await this.fetchImpl(this.url('/api/auth/get-session'), {
-      headers: { Authorization: `Bearer ${token}` }
-    })
-    if (res.status === 401) return null
+    let res: Response
+    try {
+      res = await this.request('/api/auth/get-session', {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+    } catch (e) {
+      throw new SessionUnavailableError(e instanceof Error ? e.name : 'network')
+    }
+    if (res.status === 401 || res.status === 403) return null
+    if (res.status === 429 || res.status >= 500) throw new SessionUnavailableError(`http ${res.status}`)
     const body = await res.json().catch(() => ({}))
     const parsed = SessionSchema.safeParse(body)
     if (!parsed.success) return null
@@ -107,7 +140,7 @@ export class AuthClient {
   async uploadAvatar(token: string, bytes: ArrayBuffer, mime: string): Promise<void> {
     const form = new FormData()
     form.set('file', new Blob([bytes], { type: mime }), 'avatar')
-    const res = await this.fetchImpl(this.url('/api/desktop/profile/avatar'), {
+    const res = await this.request('/api/desktop/profile/avatar', {
       method: 'POST',
       headers: { Authorization: `Bearer ${token}` },
       body: form
@@ -119,7 +152,7 @@ export class AuthClient {
   }
 
   async requestDeviceCode(): Promise<{ deviceCode: string; userCode: string; verificationUri: string; expiresIn: number; interval: number }> {
-    const res = await this.fetchImpl(this.url('/api/desktop/device/code'), { method: 'POST' })
+    const res = await this.request('/api/desktop/device/code', { method: 'POST' })
     const body = await res.json().catch(() => ({}))
     if (!res.ok) throw new Error(`device code failed: ${body?.error ?? res.status}`)
     const d = DeviceCodeSchema.parse(body)
@@ -133,7 +166,7 @@ export class AuthClient {
   }
 
   async pollDeviceToken(deviceCode: string): Promise<DevicePollResult> {
-    const res = await this.fetchImpl(this.url('/api/desktop/device/token'), {
+    const res = await this.request('/api/desktop/device/token', {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({ device_code: deviceCode })
@@ -155,7 +188,7 @@ export class AuthClient {
 
   async revoke(token: string): Promise<void> {
     try {
-      await this.fetchImpl(this.url('/api/auth/sign-out'), {
+      await this.request('/api/auth/sign-out', {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}` }
       })
