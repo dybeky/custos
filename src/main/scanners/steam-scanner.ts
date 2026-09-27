@@ -5,7 +5,7 @@ import { homedir } from 'os'
 import { BaseScanner, ScannerEventEmitter } from './base-scanner'
 import { ScanResult } from '../../shared/types'
 import { AppConfig } from '../services/config-service'
-import { VdfParser, SteamAccount } from '../services/vdf-parser'
+import { VdfParser } from '../services/vdf-parser'
 import { getAvailableDrives } from '../utils/drive-utils'
 
 export class SteamScanner extends BaseScanner {
@@ -62,7 +62,6 @@ export class SteamScanner extends BaseScanner {
     steamPaths.push(steamFromProfile)
 
     let steamFound = false
-    let accounts: SteamAccount[] = []
 
     for (let i = 0; i < steamPaths.length; i++) {
       if (this.cancelled) break
@@ -85,7 +84,7 @@ export class SteamScanner extends BaseScanner {
 
         try {
           const vdfContent = await readFile(loginUsersPath, 'utf-8')
-          accounts = this.vdfParser.parseSteamAccounts(vdfContent)
+          const accounts = this.vdfParser.parseSteamAccounts(vdfContent)
 
           // Add account info to results with validation
           for (const account of accounts) {

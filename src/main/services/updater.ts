@@ -25,7 +25,7 @@ export function evaluateUpdate(currentVersion: string, result: ReleaseResult): U
     checkFailed: false,
     currentVersion,
     latestVersion: release.tagName,
-    url: updateAvailable ? `https://github.com/${REPO}/releases/tag/${release.tagName}` : null,
+    url: updateAvailable ? `https://github.com/${REPO}/releases/tag/${encodeURIComponent(release.tagName)}` : null,
     notes: updateAvailable ? notesFromRelease(release) : []
   }
 }
