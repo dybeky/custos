@@ -29,6 +29,16 @@
       "emeraldDesc": "Deep green-black with a mint accent.",
       "violet": "Violet",
       "violetDesc": "Ink-violet with a soft lavender accent."
+    },
+    "signatures": {
+      "title": "Detection signatures",
+      "bundled": "Built-in signatures only.",
+      "site": "Built-in signatures + {{count}} from the site (version {{version}}).",
+      "off": "Updates from the site are off in this build.",
+      "checked": "Last checked {{when}}.",
+      "check": "Check now",
+      "checking": "Checking…",
+      "error": "Last check failed ({{error}})."
     }
   },
   "dashboard": {
@@ -724,5 +734,34 @@
     "hide": "Hide changes",
     "addedTitle": "New since the previous check",
     "removedTitle": "Gone since the previous check"
+  },
+  "site": {
+    "title": "Site",
+    "upload": "Upload to site",
+    "reupload": "Upload again",
+    "uploading": "Uploading…",
+    "uploadedIntact": "Uploaded — integrity verified",
+    "uploadedUnverified": "Uploaded — integrity could not be verified",
+    "openCheck": "Open on site",
+    "addPlayerHint": "Add the player above so this check appears on their card.",
+    "playerHistory": "Checks of this player on the site",
+    "loading": "Loading…",
+    "noOtherChecks": "No other checks of this player on the site.",
+    "otherChecks_one": "{{count}} check of this player on the site:",
+    "otherChecks_other": "{{count}} checks of this player on the site:",
+    "openPlayer": "Open player card",
+    "updateRequired": "The site requires Custos {{version}} or newer. Update the app to use site features.",
+    "errors": {
+      "failed": "Something went wrong. Try again.",
+      "not_signed_in": "Sign in again to use site features.",
+      "update_required": "Update the app to use site features.",
+      "forbidden": "Your role does not allow this.",
+      "rate_limited": "Too many requests — try again in a few minutes.",
+      "too_large": "This check is too large to upload.",
+      "invalid_report": "The site rejected this check.",
+      "not_found": "This check is no longer saved on this PC.",
+      "network": "Could not reach the site.",
+      "disabled": "Site features are turned off."
+    }
   }
 }

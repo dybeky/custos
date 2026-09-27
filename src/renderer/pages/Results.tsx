@@ -14,6 +14,7 @@ import { ActivityTimeline } from '../components/report/ActivityTimeline'
 import { FindingRow } from '../components/report/FindingRow'
 import { CaseCard } from '../components/report/CaseCard'
 import { RecheckCard } from '../components/history/RecheckCard'
+import { SitePanel } from '../components/site/SitePanel'
 import { HistoryBanner } from '../components/history/HistoryBanner'
 import { useNavigate } from 'react-router-dom'
 import { useAuthStore } from '../stores/auth-store'
@@ -85,6 +86,7 @@ export function Results() {
           </Card>
         )}
         <RecheckCard />
+        <SitePanel />
         {correlations.length > 0 && report && (
           <Card className="mb-6">
             <CardContent>

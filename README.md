@@ -317,11 +317,23 @@ Clicking a tool opens its official download page in your browser:
 
 ## Settings
 
-The **Settings** page has three sections:
+The **Settings** page has four sections:
 
 - **Interface** — choose **Classic** or **Focus** (see [Two interfaces](#two-interfaces-classic-and-focus)); the switch is instant and remembered.
 - **Color theme** — **Espresso** (warm coffee‑noir, the default), **Graphite** (cool blue), **Emerald** (mint green) or **Violet** (lavender). Works in both interfaces, switches instantly, and is remembered — even the window background at launch matches.
+- **Detection signatures** — whether scans use only the built‑in signatures or also the extra ones published on the site, with a **Check now** button.
 - **Account** — sign in with your 97437.dev account (optional). Your name is then recorded as *checked by* on exported reports.
+
+### Working with the site
+
+Signed‑in staff get a **Site** card on the results screen, depending on what their role on 97437.dev allows (the site checks the role on every request):
+
+- **Upload to site** — sends the check (with the player and your notes) to the staff panel. The site re‑computes the report's SHA‑256 and marks it *intact* only if nothing was edited after the scan.
+- **Checks of this player on the site** — every check of the same player (by SteamID, else name) uploaded by any checker, with a link to the player card.
+
+**Signature updates.** The site can publish extra detection signatures (names, domains, confirmed file hashes). They are **added** to the built‑in ones — never replace them — and are signed with Ed25519: the app accepts a bundle only if it verifies against the public key in `resources/settings.json` → `signatures.publicKey`, and never goes back to an older bundle. With an empty key (the default in source builds) updates are off.
+
+**Minimum version.** Staff can require a minimum app version; older builds then cannot sign in, and the app says which version is needed.
 
 Custos is English‑only. Scanners still read artifacts from Windows in any display language (for example, `ipconfig` output on a Russian‑language Windows is parsed correctly).
 

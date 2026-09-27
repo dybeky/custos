@@ -37,10 +37,11 @@ export class FileHashScanner extends BaseScanner {
 
   private knownHashSet: Set<string>
 
-  constructor(keywordMatcher: KeywordMatcher, scanSettings: ScanSettings) {
+  /** @param extraHashes confirmed hashes from the site's signed signature bundle. */
+  constructor(keywordMatcher: KeywordMatcher, scanSettings: ScanSettings, extraHashes: string[] = []) {
     super(keywordMatcher, scanSettings)
     const hashes = configService.loadKnownHashes()
-    this.knownHashSet = new Set(hashes)
+    this.knownHashSet = new Set([...hashes, ...extraHashes.map((h) => h.toLowerCase())])
   }
 
   protected async doScan(events: ScannerEventEmitter | undefined, startTime: Date): Promise<ScanResult> {

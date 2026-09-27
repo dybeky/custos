@@ -14,6 +14,7 @@ import { useExportReport } from '../commands'
 import { filterCounts, groupFindings, type FindingFilter } from '../findings-filter'
 import { VerdictGauge } from './VerdictGauge'
 import { RecheckCard } from '../../components/history/RecheckCard'
+import { SitePanel } from '../../components/site/SitePanel'
 import { HistoryBanner } from '../../components/history/HistoryBanner'
 import { useNavigate } from 'react-router-dom'
 import { IconAlert, IconCheck, IconDownload, IconRefresh, IconSearch, IconX } from '../icons'
@@ -88,6 +89,7 @@ export function ResultsWorkspace({ report }: { report: ScanReport }) {
         </section>
 
         <RecheckCard compact />
+        <SitePanel compact />
 
         <section className="m-surface p-4">
           <label htmlFor="m-case-player" className="text-[10px] font-semibold uppercase tracking-wider text-ink-dim">{t('case.player')}</label>

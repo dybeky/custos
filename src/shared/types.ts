@@ -108,6 +108,55 @@ export interface AuthState {
   device?: DeviceProgress
   /** True when safeStorage is unavailable → token is memory-only this run (§4.7). */
   encryptionUnavailable?: boolean
+  /**
+   * Site capabilities of the signed-in user that the app has UI for
+   * ('upload_reports', 'view_reports'). A display hint only: the site re-checks
+   * every call.
+   */
+  capabilities?: string[]
+  /** Set when the site refuses this app version: the minimum it accepts. */
+  updateRequired?: string
+}
+
+/** Outcome of uploading a saved check to the site. */
+export interface SiteUploadResult {
+  ok: boolean
+  /** Staff-panel URL of the uploaded check. */
+  url?: string
+  /** The site re-hashed the report and it matched. */
+  hashVerified?: boolean
+  error?: string
+}
+
+/** One uploaded check of a player, as the site lists it. */
+export interface SiteCheck {
+  id: string
+  scannedAt: string
+  band: 'clean' | 'low' | 'medium' | 'high' | 'critical'
+  score: number
+  leads: number
+  gameId: string | null
+  player: string | null
+  uploader: string | null
+  hashVerified: boolean
+}
+
+export interface SitePlayerResult {
+  ok: boolean
+  checks?: SiteCheck[]
+  error?: string
+}
+
+/** Detection signatures downloaded from the site (Ed25519-signed). */
+export interface SignatureStatus {
+  /** False when the app has no pinned public key (updates switched off). */
+  enabled: boolean
+  /** Version of the site bundle in use; 0 = bundled signatures only. */
+  version: number
+  /** Extra entries the site bundle adds. */
+  entries: number
+  lastCheckedAt?: string
+  lastError?: string
 }
 
 // Cross-platform OS info for renderer
@@ -309,7 +358,14 @@ export const IPC_CHANNELS = {
   AUTH_LOGOUT: 'auth:logout',
   AUTH_OPEN_PROFILE: 'auth:open-profile',
   AUTH_UPLOAD_AVATAR: 'auth:upload-avatar',
-  AUTH_CHANGED: 'auth:changed'
+  AUTH_CHANGED: 'auth:changed',
+  SITE_UPLOAD_CHECK: 'site:upload-check',
+  SITE_PLAYER_CHECKS: 'site:player-checks',
+  SITE_OPEN: 'site:open',
+
+  // Signatures downloaded from the site
+  SIGNATURES_STATUS: 'signatures:status',
+  SIGNATURES_CHECK: 'signatures:check'
 } as const
 
 export type IpcChannel = typeof IPC_CHANNELS[keyof typeof IPC_CHANNELS]

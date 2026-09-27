@@ -15,7 +15,7 @@ const oauthBtn =
 
 export function LoginModal({ isOpen, onClose }: LoginModalProps) {
   const { t } = useTranslation()
-  const { device, encryptionUnavailable, login } = useAuthStore()
+  const { device, encryptionUnavailable, updateRequired, login } = useAuthStore()
   const { osInfo } = useAppHealthStore()
   // The primary-browser OAuth flow returns to the app via the custos:// deep link,
   // which is only registered on Windows (by the installer). On macOS/Linux that
@@ -40,6 +40,10 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
 
         {encryptionUnavailable && (
           <p className="text-xs text-amber">{t('auth.encryptionUnavailable')}</p>
+        )}
+        {/* The site refuses sign-in from builds below its minimum version. */}
+        {updateRequired && (
+          <p className="text-xs text-amber">{t('site.updateRequired', { version: updateRequired })}</p>
         )}
 
         {device ? (

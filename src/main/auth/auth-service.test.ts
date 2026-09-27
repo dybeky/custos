@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, afterEach } from 'vitest'
 import { AuthService } from './auth-service'
-import { AuthClient } from './auth-client'
+import { AuthClient, UpdateRequiredError } from './auth-client'
 import { TokenStore } from './token-store'
 import type { PublicUser, AuthState } from '../../shared/types'
 
@@ -417,5 +417,72 @@ describe('AuthService.uploadAvatar', () => {
     expect(res.ok).toBe(false)
     expect(res.error).toContain('413')
     expect(getSession).not.toHaveBeenCalled()
+  })
+})
+
+describe('AuthService site features', () => {
+  const report = { id: 'scan_1' } as any
+
+  it('loads capabilities after startup validation', async () => {
+    const { svc, tokens } = build({
+      getSession: vi.fn(async () => ({ user })),
+      getMe: vi.fn(async () => ({ capabilities: ['upload_reports', 'view_reports'], minVersion: null }))
+    } as any)
+    tokens.save('b')
+    tokens.saveUser(user)
+    await svc.validateOnStartup()
+    expect(svc.getState().capabilities).toEqual(['upload_reports', 'view_reports'])
+    expect(svc.getState().updateRequired).toBeUndefined()
+  })
+
+  it('flags an outdated app and drops site features', async () => {
+    const { svc, tokens } = build({
+      getSession: vi.fn(async () => ({ user })),
+      getMe: vi.fn(async () => { throw new UpdateRequiredError('9.0.0') })
+    } as any)
+    tokens.save('b')
+    await svc.validateOnStartup()
+    expect(svc.getState().status).toBe('authed')
+    expect(svc.getState().updateRequired).toBe('9.0.0')
+    expect(svc.getState().capabilities).toBeUndefined()
+  })
+
+  it('reports update_required from a login exchange', async () => {
+    const { svc } = build()
+    await svc.login('github')
+    const pendingState = (svc as any).pendingAuth.state
+    ;(svc as any).client.exchange = vi.fn(async () => { throw new UpdateRequiredError('9.0.0') })
+    await svc.handleCallback(`custos://auth/callback?state=${pendingState}&code=g`)
+    expect(svc.getState()).toMatchObject({ status: 'anon', updateRequired: '9.0.0' })
+  })
+
+  it('uploads a check only when signed in', async () => {
+    const uploadReport = vi.fn(async () => ({ id: 'r1', url: 'http://localhost:3000/admin/reports/r1', hashVerified: true }))
+    const { svc, tokens } = build({
+      getSession: vi.fn(async () => ({ user })),
+      getMe: vi.fn(async () => ({ capabilities: ['upload_reports'], minVersion: null })),
+      uploadReport
+    } as any)
+    expect(await svc.uploadCheck(report, { player: 'p', notes: '' })).toEqual({ ok: false, error: 'not_signed_in' })
+    tokens.save('b')
+    await svc.validateOnStartup()
+    expect(await svc.uploadCheck(report, { player: 'p', notes: 'n' })).toEqual({
+      ok: true, url: 'http://localhost:3000/admin/reports/r1', hashVerified: true
+    })
+    expect(uploadReport).toHaveBeenCalledWith('b', { report, case: { player: 'p', notes: 'n' } })
+  })
+
+  it('opens site pages only through the allowlisted opener, and only when signed in', async () => {
+    const { svc, tokens, opened } = build({
+      getSession: vi.fn(async () => ({ user })),
+      getMe: vi.fn(async () => ({ capabilities: [], minVersion: null }))
+    } as any)
+    svc.openSite(svc.siteCheckUrl('r1'))
+    expect(opened).toEqual([])
+    tokens.save('b')
+    await svc.validateOnStartup()
+    svc.openSite(svc.siteCheckUrl('r1'))
+    svc.openSite(svc.sitePlayerUrl('name:bob'))
+    expect(opened).toEqual(['http://localhost:3000/admin/reports/r1', 'http://localhost:3000/admin/players/name%3Abob'])
   })
 })

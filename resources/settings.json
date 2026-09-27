@@ -1,5 +1,6 @@
 {
   "auth": { "enabled": true, "webBaseUrl": "https://97437.dev" },
+  "signatures": { "publicKey": "" },
   "app": {
     "timeouts": {
       "defaultProcessTimeoutMs": 10000,

@@ -24,3 +24,21 @@ export const AuthUploadAvatarPayloadSchema = z.object({
     .refine((b) => b.byteLength > 0 && b.byteLength <= MAX_AVATAR_BYTES, 'avatar size out of range'),
   mime: z.enum(['image/webp', 'image/png', 'image/jpeg'])
 }).strict()
+
+/** site:upload-check — a saved check (by history id) plus the case details. */
+export const SiteUploadPayloadSchema = z.object({
+  historyId: z.string().regex(/^[A-Za-z0-9_-]{1,80}$/),
+  player: z.string().max(200),
+  notes: z.string().max(20000)
+}).strict()
+
+/** site:player-checks — the player field as typed (main derives the key). */
+export const SitePlayerPayloadSchema = z.object({
+  player: z.string().min(1).max(200)
+}).strict()
+
+/** site:open — an uploaded check id, or a player field. */
+export const SiteOpenPayloadSchema = z.union([
+  z.object({ checkId: z.string().regex(/^[A-Za-z0-9_-]{1,64}$/) }).strict(),
+  z.object({ player: z.string().min(1).max(200) }).strict()
+])

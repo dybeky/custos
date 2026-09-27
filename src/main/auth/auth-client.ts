@@ -12,6 +12,24 @@ const PublicUserSchema = z.object({
   image: z.string().nullable().optional()
 })
 const ExchangeSchema = z.object({ token: z.string(), user: PublicUserSchema })
+const MeSchema = z.object({
+  capabilities: z.array(z.string()).max(32),
+  minVersion: z.string().max(40).nullable().optional()
+})
+const UploadResultSchema = z.object({ id: z.string(), url: z.string(), hashVerified: z.boolean() })
+const PlayerChecksSchema = z.object({
+  checks: z.array(z.object({
+    id: z.string(),
+    scannedAt: z.string(),
+    band: z.enum(['clean', 'low', 'medium', 'high', 'critical']),
+    score: z.number(),
+    leads: z.number(),
+    gameId: z.string().nullable(),
+    player: z.string().nullable(),
+    uploader: z.string().nullable(),
+    hashVerified: z.boolean()
+  })).max(200)
+})
 const SessionSchema = z.object({ user: PublicUserSchema })
 const DeviceCodeSchema = z.object({
   device_code: z.string(),
@@ -21,12 +39,33 @@ const DeviceCodeSchema = z.object({
   interval: z.number()
 })
 
+export type SiteCheck = z.infer<typeof PlayerChecksSchema>['checks'][number]
+
+/**
+ * The site refuses this app version (HTTP 426 update_required): an admin set a
+ * minimum version the running build is below.
+ */
+export class UpdateRequiredError extends Error {
+  constructor(public minVersion: string) {
+    super('update_required')
+    this.name = 'UpdateRequiredError'
+  }
+}
+
+/** Throw UpdateRequiredError for a 426 response (reads the body). */
+async function checkUpdateRequired(res: Response): Promise<void> {
+  if (res.status !== 426) return
+  const body = (await res.json().catch(() => ({}))) as { minVersion?: unknown }
+  throw new UpdateRequiredError(typeof body.minVersion === 'string' ? body.minVersion.slice(0, 40) : '')
+}
+
 export type DevicePollResult =
   | { kind: 'pending' }
   | { kind: 'slow_down' }
   | { kind: 'token'; token: string; user: PublicUser }
   | { kind: 'expired' }
   | { kind: 'denied' }
+  | { kind: 'update_required'; minVersion: string }
   | { kind: 'error'; code?: string }
 
 /** Upper bound for any single auth request, so a stalled server can never hang a flow. */
@@ -45,7 +84,11 @@ export class SessionUnavailableError extends Error {
 }
 
 export class AuthClient {
-  constructor(private baseUrl: string, private fetchImpl: typeof fetch = fetch) {}
+  /**
+   * @param appVersion sent as X-Custos-Version on every request so the site can
+   *   enforce its minimum app version.
+   */
+  constructor(private baseUrl: string, private fetchImpl: typeof fetch = fetch, private appVersion?: string) {}
 
   private url(path: string): string {
     return `${this.baseUrl.replace(/\/$/, '')}${path}`
@@ -53,7 +96,24 @@ export class AuthClient {
 
   /** fetch with a hard timeout; rejects on network failure or timeout. */
   private request(path: string, init: RequestInit = {}): Promise<Response> {
-    return this.fetchImpl(this.url(path), { ...init, signal: AbortSignal.timeout(AUTH_REQUEST_TIMEOUT_MS) })
+    const headers = new Headers(init.headers)
+    if (this.appVersion) headers.set('X-Custos-Version', this.appVersion)
+    return this.fetchImpl(this.url(path), { ...init, headers, signal: AbortSignal.timeout(AUTH_REQUEST_TIMEOUT_MS) })
+  }
+
+  /** Site URLs main may open for the user (checks and player cards). */
+  isSiteUrl(url: string): boolean {
+    try {
+      const u = new URL(url)
+      const base = new URL(this.baseUrl)
+      return u.origin === base.origin && /^\/admin\/(reports|players)\/[^/]+$/.test(u.pathname) && !u.search && !u.hash
+    } catch {
+      return false
+    }
+  }
+
+  buildPlayerUrl(key: string): string {
+    return this.url(`/admin/players/${encodeURIComponent(key)}`)
   }
 
   buildStartUrl(state: string, codeChallenge: string, provider: Exclude<AuthProvider, 'device'>): string {
@@ -101,6 +161,7 @@ export class AuthClient {
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({ state: args.state, code: args.code, code_verifier: args.codeVerifier })
     })
+    await checkUpdateRequired(res)
     const body = await res.json().catch(() => ({}))
     if (!res.ok) throw new Error(`exchange failed: ${body?.error ?? res.status}`)
     const parsed = ExchangeSchema.parse(body)
@@ -151,8 +212,48 @@ export class AuthClient {
     }
   }
 
+  /**
+   * What the signed-in user may do from the app. Every action is re-checked on
+   * the site; this only decides which buttons to show.
+   * @throws UpdateRequiredError when the site requires a newer app.
+   */
+  async getMe(token: string): Promise<{ capabilities: string[]; minVersion: string | null }> {
+    const res = await this.request('/api/desktop/me', { headers: { Authorization: `Bearer ${token}` } })
+    await checkUpdateRequired(res)
+    if (!res.ok) throw new Error(`me failed: ${res.status}`)
+    const parsed = MeSchema.parse(await res.json())
+    return { capabilities: parsed.capabilities, minVersion: parsed.minVersion ?? null }
+  }
+
+  /** Upload a saved check (report + case details) to the site. */
+  async uploadReport(token: string, payload: { report: unknown; case: { player: string; notes: string } }): Promise<{ id: string; url: string; hashVerified: boolean }> {
+    const res = await this.request('/api/desktop/reports', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}`, 'content-type': 'application/json' },
+      body: JSON.stringify(payload)
+    })
+    await checkUpdateRequired(res)
+    const body = (await res.json().catch(() => ({}))) as { error?: string }
+    if (!res.ok) throw new Error(body?.error ?? `upload failed: ${res.status}`)
+    const parsed = UploadResultSchema.parse(body)
+    if (!this.isSiteUrl(parsed.url)) throw new Error('bad_response')
+    return parsed
+  }
+
+  /** Every uploaded check of one player (all checkers), newest first. */
+  async getPlayerChecks(token: string, key: string): Promise<SiteCheck[]> {
+    const res = await this.request(`/api/desktop/players/${encodeURIComponent(key)}`, {
+      headers: { Authorization: `Bearer ${token}` }
+    })
+    await checkUpdateRequired(res)
+    const body = (await res.json().catch(() => ({}))) as { error?: string }
+    if (!res.ok) throw new Error(body?.error ?? `player failed: ${res.status}`)
+    return PlayerChecksSchema.parse(body).checks
+  }
+
   async requestDeviceCode(): Promise<{ deviceCode: string; userCode: string; verificationUri: string; expiresIn: number; interval: number }> {
     const res = await this.request('/api/desktop/device/code', { method: 'POST' })
+    await checkUpdateRequired(res)
     const body = await res.json().catch(() => ({}))
     if (!res.ok) throw new Error(`device code failed: ${body?.error ?? res.status}`)
     const d = DeviceCodeSchema.parse(body)
@@ -172,6 +273,9 @@ export class AuthClient {
       body: JSON.stringify({ device_code: deviceCode })
     })
     const body = await res.json().catch(() => ({}))
+    if (res.status === 426) {
+      return { kind: 'update_required', minVersion: typeof body?.minVersion === 'string' ? body.minVersion.slice(0, 40) : '' }
+    }
     if (res.ok && body?.token) {
       const ok = ExchangeSchema.safeParse(body)
       if (ok.success) return { kind: 'token', token: ok.data.token, user: this.withAvatar(ok.data.user) }
