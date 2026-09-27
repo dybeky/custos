@@ -256,6 +256,7 @@ export const IPC_CHANNELS = {
   // Live-scan operations
   LIVE_GET_STATUS: 'live:get-status',
   LIVE_SCAN_START: 'live:scan:start',
+  LIVE_SCAN_CANCEL: 'live:scan:cancel',
   LIVE_SCAN_PROGRESS: 'live:scan:progress',
   LIVE_SCAN_RESULT: 'live:scan:result',
   LIVE_SCAN_COMPLETE: 'live:scan:complete',
