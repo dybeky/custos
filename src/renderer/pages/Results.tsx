@@ -10,6 +10,7 @@ import {
   buildSeverityLookup, severityKey, severityChipClass, bandChipClass,
   reasonText, coverageReason, rankedCorrelations, scannerEvidenceCount
 } from '../utils/report-view'
+import { ActivityTimeline } from '../components/report/ActivityTimeline'
 import { buildTextReport, buildJsonReport, downloadText, exportFileStem } from '../utils/report-export'
 import { SCANNER_DISPLAY_TO_ID } from '../../shared/scanners-meta'
 
@@ -99,6 +100,7 @@ export function Results() {
             </CardContent>
           </Card>
         )}
+        {report && <ActivityTimeline report={report} />}
         {/* Summary Card */}
         <Card className="mb-6">
           <CardContent>

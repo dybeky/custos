@@ -4,7 +4,7 @@ import en from '../i18n/en.json'
 import ru from '../i18n/ru.json'
 import type { ScanReport, ScanResult } from '../../shared/types'
 import { buildTextReport, buildJsonReport, exportFileStem, REPORT_FORMAT } from './report-export'
-import { reasonText, evidenceFindings, coverageReason, rankedCorrelations } from './report-view'
+import { reasonText, evidenceFindings, coverageReason, rankedCorrelations, buildTimeline, relativeToScan } from './report-view'
 
 let tEn: TFunction
 let tRu: TFunction
@@ -141,5 +141,38 @@ describe('buildTextReport formatting', () => {
     expect(ru).toContain('12.3 с')
     expect(ru).toContain('[ИНФО] ')
     expect(buildTextReport(tEn, report, [])).toContain('12.3 s')
+  })
+})
+
+describe('activity timeline', () => {
+  const scanAt = Date.parse(report.meta.scannedAt)
+  const timed: ScanReport = {
+    ...report,
+    findings: [
+      { ...report.findings[0], id: 't1', observedAt: new Date(scanAt - 40 * 60_000).toISOString() },
+      { ...report.findings[1], id: 't2', observedAt: new Date(scanAt - 3 * 24 * 60 * 60_000).toISOString() },
+      { ...report.findings[2], id: 't3', observedAt: new Date(scanAt - 60_000).toISOString() }, // info → excluded
+      { ...report.findings[3], id: 't4', observedAt: new Date(scanAt - 60_000).toISOString() } // dismissed → excluded
+    ]
+  }
+
+  it('lists timestamped evidence newest first and flags the last 24 h', () => {
+    const tl = buildTimeline(timed)
+    expect(tl.map(e => e.finding.id)).toEqual(['t1', 't2'])
+    expect(tl[0]).toMatchObject({ minutesBeforeScan: 40, recent: true })
+    expect(tl[1].recent).toBe(false)
+  })
+
+  it('formats the time relative to the scan in both languages', () => {
+    expect(relativeToScan(tEn, 40)).toBe('40 min before the scan')
+    expect(relativeToScan(tEn, 180)).toBe('3 h before the scan')
+    expect(relativeToScan(tRu, 3 * 24 * 60)).toBe('за 3 дня до проверки')
+    expect(relativeToScan(tRu, 5 * 24 * 60)).toBe('за 5 дней до проверки')
+  })
+
+  it('is included in the text export', () => {
+    const txt = buildTextReport(tEn, timed, [], 'en-GB')
+    expect(txt).toContain('ACTIVITY TIMELINE')
+    expect(txt).toContain('40 min before the scan')
   })
 })
