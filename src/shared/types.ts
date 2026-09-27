@@ -228,6 +228,8 @@ export const IPC_CHANNELS = {
   SCAN_COMPLETE: 'scan:complete',
   SCAN_REPORT: 'scan:report',
   SCAN_ERROR: 'scan:error',
+  SCAN_REANALYZE: 'scan:reanalyze',
+  TRIAGE_GET: 'triage:get',
 
   // Scanner info
   GET_SCANNERS: 'scanners:get',
@@ -247,6 +249,7 @@ export const IPC_CHANNELS = {
   APP_OPEN_EXTERNAL: 'app:open-external',
   APP_OPEN_PATH: 'app:open-path',
   APP_OPEN_REGISTRY: 'app:open-registry',
+  APP_REVEAL_PATH: 'app:reveal-path',
   APP_QUIT: 'app:quit',
 
   // Window operations
@@ -342,6 +345,12 @@ export interface Verdict {
 export interface SuppressionState {
   whitelistedSignatures: string[]
   dismissedFindingIds: string[]
+}
+
+/** Persisted triage choices that outlive a single scan. */
+export interface TriageSettings {
+  /** Signatures the checker marked as never a cheat on their servers. */
+  whitelistedSignatures: string[]
 }
 
 export interface ScanReportMeta {

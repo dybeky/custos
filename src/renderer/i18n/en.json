@@ -556,5 +556,18 @@
     "daysBefore_other": "{{count}} days before the scan",
     "showAll": "Show all ({{count}})",
     "showLess": "Show less"
+  },
+  "triage": {
+    "reveal": "Show in folder",
+    "dismiss": "False positive",
+    "restore": "Restore",
+    "ignore": "Always ignore “{{signature}}”",
+    "ignoreHint": "Stop treating this signature as a lead on every future scan (e.g. a legitimate program on your server that shares the name).",
+    "dismissedNote": "Marked as a false positive — excluded from the verdict.",
+    "ignoredSignature": "Signature “{{signature}}” is ignored — excluded from the verdict.",
+    "pathMissing": "This file or folder no longer exists.",
+    "ignoredTitle": "Ignored signatures",
+    "ignoredHint": "These signatures are skipped on every scan. Remove one to count it again.",
+    "remove": "Remove"
   }
 }

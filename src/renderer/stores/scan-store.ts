@@ -19,6 +19,10 @@ interface ScanState {
   _failedScans: number
   /** Evidence (non-informational, active) findings in the analyzed report; null until it arrives. */
   _evidenceCount: number | null
+  /** Findings dismissed as false positives in the current scan. */
+  dismissedIds: string[]
+  /** Signatures ignored on every scan (persisted in main). */
+  whitelist: string[]
 
   // Actions
   setStatus: (status: ScanStatus) => void
@@ -29,6 +33,12 @@ interface ScanState {
   setError: (error: string | null) => void
   setReport: (report: ScanReport | null) => void
   reset: () => void
+  /** Load the persisted signature whitelist from main. */
+  loadTriage: () => Promise<void>
+  dismissFinding: (id: string) => Promise<void>
+  restoreFinding: (id: string) => Promise<void>
+  ignoreSignature: (signature: string) => Promise<void>
+  unignoreSignature: (signature: string) => Promise<void>
 }
 
 // Helper to compute derived values
@@ -39,7 +49,24 @@ const computeDerivedValues = (results: ScanResult[]) => ({
   _failedScans: results.filter((result) => !result.success).length
 })
 
-export const useScanStore = create<ScanState>((set) => ({
+/**
+ * Push new triage choices to main, which re-scores the last scan and persists
+ * the whitelist; the returned report replaces the current one.
+ */
+async function applyTriage(
+  get: () => ScanState,
+  set: (partial: Partial<ScanState>) => void,
+  next: { dismissedIds: string[]; whitelist: string[] }
+): Promise<void> {
+  set(next)
+  const report = await window.electronAPI.reanalyze({
+    whitelistedSignatures: next.whitelist,
+    dismissedFindingIds: next.dismissedIds
+  })
+  if (report && get().report?.id === report.id) get().setReport(report)
+}
+
+export const useScanStore = create<ScanState>((set, get) => ({
   status: 'idle',
   progress: null,
   results: [],
@@ -53,6 +80,8 @@ export const useScanStore = create<ScanState>((set) => ({
   _successfulScans: 0,
   _failedScans: 0,
   _evidenceCount: null,
+  dismissedIds: [],
+  whitelist: [],
 
   setStatus: (status) => set({ status }),
   setProgress: (progress) => set({ progress }),
@@ -86,8 +115,38 @@ export const useScanStore = create<ScanState>((set) => ({
     _hasFindings: false,
     _successfulScans: 0,
     _failedScans: 0,
-    _evidenceCount: null
-  })
+    _evidenceCount: null,
+    dismissedIds: []
+  }),
+
+  loadTriage: async () => {
+    try {
+      const { whitelistedSignatures } = await window.electronAPI.getTriage()
+      set({ whitelist: whitelistedSignatures })
+    } catch {
+      // keep the empty default
+    }
+  },
+
+  dismissFinding: (id) =>
+    applyTriage(get, set, { dismissedIds: [...new Set([...get().dismissedIds, id])], whitelist: get().whitelist }),
+
+  restoreFinding: (id) =>
+    applyTriage(get, set, { dismissedIds: get().dismissedIds.filter(x => x !== id), whitelist: get().whitelist }),
+
+  ignoreSignature: (signature) => {
+    const lower = signature.toLowerCase()
+    const whitelist = get().whitelist.some(s => s.toLowerCase() === lower) ? get().whitelist : [...get().whitelist, signature]
+    return applyTriage(get, set, { dismissedIds: get().dismissedIds, whitelist })
+  },
+
+  unignoreSignature: (signature) => {
+    const lower = signature.toLowerCase()
+    return applyTriage(get, set, {
+      dismissedIds: get().dismissedIds,
+      whitelist: get().whitelist.filter(s => s.toLowerCase() !== lower)
+    })
+  }
 }))
 
 type ScanEventsApi = Pick<

@@ -14,7 +14,7 @@ import { LiveScan } from './pages/LiveScan'
 import { ErrorBoundary } from './components/ErrorBoundary'
 import { useSettingsStore } from './stores/settings-store'
 import { useAuthStore } from './stores/auth-store'
-import { subscribeToScanEvents } from './stores/scan-store'
+import { subscribeToScanEvents, useScanStore } from './stores/scan-store'
 import { GamePicker } from './components/GamePicker'
 import { UpdateModal } from './components/UpdateModal'
 import { WebsitePromoToast } from './components/WebsitePromoToast'
@@ -50,6 +50,11 @@ export function App() {
   // Keep the scan store in sync with main for the whole session, independent
   // of which page is mounted.
   useEffect(() => subscribeToScanEvents(), [])
+
+  // Persisted signature whitelist, so triage state shows on the first scan.
+  useEffect(() => {
+    void useScanStore.getState().loadTriage()
+  }, [])
 
   // Hydrate renderer auth-store from main and stay live via onAuthChanged.
   // No blocking gate — login is optional (PR-1); the scanner works while anon.
