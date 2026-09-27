@@ -163,9 +163,14 @@ describe('KeywordSettingsSchema (Zod validation)', () => {
 describe('KnownHashesSchema (Zod validation)', () => {
   it('accepts a valid hashes object', () => {
     const result = KnownHashesSchema.safeParse({
-      sha256: ['abc123', 'def456']
+      sha256: ['a'.repeat(64), 'B'.repeat(64)]
     })
     expect(result.success).toBe(true)
+  })
+
+  it('rejects digests that are not 64 hex characters', () => {
+    expect(KnownHashesSchema.safeParse({ sha256: ['abc123'] }).success).toBe(false)
+    expect(KnownHashesSchema.safeParse({ sha256: ['z'.repeat(64)] }).success).toBe(false)
   })
 
   it('accepts an empty sha256 array', () => {

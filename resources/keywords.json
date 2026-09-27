@@ -50,5 +50,73 @@
     "spoofer",
     "arcane",
     "eggu"
-  ]
+  ],
+  "games": {
+    "unturned": {
+      "patterns": [
+        "unturned-hack",
+        "unturned_hack",
+        "unturnedhack",
+        "unturned-cheat",
+        "unturned-cheats",
+        "unturnedcheats",
+        "unturned-aio",
+        "unturned-ragestorm",
+        "ragestorm",
+        "unturned-mod-menu"
+      ],
+      "exactMatch": [],
+      "domains": [
+        "ancientick.com",
+        "wh-satano.ru",
+        "hells-hack.com",
+        "elitehacks.ru",
+        "forgecheats.com",
+        "hera.gg",
+        "ivsofte.biz",
+        "memez.ru",
+        "getcheats.io",
+        "cheat.bz",
+        "millex.xyz",
+        "ezmod.vip",
+        "ssz.gg",
+        "hack.sale",
+        "ducks-services.com",
+        "eternalproduct.com",
+        "cheatseller.com",
+        "cheatvault.net"
+      ]
+    },
+    "cs2": {
+      "patterns": [
+        "aimware",
+        "onetap",
+        "exloader",
+        "plaguecheat",
+        "uwuware",
+        "exhack"
+      ],
+      "exactMatch": [],
+      "domains": [
+        "aimware.net",
+        "onetap.com",
+        "gamesense.pub",
+        "gamesense.vip",
+        "skeet.cc",
+        "exloader.cc",
+        "exloader.net",
+        "xone.fun",
+        "plaguecheat.cc",
+        "neverlose.cc",
+        "digital-cheetah.com",
+        "cheatermad.com",
+        "cheater.ninja",
+        "cheater.fun",
+        "infocheats.net",
+        "allcheats.net",
+        "cs2-cheats.com",
+        "iniquus.io"
+      ]
+    }
+  }
 }

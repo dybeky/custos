@@ -68,14 +68,52 @@ const AppConfigSchema = z.object({
   externalResources: ExternalResourceSettingsSchema
 })
 
-const KeywordSettingsSchema = z.object({
-  patterns: z.array(z.string()),
-  exactMatch: z.array(z.string())
+/** Per-game additions: names, exact basenames and cheat-shop/provider domains. */
+const GameKeywordsSchema = z.object({
+  patterns: z.array(z.string()).default([]),
+  exactMatch: z.array(z.string()).default([]),
+  /** Domains only match as whole domains — safe for brands whose name is a common word. */
+  domains: z.array(z.string()).default([])
 })
 
-const KnownHashesSchema = z.object({
-  sha256: z.array(z.string())
+const KeywordSettingsSchema = z.object({
+  patterns: z.array(z.string()),
+  exactMatch: z.array(z.string()),
+  games: z.record(z.string(), GameKeywordsSchema).optional()
 })
+
+const Sha256Schema = z.string().regex(/^[0-9a-fA-F]{64}$/, 'not a SHA-256 hex digest')
+
+/**
+ * Known cheat file hashes. A match is treated as a VERIFIED content match and
+ * drives a Critical verdict on its own, so every entry must be a real,
+ * confirmed hash: `entries` carry where each one came from.
+ */
+const KnownHashesSchema = z.object({
+  sha256: z.array(Sha256Schema),
+  entries: z.array(z.object({
+    sha256: Sha256Schema,
+    name: z.string(),
+    game: z.string().optional(),
+    /** Where the hash was confirmed (URL or report) — required for traceability. */
+    source: z.string().min(1)
+  })).default([])
+})
+
+/**
+ * Flatten the per-game sections into one matcher configuration. Custos checks
+ * a PC as a whole: a CS2 cheat found during an Unturned check is still a lead.
+ */
+export function flattenKeywords(k: z.infer<typeof KeywordSettingsSchema>): { patterns: string[]; exactMatch: string[] } {
+  const patterns = [...k.patterns]
+  const exactMatch = [...k.exactMatch]
+  for (const g of Object.values(k.games ?? {})) {
+    patterns.push(...g.patterns, ...g.domains)
+    exactMatch.push(...g.exactMatch)
+  }
+  const uniq = (xs: string[]) => [...new Map(xs.map((x) => [x.toLowerCase(), x])).values()]
+  return { patterns: uniq(patterns), exactMatch: uniq(exactMatch) }
+}
 
 // Export schemas for testing
 export { AppConfigSchema, KeywordSettingsSchema, KnownHashesSchema }
@@ -90,7 +128,7 @@ export type RegistrySettings = z.infer<typeof RegistrySettingsSchema>
 export type TelegramBot = z.infer<typeof TelegramBotSchema>
 export type ExternalResourceSettings = z.infer<typeof ExternalResourceSettingsSchema>
 export type AppConfig = z.infer<typeof AppConfigSchema>
-export type KeywordSettings = z.infer<typeof KeywordSettingsSchema>
+export type KeywordSettings = { patterns: string[]; exactMatch: string[] }
 export type KnownHashes = z.infer<typeof KnownHashesSchema>
 
 // ── Desktop auth config (kill switch + web base URL) ──────────────────────────
@@ -160,7 +198,7 @@ class ConfigService {
       // Validate with Zod
       const result = KeywordSettingsSchema.safeParse(parsed)
       if (result.success) {
-        this.keywords = result.data
+        this.keywords = flattenKeywords(result.data)
         return this.keywords
       } else {
         logger.error('Keywords validation failed:', result.error.format())
@@ -182,7 +220,7 @@ class ConfigService {
 
       const result = KnownHashesSchema.safeParse(parsed)
       if (result.success) {
-        this.knownHashes = result.data.sha256.map(h => h.toLowerCase())
+        this.knownHashes = [...new Set([...result.data.sha256, ...result.data.entries.map(e => e.sha256)].map(h => h.toLowerCase()))]
         return this.knownHashes
       } else {
         logger.error('Known hashes validation failed:', result.error.format())
