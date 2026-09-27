@@ -189,10 +189,7 @@ export function setupIpcHandlers(mainWindow: BrowserWindow): void {
   })
 
   // Get cross-platform OS info (auto-detected: Windows / macOS / Linux)
-  const osInfoHandler = async (): Promise<OsInfo> => getOsInfo()
-  ipcMain.handle(IPC_CHANNELS.SYSTEM_GET_OS_INFO, osInfoHandler)
-  // Backward-compatible channel kept for safety
-  ipcMain.handle(IPC_CHANNELS.SYSTEM_GET_WINDOWS_VERSION, osInfoHandler)
+  ipcMain.handle(IPC_CHANNELS.SYSTEM_GET_OS_INFO, (): OsInfo => getOsInfo())
 
   // Get app version
   ipcMain.handle(IPC_CHANNELS.APP_VERSION, (): string => {

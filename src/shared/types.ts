@@ -236,7 +236,6 @@ export const IPC_CHANNELS = {
   SETTINGS_SET: 'settings:set',
 
   // System info
-  SYSTEM_GET_WINDOWS_VERSION: 'system:get-windows-version',
   SYSTEM_GET_OS_INFO: 'system:get-os-info',
   SYSTEM_GET_CAPABILITIES: 'system:get-capabilities',
 

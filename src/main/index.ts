@@ -15,9 +15,8 @@ import { findCallbackInArgv } from './auth/callback-parser'
 import { isAllowedAuthUrl } from './utils/url-policy'
 import { IPC_CHANNELS } from '../shared/types'
 
-// Window background flashed before the renderer paints. Use the new static
-// `--bg` (#0a0908); the multi-theme machinery was removed in 1D-4. The
-// data-theme CSS removal is finalized in 1D-5.
+// Window background shown before the renderer paints; matches the CSS `--bg`
+// token so there is no flash of a different colour on launch.
 const bgColor = '#0a0908'
 
 let mainWindow: BrowserWindow | null = null
