@@ -29,7 +29,8 @@ const execFileP = promisify(execFile)
 
 // Strict schema for partial user settings — rejects unknown properties
 const UserSettingsPartialSchema = z.object({
-  language: z.enum(['en', 'ru']).optional()
+  language: z.enum(['en', 'ru']).optional(),
+  uiMode: z.enum(['classic', 'modern']).optional()
 }).strict()
 
 /**
@@ -39,8 +40,11 @@ const UserSettingsPartialSchema = z.object({
  * Returns a valid UserSettings, defaulting language to 'en'.
  */
 export function migrateSettings(raw: unknown): UserSettings {
-  const language = (raw && typeof raw === 'object' && (raw as { language?: unknown }).language === 'ru') ? 'ru' : 'en'
-  return { language }
+  const obj = raw && typeof raw === 'object' ? (raw as { language?: unknown; uiMode?: unknown }) : {}
+  return {
+    language: obj.language === 'ru' ? 'ru' : 'en',
+    uiMode: obj.uiMode === 'modern' ? 'modern' : 'classic'
+  }
 }
 
 // Single owner of the in-flight scan's running flag + abort controller, kept in

@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import { ScanResult, ScanProgress, ScannerInfo, ScanReport } from '../../shared/types'
+import type { GameId } from '../../shared/games'
 import { evidenceFindings } from '../utils/report-view'
 
 export type ScanStatus = 'idle' | 'scanning' | 'completed' | 'error'
@@ -36,6 +37,10 @@ interface ScanState {
   setError: (error: string | null) => void
   setReport: (report: ScanReport | null) => void
   reset: () => void
+  /** Start a full scan (no-op while one is running). */
+  startScan: (gameId?: GameId) => Promise<void>
+  /** Cancel the running scan; late events from main are then ignored. */
+  cancelScan: () => Promise<void>
   /** Load the persisted signature whitelist from main. */
   loadTriage: () => Promise<void>
   dismissFinding: (id: string) => Promise<void>
@@ -123,6 +128,24 @@ export const useScanStore = create<ScanState>((set, get) => ({
     _evidenceCount: null,
     dismissedIds: []
   }),
+
+  startScan: async (gameId) => {
+    if (get().status === 'scanning') return
+    get().reset()
+    set({ status: 'scanning' })
+    try {
+      await window.electronAPI.startScan(undefined, gameId)
+    } catch (error) {
+      // Ignore a rejection that lands after the user already cancelled.
+      if (get().status !== 'scanning') return
+      get().setError(error instanceof Error ? error.message : 'Unknown error')
+    }
+  },
+
+  cancelScan: async () => {
+    set({ status: 'idle', progress: null })
+    await window.electronAPI.cancelScan().catch(() => {})
+  },
 
   loadTriage: async () => {
     try {

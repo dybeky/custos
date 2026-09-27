@@ -7,6 +7,7 @@ import { Avatar } from '../components/ui/Avatar'
 import { RoleName } from '../components/ui/RoleName'
 import { LoginModal } from '../components/auth/LoginModal'
 import { roleInfo } from '../utils/roles'
+import { InterfacePicker } from '../components/settings/InterfacePicker'
 
 const LANGUAGES: Array<{ id: 'en' | 'ru'; label: string }> = [
   { id: 'en', label: 'English' },
@@ -36,6 +37,16 @@ export function Settings() {
           <h1 className="text-2xl font-bold text-ink font-display">{t('settings.title')}</h1>
           <p className="text-ink-dim mt-1">{t('settings.subtitle')}</p>
         </div>
+
+        {/* Interface — classic vs modern shell, applied instantly */}
+        <Card className="mb-4">
+          <CardHeader>
+            <CardTitle>{t('settings.interface.title')}</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <InterfacePicker />
+          </CardContent>
+        </Card>
 
         {/* Account — replaces the former read-only Appearance swatch (1C-7) */}
         <Card className="mb-4">

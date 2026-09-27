@@ -134,6 +134,19 @@ This is the core workflow. It takes under a minute.
 
 ---
 
+## Two interfaces: Classic and Focus
+
+Pick one in **Settings → Interface** — it switches instantly and is remembered.
+
+| | **Classic** | **Focus** (new) |
+|---|---|---|
+| Layout | Icon sidebar, separate Scan and Results pages | One top bar; the whole check on a single screen |
+| During a scan | Progress ring | Progress ring + a live grid of all 17 checks (waiting / running / done / failed) |
+| Results | Stacked cards | Verdict rail (risk gauge, reason, coverage, case, export) beside a workspace with **Evidence / Timeline / Checks** tabs, severity grouping, filters and search |
+| Keyboard | — | **Ctrl+K** command palette · **Ctrl+Enter** start a check · **Ctrl+E** export the report |
+
+Both interfaces share the same scanners, verdicts, triage and exports.
+
 ## Reading your results
 
 Open the **Results** page after a scan.

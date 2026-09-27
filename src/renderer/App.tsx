@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
-import { HashRouter, Routes, Route } from 'react-router-dom'
+import { HashRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { ModernShell } from './modern/ModernShell'
 import { Header } from './components/layout/Header'
 import { Sidebar } from './components/layout/Sidebar'
 import { AnimatedBackground } from './components/layout/AnimatedBackground'
@@ -24,7 +25,7 @@ import type { UpdateInfo } from '../shared/types'
 import './i18n'
 
 export function App() {
-  const { loadSettings, isLoading } = useSettingsStore()
+  const { loadSettings, isLoading, uiMode } = useSettingsStore()
   const { selectedGame } = useGameStore()
   const [update, setUpdate] = useState<UpdateInfo | null>(null)
   const [checkFailed, setCheckFailed] = useState(false)
@@ -86,36 +87,50 @@ export function App() {
     )
   }
 
+  const overlays = (
+    <>
+      <GamePicker />
+      {update && <UpdateModal info={update} onClose={() => setUpdate(null)} />}
+      {checkFailed && <UpdateCheckFailedToast onDone={() => setCheckFailed(false)} />}
+      {showPromo && <WebsitePromoToast onDone={() => setPromoDone(true)} />}
+    </>
+  )
+
   return (
     <ErrorBoundary>
       <HashRouter>
-        <div className="h-screen w-screen bg-background text-text-primary flex flex-col overflow-hidden relative">
-          <AnimatedBackground />
-          <GamePicker />
-          {update && <UpdateModal info={update} onClose={() => setUpdate(null)} />}
-          {checkFailed && <UpdateCheckFailedToast onDone={() => setCheckFailed(false)} />}
-          {showPromo && <WebsitePromoToast onDone={() => setPromoDone(true)} />}
-          <div className="relative z-10 flex flex-col flex-1 overflow-hidden">
-          <Header />
+        {uiMode === 'modern' ? (
+          <>
+            <ModernShell />
+            {overlays}
+          </>
+        ) : (
+          <div className="h-screen w-screen bg-background text-text-primary flex flex-col overflow-hidden relative">
+            <AnimatedBackground />
+            {overlays}
+            <div className="relative z-10 flex flex-col flex-1 overflow-hidden">
+            <Header />
 
-          <div className="flex flex-1 overflow-hidden relative z-10">
-            <Sidebar />
+            <div className="flex flex-1 overflow-hidden relative z-10">
+              <Sidebar />
 
-            <main className="flex-1 overflow-hidden flex flex-col">
-              <Routes>
-                <Route path="/" element={<Dashboard />} />
-                <Route path="/scan" element={<Scan />} />
-                <Route path="/live" element={<LiveScan />} />
-                <Route path="/results" element={<Results />} />
-                <Route path="/manual" element={<Manual />} />
-                <Route path="/utilities" element={<Utilities />} />
-                <Route path="/settings" element={<Settings />} />
-                <Route path="/profile" element={<Profile />} />
-              </Routes>
-            </main>
+              <main className="flex-1 overflow-hidden flex flex-col">
+                <Routes>
+                  <Route path="/" element={<Dashboard />} />
+                  <Route path="/scan" element={<Scan />} />
+                  <Route path="/live" element={<LiveScan />} />
+                  <Route path="/results" element={<Results />} />
+                  <Route path="/manual" element={<Manual />} />
+                  <Route path="/utilities" element={<Utilities />} />
+                  <Route path="/settings" element={<Settings />} />
+                  <Route path="/profile" element={<Profile />} />
+                  <Route path="*" element={<Navigate to="/" replace />} />
+                </Routes>
+              </main>
+            </div>
+            </div>
           </div>
-          </div>
-        </div>
+        )}
       </HashRouter>
     </ErrorBoundary>
   )
