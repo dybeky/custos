@@ -151,9 +151,26 @@ export function LiveScan() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
           </div>
-          <div>
-            <p className="text-sm font-medium text-scan font-display">{t('liveScan.nativeUnavailable')}</p>
-            <p className="text-xs text-ink-dim mt-0.5">{t('liveScan.nativeUnavailableDesc', { arch: status.arch })}</p>
+          <div className="min-w-0">
+            {status.nativeDiagnosis ? (
+              <>
+                <p className="text-sm font-medium text-scan font-display">{status.nativeDiagnosis.title}</p>
+                <p className="text-xs text-ink-dim mt-0.5">{status.nativeDiagnosis.detail}</p>
+                {status.nativeDiagnosis.fix && (
+                  <button
+                    onClick={() => window.electronAPI.openExternal(status.nativeDiagnosis!.fix!.url)}
+                    className="mt-2 inline-flex items-center gap-1.5 px-3 h-8 rounded-lg bg-scan text-on-accent text-xs font-semibold hover:brightness-110 transition"
+                  >
+                    {status.nativeDiagnosis.fix.label} →
+                  </button>
+                )}
+              </>
+            ) : (
+              <>
+                <p className="text-sm font-medium text-scan font-display">{t('liveScan.nativeUnavailable')}</p>
+                <p className="text-xs text-ink-dim mt-0.5">{t('liveScan.nativeUnavailableDesc', { arch: status.arch })}</p>
+              </>
+            )}
           </div>
         </div>
       )

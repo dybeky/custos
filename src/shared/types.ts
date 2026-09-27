@@ -172,10 +172,33 @@ export interface LiveFinding {
   params?: Record<string, string | number>
 }
 
+/** A recognised startup/crash cause with, when certain, the download that fixes it. */
+export type DiagnosisId =
+  | 'vcredist-missing'
+  | 'native-abi-mismatch'
+  | 'wrong-architecture'
+  | 'damaged-install'
+  | 'disk-full'
+  | 'access-denied'
+  | 'gpu-crash'
+  | 'out-of-memory'
+  | 'renderer-crash'
+  | 'unexpected'
+
+export interface Diagnosis {
+  id: DiagnosisId
+  title: string
+  detail: string
+  /** Set only when the cause is certain and one download fixes it. */
+  fix?: { label: string; url: string }
+}
+
 /** Status object returned by LIVE_GET_STATUS. */
 export interface LiveScanStatus {
   /** True when memoryjs loaded successfully (Windows + correct Electron ABI). */
   nativeAvailable: boolean
+  /** Why the native module failed to load, when the cause is recognised. */
+  nativeDiagnosis?: Diagnosis
   /** process.platform value from the main process. */
   platform: string
   /** Architecture of this Custos binary (process.arch), for support messaging. */
