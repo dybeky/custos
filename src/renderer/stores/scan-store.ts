@@ -84,3 +84,47 @@ export const useScanStore = create<ScanState>((set) => ({
     _failedScans: 0
   })
 }))
+
+type ScanEventsApi = Pick<
+  Window['electronAPI'],
+  'onScanProgress' | 'onScanResult' | 'onScanComplete' | 'onScanReport' | 'onScanError'
+>
+
+/**
+ * Wire main-process scan events into the store for the app's lifetime.
+ *
+ * Subscribed once at the app root (not per page) so a scan keeps updating the
+ * store while the user browses other pages — otherwise the completion event
+ * could fire while nothing is listening and the UI would stay "scanning".
+ *
+ * Events are applied only while a scan is in progress: after the user cancels
+ * (status → idle) the main process still unwinds and emits late results and a
+ * final completion, which must not flip the UI back to "completed".
+ *
+ * @returns an unsubscribe function.
+ */
+export function subscribeToScanEvents(api: ScanEventsApi = window.electronAPI): () => void {
+  const store = useScanStore
+  const scanning = (): boolean => store.getState().status === 'scanning'
+
+  const unsubs = [
+    api.onScanProgress((progress) => {
+      if (scanning()) store.getState().setProgress(progress)
+    }),
+    api.onScanResult((result) => {
+      if (scanning()) store.getState().addResult(result)
+    }),
+    api.onScanReport((report) => {
+      if (scanning()) store.getState().setReport(report)
+    }),
+    api.onScanComplete((results) => {
+      if (!scanning()) return
+      store.getState().setResults(results)
+      store.getState().setStatus('completed')
+    }),
+    api.onScanError((error) => {
+      if (scanning()) store.getState().setError(error.message)
+    })
+  ]
+  return () => unsubs.forEach((unsub) => unsub())
+}

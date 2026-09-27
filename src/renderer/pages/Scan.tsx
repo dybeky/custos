@@ -16,41 +16,16 @@ export function Scan() {
     scanners,
     _totalFindings,
     setStatus,
-    setProgress,
-    addResult,
-    setResults,
-    setReport,
     setScanners,
     setError,
     reset
   } = useScanStore()
 
+  // Scan events are wired once at the app root (subscribeToScanEvents), so a
+  // scan keeps updating the store while the user is on another page.
   useEffect(() => {
-    // Set up event listeners on component mount
-    // Store functions from zustand are stable and don't change
-    window.electronAPI.getScanners().then(setScanners)
-
-    // Set up event listeners
-    const unsubProgress = window.electronAPI.onScanProgress(setProgress)
-    const unsubResult = window.electronAPI.onScanResult(addResult)
-    const unsubComplete = window.electronAPI.onScanComplete((results) => {
-      setResults(results)
-      setStatus('completed')
-    })
-    const unsubError = window.electronAPI.onScanError((error) => {
-      setError(error.message)
-    })
-    const unsubReport = window.electronAPI.onScanReport(setReport)
-
-    return () => {
-      unsubProgress()
-      unsubResult()
-      unsubComplete()
-      unsubError()
-      unsubReport()
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+    window.electronAPI.getScanners().then(setScanners).catch(() => {})
+  }, [setScanners])
 
   const handleStartScan = async () => {
     reset()
@@ -58,6 +33,8 @@ export function Scan() {
     try {
       await window.electronAPI.startScan()
     } catch (error) {
+      // Ignore a rejection that lands after the user already cancelled.
+      if (useScanStore.getState().status !== 'scanning') return
       setError(error instanceof Error ? error.message : 'Unknown error')
     }
   }
