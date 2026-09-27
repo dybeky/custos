@@ -188,6 +188,34 @@ describe('computeVerdict (conservative)', () => {
   })
 })
 
+describe('computeVerdict — Windows Defender', () => {
+  it('a Defender cheat-family identification alone is High', () => {
+    const f = classifyFindings([result('Defender History Scanner', [
+      '[Defender] HackTool:Win64/GameHack.B | C:\\x\\loader.exe | 27/09/2026, 12:30 | action: Quarantine (cheat-family)'
+    ])], findKeyword)
+    const v = computeVerdict(f, [])
+    expect(v.band).toBe('high')
+    expect(v.reasons[0].code).toBe('defender-cheat')
+    expect(f[0].observedAt).toBeDefined()
+  })
+
+  it('a Defender detection matched only by file name stays an ordinary lead', () => {
+    const f = classifyFindings([result('Defender History Scanner', [
+      '[Defender] Trojan:Win32/Wacatac.B!ml | C:\\x\\undead.exe | 27/09/2026, 12:30'
+    ])], findKeyword)
+    expect(computeVerdict(f, []).band).toBe('low')
+  })
+
+  it('Defender counts as an independent artifact type for corroboration', () => {
+    const { findings, correlations } = correlate(classifyFindings([
+      result('Defender History Scanner', ['[Defender] Trojan:Win32/X | C:\\x\\undead.exe | 27/09/2026, 12:30']),
+      result('Prefetch Scanner', ['C:\\Windows\\Prefetch\\UNDEAD.EXE-1.pf'])
+    ], findKeyword))
+    expect(correlations[0].categories.sort()).toEqual(['antivirus', 'execution'])
+    expect(computeVerdict(findings, correlations).band).toBe('high')
+  })
+})
+
 describe('computeVerdict — trace cleaning', () => {
   const trace = (v: string) => result('Anti-Forensics Scanner', [v])
 

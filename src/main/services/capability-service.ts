@@ -39,7 +39,11 @@ const REQUIREMENTS: Record<string, Requirement> = {
   scheduledtasks: { platforms: ['windows'], requirement: 'Windows' },
   filehash: { platforms: ['windows'], requirement: 'Windows' },
   windowmodule: { platforms: ['windows'], requirement: 'Windows' },
-  antiforensics: { platforms: ['windows'], requirement: 'Windows' }
+  antiforensics: { platforms: ['windows'], requirement: 'Windows' },
+  defender: { platforms: ['windows'], requirement: 'Windows' },
+  recyclebin: { platforms: ['windows'], requirement: 'Windows' },
+  usb: { platforms: ['windows'], requirement: 'Windows' },
+  usnjournal: { platforms: ['windows'], requirement: 'Windows' }
 }
 
 /**

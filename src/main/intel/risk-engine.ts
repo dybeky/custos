@@ -210,6 +210,19 @@ export function computeVerdict(findings: AnalyzedFinding[], correlations: Correl
     reasons.push({ code: 'environment-only', direction: 'neutral', text: 'Only environment/context signals, no cheat evidence' })
   }
 
+  // Windows Defender itself identified a game cheat / cheat tool (not just a
+  // name match): strong, independent evidence → at least High.
+  const defenderCheat = findings.some(f => f.scannerId === 'defender' && /\(cheat-family\)\s*$/.test(f.value))
+  if (defenderCheat) {
+    const reason: ScoreReason = { code: 'defender-cheat', direction: 'up', text: 'Windows Defender identified a game cheat or cheat tool on this PC' }
+    if (BAND_SCORE.high > BAND_SCORE[band]) {
+      band = 'high'
+      reasons.unshift(reason)
+    } else {
+      reasons.push(reason)
+    }
+  }
+
   // Trace cleaning (cleared logs, wiped/disabled Prefetch, a cleaner run
   // before the check) is not cheat evidence in itself, but it means the other
   // checks may have been starved of data. It sets a floor on the band, and

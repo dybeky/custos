@@ -1,7 +1,7 @@
 import type { ScannerName, FindingCategory, Severity } from '../../shared/types'
 
 /** Bump when scoring logic changes, so history/diff stays comparable across versions. */
-export const RISK_ENGINE_VERSION = '1.1.0'
+export const RISK_ENGINE_VERSION = '1.2.0'
 
 export interface ScannerPolicy {
   category: FindingCategory
@@ -26,7 +26,12 @@ export const SCANNER_POLICY: Record<ScannerName, ScannerPolicy> = {
   steam: { category: 'context', baseSeverity: 'low' },
   shellbags: { category: 'context', baseSeverity: 'low' },
   vm: { category: 'environment', baseSeverity: 'info' },
-  antiforensics: { category: 'antiforensics', baseSeverity: 'medium' }
+  antiforensics: { category: 'antiforensics', baseSeverity: 'medium' },
+  // Microsoft's own identification — independent of every other artifact.
+  defender: { category: 'antivirus', baseSeverity: 'high' },
+  recyclebin: { category: 'file', baseSeverity: 'medium' },
+  usb: { category: 'context', baseSeverity: 'low' },
+  usnjournal: { category: 'file', baseSeverity: 'medium' }
 }
 
 /** Used when a scanner display name cannot be resolved (defensive; should not occur). */

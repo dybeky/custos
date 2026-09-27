@@ -42,6 +42,10 @@ export type ScannerName =
   | 'filehash'
   | 'windowmodule'
   | 'antiforensics'
+  | 'defender'
+  | 'recyclebin'
+  | 'usb'
+  | 'usnjournal'
 
 // Scanner metadata
 export interface ScannerInfo {
@@ -317,7 +321,7 @@ export type HashTrust = 'verified' | 'community'
 export type FindingCategory =
   | 'hash' | 'execution' | 'runtime' | 'persistence'
   | 'file' | 'registry' | 'network' | 'context' | 'environment'
-  | 'antiforensics'
+  | 'antiforensics' | 'antivirus'
 
 // Explainability primitive: every severity/confidence change carries a reason.
 export interface ScoreReason {

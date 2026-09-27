@@ -22,7 +22,11 @@ export const SCANNER_DISPLAY_TO_ID: Record<string, ScannerName> = {
   'Scheduled Tasks Scanner': 'scheduledtasks',
   'File Hash Scanner': 'filehash',
   'Window & Module Scanner': 'windowmodule',
-  'Anti-Forensics Scanner': 'antiforensics'
+  'Anti-Forensics Scanner': 'antiforensics',
+  'Defender History Scanner': 'defender',
+  'Recycle Bin Scanner': 'recyclebin',
+  'USB History Scanner': 'usb',
+  'USN Journal Scanner': 'usnjournal'
 }
 
 export function scannerIdFromDisplayName(name: string): ScannerName | null {

@@ -353,6 +353,26 @@
       "name": "JSON export",
       "desc": "Export scan results as JSON",
       "help": "Saves the full scan report as machine-readable JSON."
+    },
+    "defender": {
+      "name": "Defender History Scanner",
+      "desc": "Windows Defender detections of cheats and cheat tools",
+      "help": "Reads Windows Defender's own detection history. When Defender caught a game cheat or cheat tool (e.g. HackTool:Win64/GameHack, CheatEngine), the record — threat name, file path, time, action — remains even after the file was deleted or quarantined. Windows activators and keygens that Defender also labels HackTool are ignored unless their file is named like a known cheat. A Defender cheat identification raises the verdict to at least High."
+    },
+    "recyclebin": {
+      "name": "Recycle Bin Scanner",
+      "desc": "Deleted files in the Recycle Bin matched against cheat names",
+      "help": "Reads the Recycle Bin metadata of every drive: for each deleted item, its original path and the exact time it was deleted. Items named like a known cheat are reported, with a note when the file can still be restored."
+    },
+    "usb": {
+      "name": "USB History Scanner",
+      "desc": "USB storage devices ever connected, with first and last connection times",
+      "help": "Lists every USB storage device ever connected (from the registry), with when it was first installed (setupapi.dev.log) and last connected (partition events). Shown as system information in the timeline — a flash drive plugged in minutes before the check, next to a program that ran from that drive, is worth a question."
+    },
+    "usnjournal": {
+      "name": "USN Journal Scanner",
+      "desc": "NTFS change journal: created, renamed and deleted cheat files",
+      "help": "Reads the NTFS change journal of the system drive, which records every file created, renamed, written and deleted. Any file that ever carried a cheat-like name is reported with its full rename chain (e.g. aimbot.dll → update.dll) and when it was last touched — even if it was deleted long ago. Requires administrator rights; very large journals are read for up to ~20 seconds."
     }
   },
   "detectors": {
@@ -512,7 +532,8 @@
       "environment-only": "Only information about the system, no cheat evidence.",
       "incomplete-coverage": "{{failed}} of {{total}} checks did not complete — the picture is incomplete. Run Custos as Administrator and scan again.",
       "trace-cleaning": "Signs that traces were removed or Windows components were switched off before the check (cleared logs, wiped Prefetch, a cleaner run, blocked checking tools) — other results may be incomplete.",
-      "trace-cleaning-with-leads": "Traces were cleaned or checking tools blocked, AND cheat leads remain — a combination that warrants a close look."
+      "trace-cleaning-with-leads": "Traces were cleaned or checking tools blocked, AND cheat leads remain — a combination that warrants a close look.",
+      "defender-cheat": "Windows Defender itself identified a game cheat or cheat tool on this PC."
     }
   },
   "severity": {
