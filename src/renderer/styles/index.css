@@ -490,6 +490,7 @@ body {
   border-radius: 6px; border: 1px solid var(--line-strong);
   background: var(--panel-2); color: var(--ink-dim);
   font: 500 10px/1 'Inter', system-ui, sans-serif;
+  white-space: nowrap;
 }
 
 /* Start button: a slow breathing halo that invites the click. */

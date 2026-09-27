@@ -29,10 +29,10 @@ export function UserMenu() {
 
   if (status !== 'authed' || !user) {
     return (
-      <div className="mr-2" style={noDrag}>
+      <div className="mr-2 shrink-0" style={noDrag}>
         <button
           onClick={() => setLoginOpen(true)}
-          className="h-6 px-3 rounded-full text-[11px] font-display font-semibold text-ink-dim border border-[color:var(--line)] hover:text-scan hover:border-scan transition-colors"
+          className="h-6 px-3 whitespace-nowrap rounded-full text-[11px] font-display font-semibold text-ink-dim border border-[color:var(--line)] hover:text-scan hover:border-scan transition-colors"
         >
           {t('auth.signIn')}
         </button>
