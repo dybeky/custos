@@ -40,6 +40,9 @@ export function LiveScan() {
     try {
       const s = await window.electronAPI.getLiveStatus(selectedGame ?? undefined)
       setStatus(s)
+    } catch {
+      // Status is advisory and the refresh button retries; swallow the IPC
+      // failure instead of leaking an unhandled rejection from the effect.
     } finally {
       setStatusLoading(false)
     }

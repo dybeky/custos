@@ -3,10 +3,17 @@ interface Parsed {
   pre: string[]
 }
 
-/** Parse "v3.1.0-rc.1" / "3.1" into core [major, minor, patch] + pre-release identifiers. */
+/**
+ * Parse "v3.1.0-rc.1" / "3.1" / "3.1.0+build.5" into core [major, minor, patch]
+ * + pre-release identifiers. Build metadata (after "+") is ignored per SemVer,
+ * and only the FIRST hyphen starts the pre-release, so "1.0.0-rc-1" keeps its
+ * full "rc-1" identifier.
+ */
 function parse(v: string): Parsed {
-  const clean = v.trim().replace(/^v/i, '')
-  const [main, pre = ''] = clean.split('-', 2)
+  const clean = v.trim().replace(/^v/i, '').split('+', 1)[0]
+  const dash = clean.indexOf('-')
+  const main = dash === -1 ? clean : clean.slice(0, dash)
+  const pre = dash === -1 ? '' : clean.slice(dash + 1)
   const [a, b, c] = main.split('.').map((n) => parseInt(n, 10) || 0)
   return { core: [a || 0, b || 0, c || 0], pre: pre ? pre.split('.') : [] }
 }

@@ -38,3 +38,14 @@ describe('compareSemver pre-release', () => {
     expect(isNewer('1.0.0', '1.0.0')).toBe(false)
   })
 })
+
+describe('compareSemver edge cases', () => {
+  it('ignores build metadata', () => {
+    expect(compareSemver('1.2.0+build.9', '1.2.0')).toBe(0)
+    expect(isNewer('1.2.1+sha.abc', '1.2.0')).toBe(true)
+  })
+  it('keeps hyphens inside a pre-release identifier', () => {
+    expect(compareSemver('1.0.0-rc-1', '1.0.0-rc-2')).toBe(-1)
+    expect(compareSemver('1.0.0-rc-1', '1.0.0')).toBe(-1)
+  })
+})
