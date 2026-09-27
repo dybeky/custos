@@ -44,7 +44,7 @@ Custos is a desktop app that reads those records, looks for fingerprints of know
 
 Reads Windows history & artifacts to find traces of **past** cheat use.
 
-This is the **main** feature — 17 scanners, no game required.
+This is the **main** feature — 21 scanners, no game required.
 
 </td>
 <td valign="top" width="50%">
@@ -155,7 +155,7 @@ Pick one in **Settings → Interface** — it switches instantly and is remember
 | | **Classic** | **Focus** (new) |
 |---|---|---|
 | Layout | Icon sidebar, separate Scan and Results pages | One top bar; the whole check on a single screen |
-| During a scan | Progress ring | Progress ring + a live grid of all 17 checks (waiting / running / done / failed) |
+| During a scan | Progress ring | Progress ring + a live grid of all 21 checks (waiting / running / done / failed) |
 | Results | Stacked cards | Verdict rail (risk gauge, reason, coverage, case, export) beside a workspace with **Evidence / Timeline / Checks** tabs, severity grouping, filters and search |
 | Keyboard | — | **Ctrl+K** command palette · **Ctrl+Enter** start a check · **Ctrl+E** export the report |
 
@@ -241,10 +241,10 @@ The page shows a status banner telling you exactly where you stand — *Checking
 
 ## What each scanner checks
 
-A full forensic scan runs **17 scanners**.
+A full forensic scan runs **21 scanners**.
 
 <details open>
-<summary><b>The 17 scanners — what each one inspects</b></summary>
+<summary><b>The 21 scanners — what each one inspects</b></summary>
 
 <br/>
 
@@ -266,7 +266,11 @@ A full forensic scan runs **17 scanners**.
 | 14 | **Scheduled Tasks** | The Task Scheduler, for entries used to keep cheats running (persistence). |
 | 15 | **File Hash** | SHA‑256 fingerprints of files in Downloads/Desktop/Temp vs. known cheat hashes. |
 | 16 | **Window & Module** | Window titles and loaded modules of running programs vs. the keyword list. |
-| 17 | **Anti‑Forensics** | Signs traces were removed before the check (Prefetch disabled or wiped, event logs cleared in the last 14 days, trace cleaners run in the last 3 days) **and Windows components switched off so checks can't run**: checking tools blocked via Image File Execution Options or DisallowRun, Task Manager / Registry Editor / Command Prompt disabled by policy, Event Log / BAM / DNS Client disabled, or reg.exe blocked. Legit setups (Process Explorer replacing Task Manager, parental game blocks) are ignored. Raises the verdict to at least **Medium**, or **High** if cheat leads remain. |
+| 17 | **Anti‑Forensics** | Signs traces were removed before the check (Prefetch disabled or wiped, event logs cleared in the last 14 days, trace cleaners run in the last 3 days) **and Windows components switched off so checks can't run**: checking tools blocked via Image File Execution Options or DisallowRun, Task Manager / Registry Editor / Command Prompt disabled by policy, Event Log / BAM / DNS Client disabled, reg.exe blocked, or USB device history wiped from the registry. Legit setups (Process Explorer replacing Task Manager, parental game blocks) are ignored. Raises the verdict to at least **Medium**, or **High** if cheat leads remain. |
+| 18 | **Defender History** | Windows Defender's own detections of game cheats / cheat tools (GameHack, CheatEngine…) — threat, path, time, action — kept even after the file is gone. Windows activators and keygens are ignored. A Defender cheat identification alone means at least **High**. |
+| 19 | **Recycle Bin** | Deleted files named like a known cheat, with their original path, exact deletion time, and whether they can still be restored. |
+| 20 | **USB History** | Every USB storage device ever connected, with first and last connection times — shown as context in the timeline. |
+| 21 | **USN Journal** | The NTFS change journal: every file that ever had a cheat‑like name — created, renamed (full chain, e.g. `aimbot.dll → update.dll`), written, deleted — with its last activity time. Needs admin rights. |
 
 </details>
 
@@ -369,7 +373,7 @@ npm run package:win:arm64
 npm run rebuild
 ```
 
-On non‑Windows hosts you can skip it — Live Scan reports "native unavailable," but **all 17 forensic scanners remain fully functional.**
+On non‑Windows hosts you can skip it — Live Scan reports "native unavailable," but **all 21 forensic scanners remain fully functional.**
 
 </details>
 

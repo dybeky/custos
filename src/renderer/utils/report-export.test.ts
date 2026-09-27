@@ -144,16 +144,16 @@ describe('activity timeline', () => {
     findings: [
       { ...report.findings[0], id: 't1', observedAt: new Date(scanAt - 40 * 60_000).toISOString() },
       { ...report.findings[1], id: 't2', observedAt: new Date(scanAt - 3 * 24 * 60 * 60_000).toISOString() },
-      { ...report.findings[2], id: 't3', observedAt: new Date(scanAt - 60_000).toISOString() }, // info → excluded
+      { ...report.findings[2], id: 't3', observedAt: new Date(scanAt - 60_000).toISOString() }, // info → shown as context
       { ...report.findings[3], id: 't4', observedAt: new Date(scanAt - 60_000).toISOString() } // dismissed → excluded
     ]
   }
 
-  it('lists timestamped evidence newest first and flags the last 24 h', () => {
+  it('lists timestamped findings (incl. system events) newest first, flags the last 24 h, skips suppressed', () => {
     const tl = buildTimeline(timed)
-    expect(tl.map(e => e.finding.id)).toEqual(['t1', 't2'])
-    expect(tl[0]).toMatchObject({ minutesBeforeScan: 40, recent: true })
-    expect(tl[1].recent).toBe(false)
+    expect(tl.map(e => e.finding.id)).toEqual(['t3', 't1', 't2'])
+    expect(tl[1]).toMatchObject({ minutesBeforeScan: 40, recent: true })
+    expect(tl[2].recent).toBe(false)
   })
 
   it('formats the time relative to the scan', () => {

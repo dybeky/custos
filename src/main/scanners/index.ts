@@ -21,6 +21,10 @@ import { ScheduledTasksScanner } from './scheduled-tasks-scanner'
 import { FileHashScanner } from './file-hash-scanner'
 import { WindowModuleScanner } from './window-module-scanner'
 import { AntiForensicsScanner } from './anti-forensics-scanner'
+import { DefenderScanner } from './defender-scanner'
+import { RecycleBinScanner } from './recycle-bin-scanner'
+import { UsbScanner } from './usb-scanner'
+import { UsnJournalScanner } from './usn-scanner'
 
 export { BaseScanner } from './base-scanner'
 
@@ -66,6 +70,10 @@ export class ScannerFactory {
     this.scanners.set('filehash', new FileHashScanner(this.keywordMatcher, this.scanSettings))
     this.scanners.set('windowmodule', new WindowModuleScanner(this.keywordMatcher, this.scanSettings))
     this.scanners.set('antiforensics', new AntiForensicsScanner(this.keywordMatcher, this.scanSettings, this.config))
+    this.scanners.set('defender', new DefenderScanner(this.keywordMatcher, this.scanSettings))
+    this.scanners.set('recyclebin', new RecycleBinScanner(this.keywordMatcher, this.scanSettings))
+    this.scanners.set('usb', new UsbScanner(this.keywordMatcher, this.scanSettings))
+    this.scanners.set('usnjournal', new UsnJournalScanner(this.keywordMatcher, this.scanSettings))
   }
 
   getScanner(name: ScannerName): BaseScanner | undefined {

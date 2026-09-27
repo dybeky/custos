@@ -10,6 +10,8 @@ import {
   parseEventTimes, parseRegDword, parseIfeoDebuggers, assessIfeoBlocking, assessDisallowRun,
   assessToolPolicies, assessDisabledServices, assessRegBlocked
 } from './anti-forensics'
+import { assessUsbWipe, parseSetupapiUsb, parseUsbstorRegistry } from './usb-history'
+import { USBSTOR_KEY, readSetupapiLog } from './usb-scanner'
 
 const PREFETCH_PARAMS_KEY =
   'HKLM\\SYSTEM\\CurrentControlSet\\Control\\Session Manager\\Memory Management\\PrefetchParameters'
@@ -78,7 +80,7 @@ export class AntiForensicsScanner extends BaseScanner {
     if (this.cancelled) return this.createErrorResult('Scan cancelled', startTime)
 
     this.emitProgress(events, 3, 4, 'Checking for blocked tools and disabled components...')
-    findings.push(...(await this.checkTampering()))
+    findings.push(...(await this.checkTampering()), ...(await this.checkUsbWipe(now)))
 
     this.emitProgress(events, 4, 4, '')
     return this.createSuccessResult(findings, startTime)
@@ -107,6 +109,18 @@ export class AntiForensicsScanner extends BaseScanner {
     if (cu === null) return lm
     if (lm === null) return cu
     return Math.max(cu, lm)
+  }
+
+  /** USB storage history deleted from the registry (e.g. by USB Oblivion). */
+  private async checkUsbWipe(now: number): Promise<string[]> {
+    const [reg, setupapi] = await Promise.all([
+      execFileAsync('reg', ['query', USBSTOR_KEY, '/s', '/v', 'FriendlyName'], { timeoutMs: 10000 }),
+      readSetupapiLog()
+    ])
+    // A missing USBSTOR key ("unable to find") is a valid empty history; any
+    // other error (access denied, reg.exe blocked) means we cannot tell.
+    const unreadable = !reg.stdout.trim() && !!reg.stderr && !/unable to find/i.test(reg.stderr)
+    return assessUsbWipe(parseSetupapiUsb(setupapi), unreadable ? null : parseUsbstorRegistry(reg.stdout), now)
   }
 
   /**

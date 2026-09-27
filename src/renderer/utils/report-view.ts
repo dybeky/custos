@@ -39,7 +39,7 @@ export function bandChipClass(band: VerdictBand): string {
 const REASON_KEYS = new Set([
   'no-findings', 'verified-hash', 'strong-corroboration', 'corroboration',
   'community-hash-uncorroborated', 'multiple-leads', 'lone-match',
-  'environment-only', 'incomplete-coverage', 'trace-cleaning', 'trace-cleaning-with-leads'
+  'environment-only', 'incomplete-coverage', 'trace-cleaning', 'trace-cleaning-with-leads', 'defender-cheat'
 ])
 
 /** Localized text for a verdict reason, falling back to the engine's English. */
@@ -83,14 +83,17 @@ export interface TimelineEntry {
 const RECENT_WINDOW_MIN = 24 * 60
 
 /**
- * Timestamped evidence in reverse-chronological order: what ran, was visited
- * or was cleaned, and how long before the scan. Suppressed findings and pure
- * system information are left out.
+ * Timestamped findings in reverse-chronological order: what ran, was visited,
+ * deleted, plugged in or cleaned, and how long before the scan. Suppressed
+ * findings are left out.
  */
 export function buildTimeline(report: ScanReport | null): TimelineEntry[] {
   if (!report) return []
   const scanAt = Date.parse(report.meta.scannedAt)
-  return evidenceFindings(report)
+  // Informational events (a USB drive connected…) are included: they are not
+  // evidence, but they give the evidence around them its context.
+  return report.findings
+    .filter((f) => !f.dismissed && !f.whitelisted)
     .filter((f): f is AnalyzedFinding & { observedAt: string } => typeof f.observedAt === 'string')
     .map((finding) => {
       const at = Date.parse(finding.observedAt)

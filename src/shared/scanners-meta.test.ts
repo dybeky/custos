@@ -5,7 +5,8 @@ import type { ScannerName } from './types'
 const ALL_IDS: ScannerName[] = [
   'appdata', 'prefetch', 'recentfiles', 'gamefolder', 'registry', 'browserhistory',
   'process', 'steam', 'amcache', 'bam', 'shellbags', 'vm', 'dnscache',
-  'scheduledtasks', 'filehash', 'windowmodule', 'antiforensics'
+  'scheduledtasks', 'filehash', 'windowmodule', 'antiforensics',
+  'defender', 'recyclebin', 'usb', 'usnjournal'
 ]
 
 describe('scanners-meta', () => {
