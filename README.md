@@ -142,11 +142,10 @@ Custos explains the problem instead of closing silently. It names a cause only w
 |---|---|
 | Microsoft Visual C++ runtime missing | The cause + a button to Microsoft's official download page |
 | Wrong build for the processor, mismatched or damaged files | The cause + a button to the latest Custos release |
-| Graphics driver crashed | Restarts with hardware acceleration off (remembered), + your GPU vendor's driver page when known |
+| Graphics driver crashed | Restarts with hardware acceleration off, + your GPU vendor's driver page when known |
 | Disk full, access denied, out of memory, window crashed | The cause and what to do |
 | Anything else | "Unexpected error" with the exact error text and a **Show log file** button — never a guessed fix |
 
-A corrupted settings file no longer prevents Custos from starting — it is reset automatically.
 
 ## Reading your results
 
@@ -310,7 +309,7 @@ Clicking a tool opens its official download page in your browser:
 
 The **Settings** page has three sections:
 
-- **Color theme** — **Espresso** (warm coffee‑noir, the default), **Graphite** (cool blue), **Emerald** (mint green) or **Violet** (lavender). Switches instantly and is remembered — even the window background at launch matches.
+- **Color theme** — **Espresso** (warm coffee‑noir, the default), **Graphite** (cool blue), **Emerald** (mint green) or **Violet** (lavender). Switches instantly for the current session (Custos keeps no settings on the PC after it closes).
 - **Detection signatures** — whether scans use only the built‑in signatures or also the extra ones published on the site, with a **Check now** button.
 - **Account** — sign in with your 97437.dev account (optional). Your name is then recorded as *checked by* on exported reports.
 
