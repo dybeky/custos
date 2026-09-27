@@ -1,6 +1,6 @@
 import { contextBridge, ipcRenderer } from 'electron'
 import { IPC_CHANNELS, ScanResult, ScanProgress, UserSettings, ScannerInfo, OsInfo, ScannerCapability, ScannerName, LiveFinding, LiveScanStatus, ScanReport } from '../shared/types'
-import type { ChangelogGroup, UpdateInfo, AuthState, AuthProvider, SuppressionState, TriageSettings } from '../shared/types'
+import type { ChangelogGroup, UpdateInfo, AuthState, AuthProvider, SuppressionState, TriageSettings, SiteUploadResult, SitePlayerResult, SignatureStatus } from '../shared/types'
 import type { GameId } from '../shared/games'
 import type { HistoryEntry, HistorySummary } from '../shared/history'
 
@@ -233,6 +233,24 @@ const api = {
    *  bearer and performs the upload, then re-emits auth state with the new avatar. */
   uploadAvatar: (bytes: ArrayBuffer, mime: string): Promise<{ ok: boolean; error?: string }> =>
     ipcRenderer.invoke(IPC_CHANNELS.AUTH_UPLOAD_AVATAR, { bytes, mime }),
+
+  /** Upload a saved check to the site (main loads it from history by id). */
+  uploadCheckToSite: (historyId: string, player: string, notes: string): Promise<SiteUploadResult> =>
+    ipcRenderer.invoke(IPC_CHANNELS.SITE_UPLOAD_CHECK, { historyId, player, notes }),
+
+  /** Checks of this player uploaded to the site by any checker. */
+  getSitePlayerChecks: (player: string): Promise<SitePlayerResult> =>
+    ipcRenderer.invoke(IPC_CHANNELS.SITE_PLAYER_CHECKS, { player }),
+
+  /** Open a site check (`{ checkId }`) or player card (`{ player }`); main builds the URL. */
+  openOnSite: (target: { checkId: string } | { player: string }): Promise<void> =>
+    ipcRenderer.invoke(IPC_CHANNELS.SITE_OPEN, target),
+
+  /** State of the detection signatures downloaded from the site. */
+  getSignatureStatus: (): Promise<SignatureStatus> => ipcRenderer.invoke(IPC_CHANNELS.SIGNATURES_STATUS),
+
+  /** Check the site for newer signatures now. */
+  checkSignatures: (): Promise<SignatureStatus> => ipcRenderer.invoke(IPC_CHANNELS.SIGNATURES_CHECK),
 
   /** Subscribe to auth-state changes pushed from main. Returns unsubscribe fn. */
   onAuthChanged: (callback: AuthChangedCallback): (() => void) => {

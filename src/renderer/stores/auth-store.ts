@@ -6,6 +6,10 @@ interface AuthStore {
   user: PublicUser | null
   device?: DeviceProgress
   encryptionUnavailable: boolean
+  /** Site capabilities (display hint; the site re-checks every call). */
+  capabilities: string[]
+  /** Minimum app version the site demands, when this build is too old. */
+  updateRequired?: string
   isLoaded: boolean
   init: () => Promise<void>
   login: (provider: AuthProvider) => Promise<void>
@@ -20,6 +24,8 @@ export const useAuthStore = create<AuthStore>((set) => ({
   user: null,
   device: undefined,
   encryptionUnavailable: false,
+  capabilities: [],
+  updateRequired: undefined,
   isLoaded: false,
 
   _apply: (state) =>
@@ -27,7 +33,9 @@ export const useAuthStore = create<AuthStore>((set) => ({
       status: state.status,
       user: state.user,
       device: state.device,
-      encryptionUnavailable: !!state.encryptionUnavailable
+      encryptionUnavailable: !!state.encryptionUnavailable,
+      capabilities: state.capabilities ?? [],
+      updateRequired: state.updateRequired
     }),
 
   init: async () => {

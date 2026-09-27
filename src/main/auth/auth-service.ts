@@ -1,10 +1,10 @@
 // src/main/auth/auth-service.ts
 import { generateState, generatePkce } from './pkce'
 import { parseCallback } from './callback-parser'
-import type { AuthClient, DevicePollResult } from './auth-client'
+import { UpdateRequiredError, type AuthClient, type DevicePollResult } from './auth-client'
 import type { TokenStore } from './token-store'
 import type { AuthConfig } from '../services/config-service'
-import type { AuthState, AuthProvider, PublicUser, DeviceProgress } from '../../shared/types'
+import type { AuthState, AuthProvider, PublicUser, DeviceProgress, SiteUploadResult, SitePlayerResult, ScanReport } from '../../shared/types'
 
 const PENDING_TIMEOUT_MS = 90_000
 const DEVICE_MAX_DURATION_MS = 5 * 60_000
@@ -30,6 +30,10 @@ export class AuthService {
   private user: PublicUser | null = null
   private device: DeviceProgress | undefined = undefined
   private encryptionUnavailable = false
+  /** Site capabilities (display hint; the site re-checks every call). Never persisted. */
+  private capabilities: string[] = []
+  /** Minimum app version the site demands, once it refused this build. */
+  private updateRequired: string | undefined = undefined
   private pendingAuth: PendingAuth | null = null
   // Monotonic device-flow generation. The device poll loop closes over the
   // epoch captured at flow start; bumping it (cancel/logout/login or a new
@@ -53,8 +57,32 @@ export class AuthService {
       status: this.status,
       user: this.user,
       device: this.device,
-      encryptionUnavailable: this.encryptionUnavailable || undefined
+      encryptionUnavailable: this.encryptionUnavailable || undefined,
+      capabilities: this.status === 'authed' && this.capabilities.length ? [...this.capabilities] : undefined,
+      updateRequired: this.updateRequired
     }
+  }
+
+  /** Record the site's "update required" answer; the UI then offers the update. */
+  private markUpdateRequired(minVersion: string): void {
+    this.updateRequired = minVersion || '?'
+    this.capabilities = []
+  }
+
+  /**
+   * Refresh what the signed-in user may do from the app. Transient failures keep
+   * the last known set; an outdated app loses every site feature.
+   */
+  private async refreshCapabilities(token: string): Promise<void> {
+    try {
+      const me = await this.client.getMe(token)
+      this.capabilities = me.capabilities
+      this.updateRequired = undefined
+    } catch (e) {
+      if (e instanceof UpdateRequiredError) this.markUpdateRequired(e.minVersion)
+      else return
+    }
+    this.emit()
   }
 
   private emit(): void {
@@ -111,7 +139,8 @@ export class AuthService {
     try {
       const { token, user } = await this.client.exchange({ state, code: parsed.code, codeVerifier })
       this.completeAuth(token, user)
-    } catch {
+    } catch (e) {
+      if (e instanceof UpdateRequiredError) this.markUpdateRequired(e.minVersion)
       this.clearPending()
       this.settleToBaseline()
       this.emit()
@@ -127,6 +156,7 @@ export class AuthService {
     this.status = 'authed'
     this.device = undefined
     this.emit()
+    void this.refreshCapabilities(token)
   }
 
   async cancel(): Promise<void> {
@@ -146,6 +176,7 @@ export class AuthService {
     this.status = 'anon'
     this.device = undefined
     this.encryptionUnavailable = false
+    this.capabilities = []
     this.emit()
     // Best-effort server revoke (non-blocking, never throws)
     if (token) void this.client.revoke(token)
@@ -223,6 +254,51 @@ export class AuthService {
     this.tokens.saveUser(session.user)
     this.status = 'authed'
     this.emit()
+    await this.refreshCapabilities(token)
+  }
+
+  /** Run a site call with the bearer; maps "not signed in" and "update required". */
+  private async withToken<T>(fn: (token: string) => Promise<T>): Promise<{ ok: true; value: T } | { ok: false; error: string }> {
+    if (!this.deps.config.enabled) return { ok: false, error: 'disabled' }
+    const token = this.tokens.load()
+    if (!token || this.status !== 'authed') return { ok: false, error: 'not_signed_in' }
+    try {
+      return { ok: true, value: await fn(token) }
+    } catch (e) {
+      if (e instanceof UpdateRequiredError) {
+        this.markUpdateRequired(e.minVersion)
+        this.emit()
+        return { ok: false, error: 'update_required' }
+      }
+      return { ok: false, error: (e as Error).message || 'failed' }
+    }
+  }
+
+  /** Upload a saved check (with its case details) to the site. */
+  async uploadCheck(report: ScanReport, kase: { player: string; notes: string }): Promise<SiteUploadResult> {
+    const res = await this.withToken((t) => this.client.uploadReport(t, { report, case: kase }))
+    if (!res.ok) return { ok: false, error: res.error }
+    return { ok: true, url: res.value.url, hashVerified: res.value.hashVerified }
+  }
+
+  /** Checks of one player (by player key) uploaded by any checker. */
+  async playerChecks(key: string): Promise<SitePlayerResult> {
+    const res = await this.withToken((t) => this.client.getPlayerChecks(t, key))
+    return res.ok ? { ok: true, checks: res.value } : { ok: false, error: res.error }
+  }
+
+  siteCheckUrl(id: string): string {
+    return new URL(`/admin/reports/${encodeURIComponent(id)}`, this.deps.config.webBaseUrl).toString()
+  }
+
+  sitePlayerUrl(key: string): string {
+    return this.client.buildPlayerUrl(key)
+  }
+
+  /** Open a site page (allowlisted by openExternal). No-op when signed out. */
+  openSite(url: string): void {
+    if (this.status !== 'authed') return
+    this.deps.openExternal(url)
   }
 
   private async runDeviceFlow(): Promise<void> {
@@ -275,6 +351,7 @@ export class AuthService {
       if (res.kind === 'slow_down') { intervalMs += 5000; continue }
       if (res.kind === 'pending') { this.device = { status: 'polling', userCode: this.device?.userCode, verificationUri: this.device?.verificationUri }; this.emit(); continue }
       if (res.kind === 'denied') { this.device = { status: 'denied' }; this.status = this.user ? 'authed' : 'anon'; this.emit(); return }
+      if (res.kind === 'update_required') { this.markUpdateRequired(res.minVersion); this.device = { status: 'error' }; this.status = this.user ? 'authed' : 'anon'; this.emit(); return }
       if (res.kind === 'expired') { this.device = { status: 'expired' }; this.status = this.user ? 'authed' : 'anon'; this.emit(); return }
       this.device = { status: 'error' }; this.status = this.user ? 'authed' : 'anon'; this.emit(); return
     }

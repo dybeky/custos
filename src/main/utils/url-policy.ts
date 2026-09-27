@@ -73,7 +73,8 @@ export function isAllowedLocalPath(rawPath: string): boolean {
 
 /**
  * True only for the exact set of 97437.dev URLs the auth flow may open in the
- * system browser: /desktop/auth/start, /device, and /profile/id/<id> profile links.
+ * system browser: /desktop/auth/start, /device, /profile/id/<id> profile links,
+ * and /admin/reports/<id> or /admin/players/<key> pages of the staff panel.
  * The scheme must match the configured base (https in prod; http://localhost
  * for dev). Used by AuthService, NOT by the general safeOpenExternal path.
  */
@@ -89,7 +90,13 @@ export function isAllowedAuthUrl(url: string, webBase: string): boolean {
   if (target.protocol !== base.protocol) return false
   if (target.host !== base.host) return false
   const p = target.pathname
-  return p === '/desktop/auth/start' || p === '/device' || p.startsWith('/profile/id/')
+  return (
+    p === '/desktop/auth/start' ||
+    p === '/device' ||
+    p.startsWith('/profile/id/') ||
+    // An uploaded check or a player card in the site's (PIN-gated) staff panel.
+    /^\/admin\/(reports|players)\/[^/]+$/.test(p)
+  )
 }
 
 /**

@@ -167,7 +167,7 @@ function registerIpc(win: BrowserWindow): void {
   // bearer token stay in main; the renderer only ever sees the public AuthState.
   const authConfig = configService.loadAuthConfig()
   authService = new AuthService({
-    client: new AuthClient(authConfig.webBaseUrl),
+    client: new AuthClient(authConfig.webBaseUrl, fetch, app.getVersion()),
     tokens: new TokenStore({ safeStorage, store: appStore as never }),
     config: authConfig,
     openExternal: (url) => {

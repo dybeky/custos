@@ -1,5 +1,5 @@
 import { KeywordMatcher } from '../services/keyword-matcher'
-import { configService, AppConfig, ScanSettings, RegistrySettings } from '../services/config-service'
+import { configService, AppConfig, ScanSettings, RegistrySettings, type KeywordSettings } from '../services/config-service'
 import { ScannerInfo, ScannerName } from '../../shared/types'
 import initSqlJs from 'sql.js'
 
@@ -31,8 +31,39 @@ export { BaseScanner } from './base-scanner'
 // Re-export the shared identifier so existing `from './scanners'` imports keep working.
 export type { ScannerName } from '../../shared/types'
 
+/** Detection entries added by the site's signed signature bundle. */
+export interface ExtraSignatures {
+  version: number
+  patterns: string[]
+  exactMatch: string[]
+  hashes: string[]
+}
+
+/**
+ * Bundled keywords plus site additions, deduplicated case-insensitively. The
+ * bundled spelling wins, so a finding's matched signature (which triage
+ * whitelists key on) does not change when the site repeats an entry.
+ */
+export function mergeKeywords(base: KeywordSettings, extra: ExtraSignatures | null): KeywordSettings {
+  if (!extra) return base
+  const uniq = (xs: string[]): string[] => {
+    const seen = new Map<string, string>()
+    for (const x of xs) if (!seen.has(x.toLowerCase())) seen.set(x.toLowerCase(), x)
+    return [...seen.values()]
+  }
+  return {
+    patterns: uniq([...base.patterns, ...extra.patterns]),
+    exactMatch: uniq([...base.exactMatch, ...extra.exactMatch])
+  }
+}
+
+const BUNDLED_SIGNATURE_VERSION = 'bundled-1'
+
 export class ScannerFactory {
   private keywordMatcher: KeywordMatcher
+  private extra: ExtraSignatures | null = null
+  /** Site signatures received while a scan may be running; applied at the next scan start. */
+  private pendingExtra: ExtraSignatures | null = null
   private config: AppConfig
   private scanSettings: ScanSettings
   private registrySettings: RegistrySettings
@@ -67,7 +98,7 @@ export class ScannerFactory {
     this.scanners.set('vm', new VMScanner(this.keywordMatcher, this.scanSettings))
     this.scanners.set('dnscache', new DnsCacheScanner(this.keywordMatcher, this.scanSettings))
     this.scanners.set('scheduledtasks', new ScheduledTasksScanner(this.keywordMatcher, this.scanSettings))
-    this.scanners.set('filehash', new FileHashScanner(this.keywordMatcher, this.scanSettings))
+    this.scanners.set('filehash', new FileHashScanner(this.keywordMatcher, this.scanSettings, this.extra?.hashes ?? []))
     this.scanners.set('windowmodule', new WindowModuleScanner(this.keywordMatcher, this.scanSettings))
     this.scanners.set('antiforensics', new AntiForensicsScanner(this.keywordMatcher, this.scanSettings, this.config))
     this.scanners.set('defender', new DefenderScanner(this.keywordMatcher, this.scanSettings))
@@ -102,7 +133,26 @@ export class ScannerFactory {
     }
   }
 
+  /** Queue site signatures; they take effect when the next scan starts. */
+  setExtraSignatures(extra: ExtraSignatures): void {
+    this.pendingExtra = extra
+  }
+
+  /** Signature set used by scans: bundled, plus the site bundle version when applied. */
+  getSignatureVersion(): string {
+    const v = (this.pendingExtra ?? this.extra)?.version
+    return v ? `${BUNDLED_SIGNATURE_VERSION}+site-${v}` : BUNDLED_SIGNATURE_VERSION
+  }
+
+  /** Called before every scan: swaps in queued site signatures, then resets scanners. */
   resetAll(): void {
+    if (this.pendingExtra) {
+      this.extra = this.pendingExtra
+      this.pendingExtra = null
+      this.keywordMatcher = new KeywordMatcher(mergeKeywords(configService.loadKeywords(), this.extra))
+      this.scanners.clear()
+      this.initializeScanners()
+    }
     for (const scanner of this.scanners.values()) {
       scanner.reset()
     }

@@ -8,10 +8,11 @@ import { LoginModal } from '../components/auth/LoginModal'
 import { roleInfo } from '../utils/roles'
 import { InterfacePicker } from '../components/settings/InterfacePicker'
 import { ThemePicker } from '../components/settings/ThemePicker'
+import { SignatureStatusCard } from '../components/settings/SignatureStatusCard'
 
 export function Settings() {
   const { t } = useTranslation()
-  const { status, user, encryptionUnavailable, logout, cancel } = useAuthStore()
+  const { status, user, encryptionUnavailable, updateRequired, logout, cancel } = useAuthStore()
   const [loginOpen, setLoginOpen] = useState(false)
 
   // Closing the modal also tears down any pending device/poll flow in main
@@ -49,6 +50,16 @@ export function Settings() {
           </CardHeader>
           <CardContent>
             <ThemePicker />
+          </CardContent>
+        </Card>
+
+        {/* Detection signatures: bundled, plus the site's signed additions */}
+        <Card className="mb-4">
+          <CardHeader>
+            <CardTitle>{t('settings.signatures.title')}</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <SignatureStatusCard />
           </CardContent>
         </Card>
 
@@ -112,6 +123,9 @@ export function Settings() {
                 to sign in again after restart (§9 / §4.7). */}
             {encryptionUnavailable && (
               <p className="mt-3 text-xs text-amber">{t('auth.encryptionUnavailable')}</p>
+            )}
+            {updateRequired && (
+              <p className="mt-3 text-xs text-amber">{t('site.updateRequired', { version: updateRequired })}</p>
             )}
 
             <LoginModal isOpen={loginOpen} onClose={closeLogin} />

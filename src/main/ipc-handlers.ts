@@ -1,7 +1,7 @@
 import { ipcMain, app, BrowserWindow, shell } from 'electron'
 import { existsSync } from 'fs'
 import { IPC_CHANNELS, ScanResult, UserSettings, ScannerInfo, OsInfo, ScannerCapability } from '../shared/types'
-import type { ScanReport, TriageSettings } from '../shared/types'
+import type { ScanReport, TriageSettings, SignatureStatus, SiteUploadResult, SitePlayerResult } from '../shared/types'
 import { logger } from './services/logger'
 import { execFile } from 'child_process'
 import { promisify } from 'util'
@@ -20,10 +20,15 @@ import { appStore } from './services/app-store'
 import { safeOpenExternal, safeOpenPath } from './utils/safe-open'
 import { normalizeRevealPath } from './utils/url-policy'
 import { HistoryStore } from './services/history-store'
+import { SignatureUpdater } from './services/signature-updater'
+import { bundleAdditions, bundleEntryCount } from './services/signature-bundle'
+import { configService } from './services/config-service'
 import { COLOR_THEMES, DEFAULT_THEME, isColorTheme } from '../shared/themes'
-import type { HistoryEntry, HistorySummary } from '../shared/history'
+import { playerKey, type HistoryEntry, type HistorySummary } from '../shared/history'
 import { join } from 'path'
-import { AuthLoginPayloadSchema, AuthUploadAvatarPayloadSchema } from './auth/auth-ipc-schema'
+import {
+  AuthLoginPayloadSchema, AuthUploadAvatarPayloadSchema, SiteOpenPayloadSchema, SitePlayerPayloadSchema, SiteUploadPayloadSchema
+} from './auth/auth-ipc-schema'
 import type { AuthService } from './auth/auth-service'
 import { GAMES, type GameId } from '../shared/games'
 import type { AuthState } from '../shared/types'
@@ -130,8 +135,25 @@ export function setupIpcHandlers(mainWindow: BrowserWindow): void {
   // Timeout per scanner — adaptive based on Windows version
   const SCANNER_TIMEOUT_MS = Math.round(30000 * getTimeoutMultiplier())
 
-  // Static for Phase 1; the signature-service supplies a real version in a later phase.
-  const SIGNATURE_VERSION = 'bundled-1'
+  // Detection signatures published by the site (Ed25519-signed, additive).
+  // Checked once shortly after launch and every 6 hours; a verified newer bundle
+  // takes effect at the next scan start.
+  const signatures = new SignatureUpdater({
+    baseUrl: configService.loadAuthConfig().webBaseUrl,
+    publicKey: configService.loadSignaturePublicKey(),
+    cacheFile: join(app.getPath('userData'), 'site-signatures.json'),
+    appVersion: app.getVersion(),
+    onApply: (bundle) => {
+      scannerFactory.setExtraSignatures({ version: bundle.version, ...bundleAdditions(bundle) })
+      logger.info('Site signatures applied', { version: bundle.version, entries: bundleEntryCount(bundle) })
+    }
+  })
+  if (signatures.enabled) {
+    void signatures.loadCached().then(() => signatures.check())
+    setInterval(() => void signatures.check(), 6 * 60 * 60 * 1000).unref()
+  }
+  ipcMain.handle(IPC_CHANNELS.SIGNATURES_STATUS, (): SignatureStatus => signatures.status())
+  ipcMain.handle(IPC_CHANNELS.SIGNATURES_CHECK, (): Promise<SignatureStatus> => signatures.check())
 
   // Start scan
   ipcMain.handle(IPC_CHANNELS.SCAN_START, async (_event, scannerIds?: ScannerName[], gameId?: GameId): Promise<ScanResult[]> => {
@@ -188,7 +210,7 @@ export function setupIpcHandlers(mainWindow: BrowserWindow): void {
           scannedAt: new Date(scanStartedAt).toISOString(),
           durationMs: Date.now() - scanStartedAt,
           appVersion: app.getVersion(),
-          signatureVersion: SIGNATURE_VERSION,
+          signatureVersion: scannerFactory.getSignatureVersion(),
           gameId: gameId ?? null,
           os: osMetaFromOsInfo(getOsInfo()),
           findKeyword: (value: string) => scannerFactory.getKeywordMatcher().findKeyword(value)
@@ -429,4 +451,36 @@ export function setupAuthHandlers(_mainWindow: BrowserWindow, authService: AuthS
       return authService.uploadAvatar(parsed.data.bytes, parsed.data.mime)
     }
   )
+
+  // Upload a saved check to the site. The report comes from this machine's
+  // history (by id), never from the renderer; the case text is the checker's.
+  ipcMain.handle(IPC_CHANNELS.SITE_UPLOAD_CHECK, async (_e, payload: unknown): Promise<SiteUploadResult> => {
+    const parsed = SiteUploadPayloadSchema.safeParse(payload)
+    if (!parsed.success) return { ok: false, error: 'invalid_payload' }
+    const entry = await history().get(parsed.data.historyId)
+    if (!entry) return { ok: false, error: 'not_found' }
+    // The site stores up to 120 / 4000 characters of case text.
+    const kase = { player: parsed.data.player.trim().slice(0, 120), notes: parsed.data.notes.trim().slice(0, 4000) }
+    return authService.uploadCheck(entry.report, kase)
+  })
+
+  ipcMain.handle(IPC_CHANNELS.SITE_PLAYER_CHECKS, async (_e, payload: unknown): Promise<SitePlayerResult> => {
+    const parsed = SitePlayerPayloadSchema.safeParse(payload)
+    const key = parsed.success ? playerKey(parsed.data.player) : null
+    if (!key) return { ok: false, error: 'invalid_payload' }
+    return authService.playerChecks(key)
+  })
+
+  // Open an uploaded check or a player card; main builds the URL, and
+  // openExternal only lets allowlisted site paths through.
+  ipcMain.handle(IPC_CHANNELS.SITE_OPEN, (_e, payload: unknown): void => {
+    const parsed = SiteOpenPayloadSchema.safeParse(payload)
+    if (!parsed.success) return
+    if ('checkId' in parsed.data) {
+      authService.openSite(authService.siteCheckUrl(parsed.data.checkId))
+    } else {
+      const key = playerKey(parsed.data.player)
+      if (key) authService.openSite(authService.sitePlayerUrl(key))
+    }
+  })
 }

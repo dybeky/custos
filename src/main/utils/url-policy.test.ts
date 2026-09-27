@@ -87,6 +87,12 @@ describe('isAllowedAuthUrl', () => {
     expect(isAllowedAuthUrl(`${ORIGIN}/device`, ORIGIN)).toBe(true)
     expect(isAllowedAuthUrl(`${ORIGIN}/profile/id/u1`, ORIGIN)).toBe(true)
   })
+  it('allows one uploaded check or player card in the staff panel, nothing else under /admin', () => {
+    expect(isAllowedAuthUrl(`${ORIGIN}/admin/reports/abc-123`, ORIGIN)).toBe(true)
+    expect(isAllowedAuthUrl(`${ORIGIN}/admin/players/steam%3A76561198000000001`, ORIGIN)).toBe(true)
+    expect(isAllowedAuthUrl(`${ORIGIN}/admin/reports/abc/json`, ORIGIN)).toBe(false)
+    expect(isAllowedAuthUrl(`${ORIGIN}/admin/desktop`, ORIGIN)).toBe(false)
+  })
   it('rejects other paths, other origins, and non-https', () => {
     expect(isAllowedAuthUrl(`${ORIGIN}/admin`, ORIGIN)).toBe(false)
     expect(isAllowedAuthUrl('https://evil.example/desktop/auth/start', ORIGIN)).toBe(false)

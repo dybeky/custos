@@ -248,6 +248,20 @@ class ConfigService {
     return this.authConfig
   }
 
+  /**
+   * Pinned Ed25519 public key (base64 SPKI) for signature bundles downloaded
+   * from the site — settings.json `signatures.publicKey`. Empty = updates off.
+   */
+  loadSignaturePublicKey(): string {
+    try {
+      const parsed = JSON.parse(readFileSync(join(this.getResourcePath(), 'settings.json'), 'utf-8'))
+      const key = parsed?.signatures?.publicKey
+      return typeof key === 'string' && /^[A-Za-z0-9+/=]{40,200}$/.test(key.trim()) ? key.trim() : ''
+    } catch {
+      return ''
+    }
+  }
+
   private getDefaultConfig(): AppConfig {
     return {
       app: {
