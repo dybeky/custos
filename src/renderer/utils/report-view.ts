@@ -134,3 +134,29 @@ export function extractLocalPath(value: string): string | null {
     .replace(/[\\ ]+$/, '')
   return path.length > 3 ? path : null
 }
+
+export interface SteamIdentity {
+  accountName: string
+  steamId: string
+  personaName?: string
+}
+
+/** Steam accounts the Steam scanner found on the PC — candidates for "who is this player". */
+export function steamIdentities(report: ScanReport | null): SteamIdentity[] {
+  if (!report) return []
+  const out: SteamIdentity[] = []
+  const seen = new Set<string>()
+  for (const f of report.findings) {
+    if (f.scannerId !== 'steam') continue
+    const m = /^\[Steam Account\] (.+?) \(SteamID: (\d+)\)(?: - (.+?))?(?: \[Invalid SteamID format\])?$/.exec(f.value)
+    if (!m || seen.has(m[2])) continue
+    seen.add(m[2])
+    out.push({ accountName: m[1], steamId: m[2], personaName: m[3] })
+  }
+  return out
+}
+
+/** "Persona (SteamID)" — the label used when a Steam account fills the player field. */
+export function steamIdentityLabel(id: SteamIdentity): string {
+  return `${id.personaName ?? id.accountName} (${id.steamId})`
+}

@@ -23,6 +23,9 @@ interface ScanState {
   dismissedIds: string[]
   /** Signatures ignored on every scan (persisted in main). */
   whitelist: string[]
+  /** Who is being checked + checker notes; kept across scans until edited. */
+  caseInfo: { player: string; notes: string }
+  setCaseInfo: (patch: Partial<{ player: string; notes: string }>) => void
 
   // Actions
   setStatus: (status: ScanStatus) => void
@@ -82,6 +85,8 @@ export const useScanStore = create<ScanState>((set, get) => ({
   _evidenceCount: null,
   dismissedIds: [],
   whitelist: [],
+  caseInfo: { player: '', notes: '' },
+  setCaseInfo: (patch) => set((state) => ({ caseInfo: { ...state.caseInfo, ...patch } })),
 
   setStatus: (status) => set({ status }),
   setProgress: (progress) => set({ progress }),

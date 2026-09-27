@@ -569,5 +569,15 @@
     "ignoredTitle": "Ignored signatures",
     "ignoredHint": "These signatures are skipped on every scan. Remove one to count it again.",
     "remove": "Remove"
+  },
+  "case": {
+    "title": "Case",
+    "hint": "Who you are checking and your notes. Included in the exported report (not in its integrity hash). Steam accounts found on this PC can fill the player in one click.",
+    "player": "Player",
+    "playerPlaceholder": "Nickname or SteamID",
+    "checkedBy": "Checked by",
+    "notes": "Notes",
+    "notesPlaceholder": "What you observed, what the player said, decision…",
+    "foundOnPc": "Found on this PC:"
   }
 }

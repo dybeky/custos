@@ -5,6 +5,20 @@ import { SCANNER_DISPLAY_TO_ID } from '../../shared/scanners-meta'
 import { featureName } from './feature-i18n'
 import { buildTimeline, rankedCorrelations, reasonText, relativeToScan } from './report-view'
 
+/** Who was checked and by whom — typed by the checker, not part of the hashed report. */
+export interface CaseInfo {
+  /** Player nickname / SteamID being checked. */
+  player?: string
+  /** Signed-in Custos user who ran the check. */
+  checkedBy?: string
+  /** Free-form checker notes. */
+  notes?: string
+}
+
+function hasCase(c?: CaseInfo): c is CaseInfo {
+  return !!c && !!(c.player?.trim() || c.checkedBy?.trim() || c.notes?.trim())
+}
+
 /** Identifies the JSON export so other tooling can recognise and version it. */
 export const REPORT_FORMAT = 'custos-scan-report'
 export const REPORT_FORMAT_VERSION = 1
@@ -56,7 +70,8 @@ export function buildTextReport(
   t: TFunction,
   report: ScanReport | null,
   results: ScanResult[],
-  locale?: string
+  locale?: string,
+  caseInfo?: CaseInfo
 ): string {
   const out: string[] = []
   out.push(RULE, t('report.title'), RULE)
@@ -79,6 +94,8 @@ export function buildTextReport(
 
   const field = (label: string, value: string): string => `${(label + ':').padEnd(18)} ${value}`
   out.push(
+    ...(caseInfo?.player?.trim() ? [field(t('case.player'), caseInfo.player.trim())] : []),
+    ...(caseInfo?.checkedBy?.trim() ? [field(t('case.checkedBy'), caseInfo.checkedBy.trim())] : []),
     field(t('report.scanId'), report.id),
     field(t('report.date'), `${scanned.toLocaleString(locale)} (${meta.scannedAt})`),
     field(t('report.duration'), formatDuration(t, meta.durationMs)),
@@ -89,6 +106,10 @@ export function buildTextReport(
       `${meta.appVersion} · ${t('report.engine')} ${meta.engineVersion} · ${t('report.signatures')} ${meta.signatureVersion}`
     )
   )
+
+  if (caseInfo?.notes?.trim()) {
+    out.push('', `${t('case.notes')}:`, indent(caseInfo.notes.trim(), '  '))
+  }
 
   // ── Verdict ─────────────────────────────────────────────────────────────
   out.push(
@@ -169,12 +190,20 @@ export function buildTextReport(
  * graded findings, content hash) plus the raw per-scanner results it was
  * derived from, under a versioned envelope.
  */
-export function buildJsonReport(report: ScanReport | null, results: ScanResult[], exportedAt = new Date()): string {
+export function buildJsonReport(
+  report: ScanReport | null,
+  results: ScanResult[],
+  exportedAt = new Date(),
+  caseInfo?: CaseInfo
+): string {
   return JSON.stringify(
     {
       format: REPORT_FORMAT,
       formatVersion: REPORT_FORMAT_VERSION,
       exportedAt: exportedAt.toISOString(),
+      ...(hasCase(caseInfo)
+        ? { case: { player: caseInfo.player?.trim() || null, checkedBy: caseInfo.checkedBy?.trim() || null, notes: caseInfo.notes?.trim() || null } }
+        : {}),
       report,
       results: results.map((r) => ({
         scannerName: r.scannerName,

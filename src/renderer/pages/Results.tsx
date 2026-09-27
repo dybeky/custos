@@ -12,13 +12,15 @@ import {
 } from '../utils/report-view'
 import { ActivityTimeline } from '../components/report/ActivityTimeline'
 import { FindingRow } from '../components/report/FindingRow'
+import { CaseCard } from '../components/report/CaseCard'
+import { useAuthStore } from '../stores/auth-store'
 import { IgnoredSignatures } from '../components/report/IgnoredSignatures'
 import { buildTextReport, buildJsonReport, downloadText, exportFileStem } from '../utils/report-export'
 import { SCANNER_DISPLAY_TO_ID } from '../../shared/scanners-meta'
 
 export function Results() {
   const { t, i18n } = useTranslation()
-  const { results, status, _totalFindings, _evidenceCount, report } = useScanStore()
+  const { results, status, _totalFindings, _evidenceCount, report, caseInfo } = useScanStore()
   const [expandedScanner, setExpandedScanner] = useState<string | null>(null)
   const hasResults = results.length > 0
   const findingLookup = buildFindingLookup(report)
@@ -28,13 +30,16 @@ export function Results() {
   const correlations = rankedCorrelations(report)
   const primaryReason = report?.verdict.reasons.find(r => r.code !== 'incomplete-coverage')
 
+  const checker = useAuthStore(s => s.user?.username)
+  const exportCase = { ...caseInfo, checkedBy: checker }
+
   const handleExport = () => {
-    const text = buildTextReport(t, report, results, i18n.language)
+    const text = buildTextReport(t, report, results, i18n.language, exportCase)
     downloadText(text, `${exportFileStem(report)}.txt`, 'text/plain')
   }
 
   const handleExportJSON = () => {
-    downloadText(buildJsonReport(report, results), `${exportFileStem(report)}.json`, 'application/json')
+    downloadText(buildJsonReport(report, results, new Date(), exportCase), `${exportFileStem(report)}.json`, 'application/json')
   }
 
   return (
@@ -103,6 +108,7 @@ export function Results() {
           </Card>
         )}
         {report && <ActivityTimeline report={report} />}
+        {hasResults && <CaseCard report={report} />}
         <IgnoredSignatures />
         {/* Summary Card */}
         <Card className="mb-6">
