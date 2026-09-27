@@ -21,7 +21,8 @@ export const SCANNER_DISPLAY_TO_ID: Record<string, ScannerName> = {
   'DNS Cache Scanner': 'dnscache',
   'Scheduled Tasks Scanner': 'scheduledtasks',
   'File Hash Scanner': 'filehash',
-  'Window & Module Scanner': 'windowmodule'
+  'Window & Module Scanner': 'windowmodule',
+  'Anti-Forensics Scanner': 'antiforensics'
 }
 
 export function scannerIdFromDisplayName(name: string): ScannerName | null {

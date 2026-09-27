@@ -5,7 +5,7 @@ import type { ScannerName } from '../../shared/types'
 const ALL_IDS: ScannerName[] = [
   'appdata', 'prefetch', 'recentfiles', 'gamefolder', 'registry', 'browserhistory',
   'process', 'steam', 'amcache', 'bam', 'shellbags', 'vm', 'dnscache',
-  'scheduledtasks', 'filehash', 'windowmodule'
+  'scheduledtasks', 'filehash', 'windowmodule', 'antiforensics'
 ]
 
 describe('scanner-policy', () => {

@@ -41,6 +41,7 @@ export type ScannerName =
   | 'scheduledtasks'
   | 'filehash'
   | 'windowmodule'
+  | 'antiforensics'
 
 // Scanner metadata
 export interface ScannerInfo {
@@ -287,6 +288,7 @@ export type HashTrust = 'verified' | 'community'
 export type FindingCategory =
   | 'hash' | 'execution' | 'runtime' | 'persistence'
   | 'file' | 'registry' | 'network' | 'context' | 'environment'
+  | 'antiforensics'
 
 // Explainability primitive: every severity/confidence change carries a reason.
 export interface ScoreReason {
