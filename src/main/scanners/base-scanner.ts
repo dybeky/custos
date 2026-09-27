@@ -1,4 +1,5 @@
-import { existsSync, readdirSync, realpathSync } from 'fs'
+import type { Dirent } from 'fs'
+import { readdir, realpath } from 'fs/promises'
 import { join } from 'path'
 import { ScanResult, ScanProgress } from '../../shared/types'
 import { KeywordMatcher } from '../services/keyword-matcher'
@@ -55,26 +56,29 @@ export abstract class BaseScanner {
     maxDepth: number
   ): Promise<string[]> {
     const results: string[] = []
-    if (!existsSync(path)) return results
 
     // Resolve the scan root's canonical path up front; every descent is checked
     // against it so a Windows junction / reparse point cannot redirect the walk
-    // outside the intended root.
+    // outside the intended root. A missing/unreadable root yields no results.
     let root: string
     try {
-      root = realpathSync.native(path)
+      root = await realpath(path)
     } catch {
       return results
     }
 
-    // Use synchronous scanning - simpler and more reliable
     const depth = Math.max(0, Math.min(Number.isFinite(maxDepth) ? maxDepth : 0, MAX_SCAN_DEPTH))
     const visited = new Set<string>([root])
-    this.scanFolderSync(path, extensions, depth, 0, results, root, visited)
+    await this.walkFolder(path, extensions, depth, 0, results, root, visited)
     return results
   }
 
-  private scanFolderSync(
+  /**
+   * Recursive, asynchronous directory walk. Async I/O keeps the Electron main
+   * process responsive (window controls, IPC, progress, scanner timeouts) while
+   * large trees like %APPDATA% or Program Files are traversed.
+   */
+  private async walkFolder(
     path: string,
     extensions: string[],
     maxDepth: number,
@@ -82,64 +86,60 @@ export abstract class BaseScanner {
     results: string[],
     root: string,
     visited: Set<string>
-  ): void {
+  ): Promise<void> {
     if (currentDepth > maxDepth) return
     if (this.cancelled) return
 
+    let entries: Dirent[]
     try {
-      const entries = readdirSync(path, { withFileTypes: true })
+      entries = await readdir(path, { withFileTypes: true })
+    } catch {
+      return // can't read directory - skip
+    }
 
-      for (const entry of entries) {
-        if (this.cancelled) return
+    for (const entry of entries) {
+      if (this.cancelled) return
 
-        const name = entry.name
-        const fullPath = join(path, name)
+      const name = entry.name
+      const fullPath = join(path, name)
 
-        // Skip symlinks
-        if (entry.isSymbolicLink()) continue
+      // Skip symlinks
+      if (entry.isSymbolicLink()) continue
 
+      if (entry.isDirectory()) {
+        // Skip excluded directories
+        if (this.excludedDirs.has(name.toLowerCase())) continue
+
+        // Check if directory name matches keywords
+        if (this.keywordMatcher.containsKeywordWithWhitelist(name, fullPath)) {
+          results.push(fullPath)
+        }
+
+        if (currentDepth >= maxDepth) continue
+
+        // Resolve the real path to defend against Windows directory junctions /
+        // reparse points (reported as plain directories, not symlinks): skip
+        // entries that escape the scan root or revisit an already-walked
+        // directory (junction loop).
+        let real: string
         try {
-          if (entry.isDirectory()) {
-            // Skip excluded directories
-            if (this.excludedDirs.has(name.toLowerCase())) continue
-
-            // Check if directory name matches keywords
-            if (this.keywordMatcher.containsKeywordWithWhitelist(name, fullPath)) {
-              results.push(fullPath)
-            }
-
-            // Recurse into subdirectory
-            if (currentDepth < maxDepth) {
-              // Resolve the real path to defend against Windows directory
-              // junctions / reparse points (reported as plain directories, not
-              // symlinks): skip entries that escape the scan root or revisit an
-              // already-walked directory (junction loop).
-              let real: string
-              try {
-                real = realpathSync.native(fullPath)
-              } catch {
-                continue
-              }
-              if (visited.has(real)) continue
-              if (!isWithin(root, real)) continue
-              visited.add(real)
-              this.scanFolderSync(fullPath, extensions, maxDepth, currentDepth + 1, results, root, visited)
-            }
-          } else if (entry.isFile()) {
-            // Check if file name matches keywords
-            if (this.keywordMatcher.containsKeywordWithWhitelist(name, fullPath)) {
-              if (extensions.length === 0 || this.hasExtension(name, extensions)) {
-                results.push(fullPath)
-              }
-            }
-          }
+          real = await realpath(fullPath)
         } catch {
-          // Skip inaccessible files/folders
           continue
         }
+        if (visited.has(real)) continue
+        if (!isWithin(root, real)) continue
+        visited.add(real)
+        await this.walkFolder(fullPath, extensions, maxDepth, currentDepth + 1, results, root, visited)
+      } else if (entry.isFile()) {
+        // Check if file name matches keywords
+        if (
+          this.keywordMatcher.containsKeywordWithWhitelist(name, fullPath) &&
+          (extensions.length === 0 || this.hasExtension(name, extensions))
+        ) {
+          results.push(fullPath)
+        }
       }
-    } catch {
-      // Can't read directory - skip
     }
   }
 

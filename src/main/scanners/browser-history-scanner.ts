@@ -1,5 +1,5 @@
-import { existsSync, readFileSync, statSync } from 'fs'
-import { copyFile, unlink, readdir } from 'fs/promises'
+import { existsSync } from 'fs'
+import { copyFile, unlink, readdir, readFile, stat } from 'fs/promises'
 import { join } from 'path'
 import { homedir, tmpdir } from 'os'
 import { randomUUID } from 'crypto'
@@ -26,10 +26,10 @@ interface DatabaseConfig {
 /** Max history-DB size we will read into memory (256 MB). */
 const MAX_DB_BYTES = 256 * 1024 * 1024
 
-function readFileCapped(p: string): Buffer | null {
+async function readFileCapped(p: string): Promise<Buffer | null> {
   try {
-    if (statSync(p).size > MAX_DB_BYTES) return null
-    return readFileSync(p)
+    if ((await stat(p)).size > MAX_DB_BYTES) return null
+    return await readFile(p)
   } catch {
     return null
   }
@@ -289,7 +289,7 @@ export class BrowserHistoryScanner extends BaseScanner {
       await this.copyWithRetry(dbPath, tempPath)
 
       const SQL = await getSql()
-      const fileBuffer = readFileCapped(tempPath)
+      const fileBuffer = await readFileCapped(tempPath)
       if (!fileBuffer) {
         logger.debug(`Skipping ${browserName}/${config.name}: database too large or unreadable`)
         return results
@@ -422,7 +422,7 @@ export class BrowserHistoryScanner extends BaseScanner {
       await this.copyWithRetry(placesPath, tempPath)
 
       const SQL = await getSql()
-      const fileBuffer = readFileCapped(tempPath)
+      const fileBuffer = await readFileCapped(tempPath)
       if (!fileBuffer) {
         logger.debug(`Skipping Firefox places at ${profilePath}: database too large or unreadable`)
         return results
@@ -543,7 +543,7 @@ export class BrowserHistoryScanner extends BaseScanner {
       await this.copyWithRetry(formHistoryPath, tempPath)
 
       const SQL = await getSql()
-      const fileBuffer = readFileCapped(tempPath)
+      const fileBuffer = await readFileCapped(tempPath)
       if (!fileBuffer) {
         logger.debug(`Skipping Firefox form history at ${profilePath}: database too large or unreadable`)
         return results

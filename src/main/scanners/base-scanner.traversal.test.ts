@@ -65,6 +65,39 @@ describe('BaseScanner.scanFolder traversal', () => {
     expect(found.some((p) => p.includes('cheat-secret'))).toBe(false)
   })
 
+  it('returns no results for a missing root', async () => {
+    expect(await makeScanner().walk(join(root, 'does-not-exist'), 5)).toEqual([])
+  })
+
+  it('respects the depth limit', async () => {
+    mkdirSync(join(root, 'a', 'b', 'cheat-deep'), { recursive: true })
+    writeFileSync(join(root, 'a', 'cheat-shallow.dll'), 'x')
+
+    const found = await makeScanner().walk(root, 1)
+
+    expect(found).toContain(join(root, 'a', 'cheat-shallow.dll'))
+    expect(found).not.toContain(join(root, 'a', 'b', 'cheat-deep'))
+  })
+
+  it('stops walking once cancelled', async () => {
+    mkdirSync(join(root, 'cheat-tool'))
+    const scanner = makeScanner()
+    scanner.cancel()
+
+    expect(await scanner.walk(root, 5)).toEqual([])
+  })
+
+  it('does not block the event loop while walking', async () => {
+    for (let i = 0; i < 20; i++) mkdirSync(join(root, `dir-${i}`, 'cheat-x'), { recursive: true })
+    let ticked = false
+    setImmediate(() => { ticked = true })
+
+    await makeScanner().walk(root, 5)
+
+    // A synchronous walk would finish before the immediate ever ran.
+    expect(ticked).toBe(true)
+  })
+
   it('terminates (does not hang) on a self-referential directory loop', async () => {
     mkdirSync(join(root, 'cheat-tool'))
     symlinkSync(root, join(root, 'cheat-tool', 'loop'), 'dir')
@@ -77,7 +110,7 @@ describe('BaseScanner.scanFolder traversal', () => {
 
 // Windows directory junctions are reparse points. On current Node/libuv,
 // readdir({ withFileTypes: true }) reports them as symbolic links, so the
-// isSymbolicLink() skip in scanFolderSync already stops them — exactly like a
+// isSymbolicLink() skip in the folder walk already stops them — exactly like a
 // symlink. The realpath + isWithin containment check is the second layer of
 // defense, covering any reparse point a Node version might instead surface as a
 // plain directory. Either way the invariant is the same: a junction pointing
