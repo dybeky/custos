@@ -138,26 +138,27 @@ This is the core workflow. It takes under a minute.
 
 Open the **Results** page after a scan.
 
-#### The summary card
+#### The risk verdict
 
-<table>
-<tr>
-<td width="50%" valign="top">
+At the top, Custos grades the whole scan — **Clean · Low · Medium · High · Critical** — with a 0–100 score and a one‑line reason. The grade is deliberately conservative:
 
-**Green** — no findings detected.
+| What was found | Verdict |
+|---|---|
+| Nothing, or only system information (Steam accounts, VM details) | **Clean** |
+| A single name match with nothing to confirm it | **Low** — likely a coincidence |
+| Several unrelated leads | **Medium** |
+| The same cheat seen in **2** independent kinds of artifacts (e.g. Prefetch + AppData) | **High** |
+| The same cheat seen in **3+** kinds of artifacts, or a file matching a known cheat's hash | **Critical** |
 
-</td>
-<td width="50%" valign="top">
+If any check could not finish — usually "access denied" because Custos was not run as Administrator — an amber warning says so. Treat a **Clean** result with an incomplete check list as unproven, and rescan with admin rights.
 
-**Red, with a count** — findings exist and deserve a look.
+#### Key evidence
 
-</td>
-</tr>
-</table>
+When one cheat signature shows up across several independent checks, it is listed under **Key evidence** with every check that saw it. This is the strongest kind of lead Custos produces — start your investigation here.
 
 #### Per‑scanner findings
 
-Below the summary, each scanner gets its own **collapsible card**. Click to expand and see that scanner's individual findings — file paths, registry values, or other strings — in an easy‑to‑read monospace font. Each card also shows how long that scanner took.
+Below, each scanner gets its own **collapsible card**. Click to expand and see its individual findings — file paths, registry values, or other strings — each tagged with a severity. The badge shows how many leads a scanner produced: **red** for evidence, **grey** for system information only, **amber "!"** when the check did not complete (the reason is shown under its name).
 
 > [!WARNING]
 > **A finding is a lead, not a conviction.** A matched keyword might be a real cheat — or a file with a coincidentally similar name, an old leftover, or something harmless. Read the actual path or value, weigh the context, and corroborate across more than one scanner before drawing a conclusion.
@@ -166,8 +167,10 @@ Below the summary, each scanner gets its own **collapsible card**. Click to expa
 
 | Button | File | Best for |
 |---|---|---|
-| **Export Results** | `custos-scan-YYYY-MM-DD.txt` | A quick, human‑readable summary to paste into a ticket or chat. |
-| **Export JSON** | `custos-scan-YYYY-MM-DD.json` | A structured file (scanner name, success flag, findings, duration, errors) for records or further processing. |
+| **Export Results** | `custos-YYYY-MM-DD-<scan id>.txt` | A complete, human‑readable report in your UI language — scan ID, date, game, system, verdict and reasons, key evidence, graded findings, which checks ran or failed, and an integrity hash. Paste it into a ticket or attach it to an appeal. |
+| **Export JSON** | `custos-YYYY-MM-DD-<scan id>.json` | The full analyzed report plus the raw per‑scanner output, in a versioned format (`custos-scan-report` v1) for records or tooling. |
+
+Every report carries a **SHA‑256 integrity hash**. It is computed over the JSON `report` object without its `contentHash` field (`JSON.stringify` of the object as exported), so anyone holding the JSON can recompute it and confirm the report was not edited after the scan.
 
 ---
 

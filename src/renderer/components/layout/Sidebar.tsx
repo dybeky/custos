@@ -1,7 +1,7 @@
 import { NavLink } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { motion } from 'framer-motion'
-import { useScanStore } from '../../stores/scan-store'
+import { useScanStore, shownFindingCount } from '../../stores/scan-store'
 import { useState, useRef } from 'react'
 import { createPortal } from 'react-dom'
 
@@ -141,14 +141,14 @@ function Tooltip({ label, targetRect }: { label: string; targetRect: DOMRect | n
 
 export function Sidebar() {
   const { t } = useTranslation()
-  const { status, results } = useScanStore()
+  const { status, _evidenceCount, _totalFindings } = useScanStore()
   const [hoveredItem, setHoveredItem] = useState<string | null>(null)
   const [hoveredExternal, setHoveredExternal] = useState<string | null>(null)
   const [tooltipRect, setTooltipRect] = useState<DOMRect | null>(null)
   const itemRefs = useRef<Map<string, HTMLAnchorElement>>(new Map())
   const externalRefs = useRef<Map<string, HTMLButtonElement>>(new Map())
 
-  const totalFindings = results.reduce((sum, r) => sum + r.findings.length, 0)
+  const totalFindings = shownFindingCount({ _evidenceCount, _totalFindings })
 
   const handleMouseEnter = (path: string, element: HTMLAnchorElement) => {
     setHoveredItem(path)

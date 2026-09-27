@@ -114,7 +114,11 @@
     "exportJSON": "EXPORT JSON",
     "runScanToSee": "Run a scan to see results",
     "noResultsYet": "No results yet",
-    "noFindings": "No findings"
+    "noFindings": "No findings",
+    "evidenceFound": "leads found",
+    "contextOnly": "Only system information — no cheat evidence",
+    "contextItems": "{{count}} informational",
+    "checkFailed": "Check did not complete"
   },
   "header": {
     "allSystemsOk": "All systems OK",
@@ -481,6 +485,21 @@
       "medium": "Medium",
       "high": "High",
       "critical": "Critical"
+    },
+    "keyEvidence": "Key evidence",
+    "keyEvidenceHint": "The same signature was found by several independent checks — the strongest kind of lead.",
+    "seenIn_one": "seen in {{count}} artifact type",
+    "seenIn_other": "seen in {{count}} artifact types",
+    "reason": {
+      "no-findings": "Nothing matched any known cheat signature.",
+      "verified-hash": "A file matches the hash of a known cheat build.",
+      "strong-corroboration": "A cheat signature was confirmed by 3+ independent artifact types.",
+      "corroboration": "A cheat signature was confirmed by several independent artifacts.",
+      "community-hash-uncorroborated": "An unverified (community) hash matched but nothing else confirms it.",
+      "multiple-leads": "Several independent leads, none confirmed by another artifact.",
+      "lone-match": "An isolated name match — likely a coincidence until something confirms it.",
+      "environment-only": "Only information about the system, no cheat evidence.",
+      "incomplete-coverage": "{{failed}} of {{total}} checks did not complete — the picture is incomplete. Run Custos as Administrator and scan again."
     }
   },
   "severity": {
@@ -489,5 +508,33 @@
     "medium": "Medium",
     "low": "Low",
     "info": "Info"
+  },
+  "confidence": {
+    "high": "high confidence",
+    "medium": "medium confidence",
+    "low": "low confidence"
+  },
+  "report": {
+    "title": "CUSTOS — FORENSIC SCAN REPORT",
+    "scanId": "Scan ID",
+    "date": "Date",
+    "duration": "Duration",
+    "game": "Game",
+    "system": "System",
+    "appArch": "app",
+    "engine": "engine",
+    "signatures": "signatures",
+    "none": "—",
+    "evidence": "Evidence",
+    "context": "System information",
+    "suppressed": "Dismissed / whitelisted",
+    "checks": "Checks",
+    "findingsCount_one": "{{count}} finding",
+    "findingsCount_other": "{{count}} findings",
+    "failed": "failed",
+    "integrity": "Integrity",
+    "integrityNote": "Any edit to the JSON export changes this hash — compare it to verify the report is unmodified.",
+    "unitSec": "s",
+    "unitMs": "ms"
   }
 }
