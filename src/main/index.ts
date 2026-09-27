@@ -1,5 +1,6 @@
 import { app, BrowserWindow, safeStorage, shell } from 'electron'
-import { join } from 'path'
+import { join, resolve } from 'path'
+import { fileURLToPath } from 'url'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import { setupIpcHandlers, setupAuthHandlers } from './ipc-handlers'
 import { safeOpenExternal } from './utils/safe-open'
@@ -21,6 +22,9 @@ const bgColor = '#0a0908'
 
 let mainWindow: BrowserWindow | null = null
 let authService: AuthService | null = null
+// ipcMain.handle throws if a channel is registered twice, so the handlers are
+// wired exactly once for the app's lifetime even if a window is re-created.
+let ipcRegistered = false
 
 // Register custos:// as the default protocol client so the OS routes the
 // auth-callback deep link back to this app. On Windows in dev, the protocol
@@ -90,19 +94,59 @@ function createWindow(): void {
     return { action: 'deny' }
   })
 
-  // Keep the privileged electronAPI bridge from ever living on a foreign origin.
-  mainWindow.webContents.on('will-navigate', (event, url) => {
-    const allowed =
-      (is.dev && process.env['ELECTRON_RENDERER_URL'] && url.startsWith(process.env['ELECTRON_RENDERER_URL'])) ||
-      url.startsWith('file://')
-    if (!allowed) {
+  // Keep the privileged electronAPI bridge from ever living on a foreign origin
+  // or on any local file other than the bundled renderer (a hash-router app
+  // never needs a real navigation). Redirects are held to the same rule.
+  const blockForeignNavigation = (event: Electron.Event, url: string): void => {
+    if (!isAllowedRendererUrl(url)) {
       event.preventDefault()
       logger.warn('Blocked in-frame navigation', { url })
     }
-  })
+  }
+  mainWindow.webContents.on('will-navigate', blockForeignNavigation)
+  mainWindow.webContents.on('will-redirect', blockForeignNavigation)
 
-  // Setup IPC handlers
-  setupIpcHandlers(mainWindow)
+  if (!ipcRegistered) {
+    registerIpc(mainWindow)
+    ipcRegistered = true
+  }
+
+  // Load the renderer
+  if (is.dev && process.env['ELECTRON_RENDERER_URL']) {
+    mainWindow.loadURL(process.env['ELECTRON_RENDERER_URL'])
+  } else {
+    mainWindow.loadFile(RENDERER_INDEX)
+  }
+}
+
+const RENDERER_INDEX = join(__dirname, '../renderer/index.html')
+
+/** True for the dev server origin or the packaged renderer's index.html. */
+function isAllowedRendererUrl(url: string): boolean {
+  const devUrl = process.env['ELECTRON_RENDERER_URL']
+  if (is.dev && devUrl) {
+    try {
+      return new URL(url).origin === new URL(devUrl).origin
+    } catch {
+      return false
+    }
+  }
+  try {
+    const target = new URL(url)
+    if (target.protocol !== 'file:') return false
+    const norm = (p: string): string => (process.platform === 'win32' ? resolve(p).toLowerCase() : resolve(p))
+    return norm(fileURLToPath(target)) === norm(RENDERER_INDEX)
+  } catch {
+    return false
+  }
+}
+
+/**
+ * Register every IPC handler once. The handlers close over `win` for pushes;
+ * this app has a single main window for its whole lifetime.
+ */
+function registerIpc(win: BrowserWindow): void {
+  setupIpcHandlers(win)
 
   // Construct + wire the AuthService with its real deps. All networking and the
   // bearer token stay in main; the renderer only ever sees the public AuthState.
@@ -126,14 +170,7 @@ function createWindow(): void {
       }
     }
   })
-  setupAuthHandlers(mainWindow, authService)
-
-  // Load the renderer
-  if (is.dev && process.env['ELECTRON_RENDERER_URL']) {
-    mainWindow.loadURL(process.env['ELECTRON_RENDERER_URL'])
-  } else {
-    mainWindow.loadFile(join(__dirname, '../renderer/index.html'))
-  }
+  setupAuthHandlers(win, authService)
 }
 
 app.whenReady().then(() => {
@@ -159,7 +196,9 @@ app.whenReady().then(() => {
 
   // Validate any persisted session against the server (no-ops if disabled or
   // logged out). Non-blocking — the window is already up.
-  void authService?.validateOnStartup()
+  authService?.validateOnStartup().catch((err) =>
+    logger.warn('Startup session validation failed', { error: err instanceof Error ? err.message : String(err) })
+  )
 
   app.on('activate', function () {
     if (BrowserWindow.getAllWindows().length === 0) createWindow()

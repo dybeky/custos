@@ -37,19 +37,27 @@ export class Logger {
    * Initialize logger with app path
    */
   init(): void {
+    const fileName = `custos-log-${new Date().toISOString().split('T')[0]}.txt`
     try {
-      // Get the directory where the app executable is located
-      const exePath = app.getPath('exe')
-      const appDir = dirname(exePath)
-
-      // Create log file name with date
-      const date = new Date().toISOString().split('T')[0]
-      this.logFilePath = join(appDir, `custos-log-${date}.txt`)
+      this.logFilePath = join(Logger.resolveLogDir(), fileName)
     } catch {
       // Fallback to user's home directory
-      const date = new Date().toISOString().split('T')[0]
-      this.logFilePath = join(homedir(), `custos-log-${date}.txt`)
+      this.logFilePath = join(homedir(), fileName)
     }
+  }
+
+  /**
+   * Directory the log file lives in: next to the .exe the user actually ran.
+   *
+   * The portable build self-extracts to a temp folder and runs from there, so
+   * `app.getPath('exe')` points at a directory that is deleted on exit — logs
+   * written there vanish. electron-builder's portable launcher exposes the real
+   * location via PORTABLE_EXECUTABLE_DIR; prefer it when present.
+   */
+  private static resolveLogDir(): string {
+    const portableDir = process.env.PORTABLE_EXECUTABLE_DIR
+    if (portableDir) return portableDir
+    return dirname(app.getPath('exe'))
   }
 
   /**
