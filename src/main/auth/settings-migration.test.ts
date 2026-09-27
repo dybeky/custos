@@ -24,10 +24,14 @@ import { migrateSettings } from '../ipc-handlers'
 
 describe('migrateSettings (drops legacy theme)', () => {
   it('strips a legacy theme key', () => {
-    expect(migrateSettings({ language: 'ru', theme: 'tropical' })).toEqual({ language: 'ru' })
+    expect(migrateSettings({ language: 'ru', theme: 'tropical' })).toEqual({ language: 'ru', uiMode: 'classic' })
   })
   it('defaults language to en for junk', () => {
-    expect(migrateSettings({ theme: 'aurora' })).toEqual({ language: 'en' })
-    expect(migrateSettings(null)).toEqual({ language: 'en' })
+    expect(migrateSettings({ theme: 'aurora' })).toEqual({ language: 'en', uiMode: 'classic' })
+    expect(migrateSettings(null)).toEqual({ language: 'en', uiMode: 'classic' })
+  })
+  it('keeps a valid interface mode and rejects junk', () => {
+    expect(migrateSettings({ language: 'en', uiMode: 'modern' })).toEqual({ language: 'en', uiMode: 'modern' })
+    expect(migrateSettings({ uiMode: 'neon' })).toEqual({ language: 'en', uiMode: 'classic' })
   })
 })

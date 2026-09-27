@@ -8,6 +8,8 @@ interface Props {
   value: string
   /** The analyzed finding for this row, when a report is available. */
   finding?: AnalyzedFinding
+  /** Omit the severity chip (when the list is already grouped by severity). */
+  hideSeverity?: boolean
 }
 
 const ACTION = 'px-2 py-0.5 rounded-md text-[10px] font-medium transition-colors'
@@ -18,7 +20,7 @@ const ACTION = 'px-2 py-0.5 rounded-md text-[10px] font-medium transition-colors
  * or ignore its signature on every future scan. Suppressed rows stay visible
  * (struck through) with an undo, so nothing silently disappears from a case.
  */
-export function FindingRow({ value, finding }: Props) {
+export function FindingRow({ value, finding, hideSeverity = false }: Props) {
   const { t } = useTranslation()
   const { dismissFinding, restoreFinding, ignoreSignature, unignoreSignature } = useScanStore()
   const [missing, setMissing] = useState(false)
@@ -41,11 +43,11 @@ export function FindingRow({ value, finding }: Props) {
 
   return (
     <div
-      className={`group text-xs bg-panel-2 p-2 rounded-lg font-mono flex items-start gap-2 ${
+      className={`group relative text-xs bg-panel-2 p-2 rounded-lg font-mono flex items-start gap-2 ${
         suppressed ? 'opacity-50' : 'text-ink-dim'
       }`}
     >
-      {finding && (
+      {finding && !hideSeverity && (
         <span className={`shrink-0 px-1.5 py-0.5 rounded text-[10px] font-bold uppercase not-italic ${severityChipClass(finding.severity)}`}>
           {t(`severity.${finding.severity}`)}
         </span>
@@ -62,7 +64,9 @@ export function FindingRow({ value, finding }: Props) {
         {missing && <p className="mt-1 font-sans text-[10px] text-amber">{t('triage.pathMissing')}</p>}
       </div>
 
-      <div className="shrink-0 flex flex-wrap justify-end gap-1 font-sans opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
+      {/* Actions float over the row's right edge on hover/focus so they never
+          steal width from the path — long paths wrap at the edge, not midway. */}
+      <div className="absolute right-1.5 top-1.5 flex flex-wrap justify-end gap-1 pl-6 font-sans opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto focus-within:opacity-100 focus-within:pointer-events-auto transition-opacity bg-gradient-to-l from-[color:var(--panel-2)] from-70% to-transparent">
         {path && (
           <button onClick={stop(reveal)} className={`${ACTION} bg-panel text-ink-dim hover:text-ink`} title={path}>
             {t('triage.reveal')}

@@ -51,8 +51,12 @@ export interface ScannerInfo {
 }
 
 // Settings types
+export type UiMode = 'classic' | 'modern'
+
 export interface UserSettings {
   language: 'en' | 'ru'
+  /** Which interface shell to render. 'classic' is the original layout. */
+  uiMode: UiMode
 }
 
 // Desktop auth providers. 'google'/'github' are interactive OAuth via the

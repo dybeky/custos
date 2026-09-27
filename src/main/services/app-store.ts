@@ -18,7 +18,8 @@ export interface AppStoreSchema {
 export const appStore = new Store<AppStoreSchema>({
   defaults: {
     settings: {
-      language: 'en'
+      language: 'en',
+      uiMode: 'classic'
     },
     auth: {},
     triage: { whitelistedSignatures: [] }

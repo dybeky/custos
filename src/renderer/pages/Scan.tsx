@@ -17,10 +17,9 @@ export function Scan() {
     scanners,
     _totalFindings,
     _evidenceCount,
-    setStatus,
     setScanners,
-    setError,
-    reset
+    startScan,
+    cancelScan
   } = useScanStore()
   const { selectedGame } = useGameStore()
   const findingCount = shownFindingCount({ _evidenceCount, _totalFindings })
@@ -31,22 +30,8 @@ export function Scan() {
     window.electronAPI.getScanners().then(setScanners).catch(() => {})
   }, [setScanners])
 
-  const handleStartScan = async () => {
-    reset()
-    setStatus('scanning')
-    try {
-      await window.electronAPI.startScan(undefined, selectedGame ?? undefined)
-    } catch (error) {
-      // Ignore a rejection that lands after the user already cancelled.
-      if (useScanStore.getState().status !== 'scanning') return
-      setError(error instanceof Error ? error.message : 'Unknown error')
-    }
-  }
-
-  const handleCancelScan = async () => {
-    await window.electronAPI.cancelScan()
-    setStatus('idle')
-  }
+  const handleStartScan = () => startScan(selectedGame ?? undefined)
+  const handleCancelScan = () => cancelScan()
 
   const overallProgress = progress && scanners.length > 0
     ? (results.length / scanners.length) * 100
