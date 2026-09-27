@@ -1,6 +1,6 @@
 import { contextBridge, ipcRenderer } from 'electron'
 import { IPC_CHANNELS, ScanResult, ScanProgress, UserSettings, ScannerInfo, OsInfo, ScannerCapability, ScannerName, LiveFinding, LiveScanStatus, ScanReport } from '../shared/types'
-import type { ChangelogGroup, UpdateInfo, AuthState, AuthProvider } from '../shared/types'
+import type { ChangelogGroup, UpdateInfo, AuthState, AuthProvider, SuppressionState, TriageSettings } from '../shared/types'
 import type { GameId } from '../shared/games'
 
 export type AuthChangedCallback = (state: AuthState) => void
@@ -35,6 +35,16 @@ const api = {
 
   cancelScan: (): Promise<void> => {
     return ipcRenderer.invoke(IPC_CHANNELS.SCAN_CANCEL)
+  },
+
+  /** Re-score the last scan with new triage choices (null if no scan yet). */
+  reanalyze: (suppression: SuppressionState): Promise<ScanReport | null> => {
+    return ipcRenderer.invoke(IPC_CHANNELS.SCAN_REANALYZE, suppression)
+  },
+
+  /** Persisted triage settings (the signature whitelist). */
+  getTriage: (): Promise<TriageSettings> => {
+    return ipcRenderer.invoke(IPC_CHANNELS.TRIAGE_GET)
   },
 
   // Scan event listeners
@@ -108,6 +118,11 @@ const api = {
 
   openPath: (path: string): void => {
     ipcRenderer.invoke(IPC_CHANNELS.APP_OPEN_PATH, path).catch(() => {})
+  },
+
+  /** Select a file/folder in Explorer (never opens it). Resolves false if it no longer exists. */
+  revealPath: (path: string): Promise<boolean> => {
+    return ipcRenderer.invoke(IPC_CHANNELS.APP_REVEAL_PATH, path)
   },
 
   openRegistry: (keyPath: string): Promise<{ success: boolean; error?: string }> => {

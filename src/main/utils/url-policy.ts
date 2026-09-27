@@ -91,3 +91,19 @@ export function isAllowedAuthUrl(url: string, webBase: string): boolean {
   const p = target.pathname
   return p === '/desktop/auth/start' || p === '/device' || p.startsWith('/profile/id/')
 }
+
+/**
+ * Validate a path for shell.showItemInFolder: an absolute drive-letter path
+ * with no control characters, no NTFS stream syntax and no UNC prefix (which
+ * could make Explorer reach out to a network host). Returns the path, or null.
+ */
+export function normalizeRevealPath(rawPath: string): string | null {
+  const p = rawPath.trim()
+  if (p.length === 0 || p.length > 32_767) return null
+  for (let i = 0; i < p.length; i++) {
+    if (p.charCodeAt(i) < 0x20) return null
+  }
+  if (UNC.test(p) || !DRIVE_LETTER.test(p)) return null
+  if (p.indexOf(':', 2) !== -1) return null
+  return p
+}

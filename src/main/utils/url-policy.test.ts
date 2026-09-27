@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { isAllowedExternalUrl, isAllowedLocalPath, expandEnv, isAllowedAuthUrl } from './url-policy'
+import { isAllowedExternalUrl, isAllowedLocalPath, expandEnv, isAllowedAuthUrl, normalizeRevealPath } from './url-policy'
 
 const NUL = String.fromCharCode(0)
 
@@ -98,5 +98,17 @@ describe('isAllowedAuthUrl', () => {
     const DEV = 'http://localhost:3000'
     expect(isAllowedAuthUrl(`${DEV}/device`, DEV)).toBe(true)
     expect(isAllowedAuthUrl(`${ORIGIN}/device`, DEV)).toBe(false)
+  })
+})
+
+describe('normalizeRevealPath', () => {
+  it('accepts plain absolute local paths, including executables (reveal never runs them)', () => {
+    expect(normalizeRevealPath('C:\\Users\\p\\Downloads\\undead.exe')).toBe('C:\\Users\\p\\Downloads\\undead.exe')
+    expect(normalizeRevealPath('  D:\\games\\folder  ')).toBe('D:\\games\\folder')
+  })
+  it('rejects relative, UNC, stream-syntax, URL and control-character input', () => {
+    for (const bad of ['undead.exe', '\\\\evil-host\\share\\x', 'C:\\a.txt:hidden.exe', 'https://x.y', 'C:\\a\u0000.txt', '']) {
+      expect(normalizeRevealPath(bad), bad).toBeNull()
+    }
   })
 })

@@ -7,10 +7,12 @@ import { InfoTip } from '../components/ui/InfoTip'
 import { useScanStore, shownFindingCount } from '../stores/scan-store'
 import { SCANNER_NAME_TO_ID, featureName, featureHelp } from '../utils/feature-i18n'
 import {
-  buildSeverityLookup, severityKey, severityChipClass, bandChipClass,
+  buildFindingLookup, severityKey, severityChipClass, bandChipClass,
   reasonText, coverageReason, rankedCorrelations, scannerEvidenceCount
 } from '../utils/report-view'
 import { ActivityTimeline } from '../components/report/ActivityTimeline'
+import { FindingRow } from '../components/report/FindingRow'
+import { IgnoredSignatures } from '../components/report/IgnoredSignatures'
 import { buildTextReport, buildJsonReport, downloadText, exportFileStem } from '../utils/report-export'
 import { SCANNER_DISPLAY_TO_ID } from '../../shared/scanners-meta'
 
@@ -19,7 +21,7 @@ export function Results() {
   const { results, status, _totalFindings, _evidenceCount, report } = useScanStore()
   const [expandedScanner, setExpandedScanner] = useState<string | null>(null)
   const hasResults = results.length > 0
-  const severityLookup = buildSeverityLookup(report)
+  const findingLookup = buildFindingLookup(report)
   const findingCount = shownFindingCount({ _evidenceCount, _totalFindings })
   const contextOnly = report !== null && findingCount === 0 && _totalFindings > 0
   const coverage = coverageReason(report)
@@ -101,6 +103,7 @@ export function Results() {
           </Card>
         )}
         {report && <ActivityTimeline report={report} />}
+        <IgnoredSignatures />
         {/* Summary Card */}
         <Card className="mb-6">
           <CardContent>
@@ -240,19 +243,12 @@ export function Results() {
                           <div className="space-y-2 max-h-60 overflow-y-auto">
                             {result.findings.map((finding, i) => {
                               const sid = SCANNER_DISPLAY_TO_ID[result.scannerName]
-                              const sev = sid ? severityLookup.get(severityKey(sid, finding)) : undefined
                               return (
-                                <div
+                                <FindingRow
                                   key={i}
-                                  className="text-xs text-ink-dim bg-panel-2 p-2 rounded-lg break-all font-mono flex items-start gap-2"
-                                >
-                                  {sev && (
-                                    <span className={`shrink-0 px-1.5 py-0.5 rounded text-[10px] font-bold uppercase not-italic ${severityChipClass(sev)}`}>
-                                      {t(`severity.${sev}`)}
-                                    </span>
-                                  )}
-                                  <span className="min-w-0">{finding}</span>
-                                </div>
+                                  value={finding}
+                                  finding={sid ? findingLookup.get(severityKey(sid, finding)) : undefined}
+                                />
                               )
                             })}
                           </div>

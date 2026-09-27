@@ -108,3 +108,29 @@ export function relativeToScan(t: TFunction, minutesBeforeScan: number): string 
   if (m < 48 * 60) return t('timeline.hoursBefore', { count: Math.round(m / 60) })
   return t('timeline.daysBefore', { count: Math.round(m / (24 * 60)) })
 }
+
+/** Map (scannerId,value) → analyzed finding, for per-row triage actions. */
+export function buildFindingLookup(report: ScanReport | null): Map<string, AnalyzedFinding> {
+  const m = new Map<string, AnalyzedFinding>()
+  if (!report) return m
+  for (const f of report.findings) m.set(severityKey(f.scannerId, f.value), f)
+  return m
+}
+
+/**
+ * The local file/folder a finding points at, if any: the first absolute
+ * drive-letter path, cut at the separators scanners append (` | …`, ` -> …`,
+ * ` [sha256:…]`, ` (…)`). A shortcut finding `a.lnk -> target` yields the
+ * target, since that is what the checker wants to see.
+ */
+export function extractLocalPath(value: string): string | null {
+  const target = / -> ([A-Za-z]:\\[^|\n]*)/.exec(value)
+  const m = target ?? /(?:^|[\s\]"'])([A-Za-z]:\\[^|\n]*)/.exec(value)
+  if (!m) return null
+  const path = m[1]
+    .split(/ -> | \[sha256:| \(| \| /)[0]
+    .replace(/["']+$/, '')
+    .trim()
+    .replace(/[\\ ]+$/, '')
+  return path.length > 3 ? path : null
+}

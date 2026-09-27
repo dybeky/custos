@@ -1,10 +1,12 @@
-import { ipcMain, app, BrowserWindow } from 'electron'
+import { ipcMain, app, BrowserWindow, shell } from 'electron'
+import { existsSync } from 'fs'
 import { IPC_CHANNELS, ScanResult, UserSettings, ScannerInfo, OsInfo, ScannerCapability } from '../shared/types'
+import type { ScanReport, TriageSettings } from '../shared/types'
 import { logger } from './services/logger'
 import { execFile } from 'child_process'
 import { promisify } from 'util'
 import { getScannerFactory, ScannerName } from './scanners'
-import { analyze } from './intel/risk-engine'
+import { analyze, type AnalyzeContext } from './intel/risk-engine'
 import { osMetaFromOsInfo, makeScanId } from './intel/report-context'
 import { getOsInfo, getTimeoutMultiplier } from './utils/os-utils'
 import { getScannerCapabilities, getSupportedScannerIds, getAllCapabilities } from './services/capability-service'
@@ -16,6 +18,7 @@ import { humanizeCommits } from './services/changelog'
 import { checkForUpdate } from './services/updater'
 import { appStore } from './services/app-store'
 import { safeOpenExternal, safeOpenPath } from './utils/safe-open'
+import { normalizeRevealPath } from './utils/url-policy'
 import { AuthLoginPayloadSchema, AuthUploadAvatarPayloadSchema } from './auth/auth-ipc-schema'
 import type { AuthService } from './auth/auth-service'
 import { GAMES, type GameId } from '../shared/games'
@@ -44,6 +47,22 @@ export function migrateSettings(raw: unknown): UserSettings {
 // sync so cancellation can't prematurely free the guard and let a second scan
 // start over the still-running one (see ScanSession).
 const scanSession = new ScanSession()
+
+// Raw results + analysis context of the most recent scan, kept so triage
+// (dismiss / whitelist) can re-score it without rescanning.
+let lastScan: { results: ScanResult[]; context: Omit<AnalyzeContext, 'suppression'> } | null = null
+
+const SuppressionSchema = z.object({
+  whitelistedSignatures: z.array(z.string().max(200)).max(500),
+  dismissedFindingIds: z.array(z.string().regex(/^[0-9a-f]{16}$/)).max(10_000)
+}).strict()
+
+/** Persisted triage settings, tolerant of a missing or malformed store entry. */
+function loadTriage(): TriageSettings {
+  const raw = appStore.get('triage') as Partial<TriageSettings> | undefined
+  const list = Array.isArray(raw?.whitelistedSignatures) ? raw.whitelistedSignatures : []
+  return { whitelistedSignatures: list.filter((s): s is string => typeof s === 'string') }
+}
 
 
 export function setupIpcHandlers(mainWindow: BrowserWindow): void {
@@ -135,7 +154,7 @@ export function setupIpcHandlers(mainWindow: BrowserWindow): void {
           failed: results.filter(r => !r.success).length
         })
 
-        const report = analyze(results, {
+        const context: Omit<AnalyzeContext, 'suppression'> = {
           scanId: makeScanId(scanStartedAt),
           scannedAt: new Date(scanStartedAt).toISOString(),
           durationMs: Date.now() - scanStartedAt,
@@ -143,8 +162,12 @@ export function setupIpcHandlers(mainWindow: BrowserWindow): void {
           signatureVersion: SIGNATURE_VERSION,
           gameId: gameId ?? null,
           os: osMetaFromOsInfo(getOsInfo()),
-          findKeyword: (value: string) => scannerFactory.getKeywordMatcher().findKeyword(value),
-          suppression: { whitelistedSignatures: [], dismissedFindingIds: [] }
+          findKeyword: (value: string) => scannerFactory.getKeywordMatcher().findKeyword(value)
+        }
+        lastScan = { results, context }
+        const report = analyze(results, {
+          ...context,
+          suppression: { whitelistedSignatures: loadTriage().whitelistedSignatures, dismissedFindingIds: [] }
         })
         safeSend(IPC_CHANNELS.SCAN_REPORT, report)
         safeSend(IPC_CHANNELS.SCAN_COMPLETE, results)
@@ -157,6 +180,24 @@ export function setupIpcHandlers(mainWindow: BrowserWindow): void {
       })
       throw error
     }
+  })
+
+  // Persisted triage (signature whitelist) for the renderer to display/edit.
+  ipcMain.handle(IPC_CHANNELS.TRIAGE_GET, (): TriageSettings => loadTriage())
+
+  // Re-score the last scan after the checker dismissed a finding or changed
+  // the whitelist. Pure re-analysis of the kept results — nothing is rescanned.
+  // The whitelist is persisted for future scans; dismissals are per-scan.
+  ipcMain.handle(IPC_CHANNELS.SCAN_REANALYZE, (_event, payload: unknown): ScanReport | null => {
+    const parsed = SuppressionSchema.safeParse(payload)
+    if (!parsed.success) throw new Error(`Invalid triage payload: ${parsed.error.message}`)
+    const whitelistedSignatures = [...new Set(parsed.data.whitelistedSignatures.map(s => s.trim()).filter(Boolean))]
+    appStore.set('triage', { whitelistedSignatures })
+    if (!lastScan) return null
+    return analyze(lastScan.results, {
+      ...lastScan.context,
+      suppression: { whitelistedSignatures, dismissedFindingIds: parsed.data.dismissedFindingIds }
+    })
   })
 
   // Cancel scan
@@ -248,6 +289,17 @@ export function setupIpcHandlers(mainWindow: BrowserWindow): void {
       }
     })
     return { success: true }
+  })
+
+  // Show a finding's file/folder selected in Explorer. showItemInFolder only
+  // reveals — it never opens or executes the target — so, unlike openPath,
+  // this is safe even for .exe/.dll findings. Still limited to plain local
+  // absolute paths that exist.
+  ipcMain.handle(IPC_CHANNELS.APP_REVEAL_PATH, (_event, rawPath: unknown): boolean => {
+    const path = typeof rawPath === 'string' ? normalizeRevealPath(rawPath) : null
+    if (!path || !existsSync(path)) return false
+    shell.showItemInFolder(path)
+    return true
   })
 
   // Quit app

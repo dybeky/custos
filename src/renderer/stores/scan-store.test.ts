@@ -107,3 +107,57 @@ describe('subscribeToScanEvents', () => {
     expect(unsubscribed.sort()).toEqual(['complete', 'error', 'progress', 'report', 'result'])
   })
 })
+
+describe('triage actions', () => {
+  const calls: Array<{ whitelistedSignatures: string[]; dismissedFindingIds: string[] }> = []
+  beforeEach(() => {
+    calls.length = 0
+    useScanStore.getState().reset()
+    useScanStore.setState({ whitelist: [] })
+    useScanStore.getState().setReport(report)
+    ;(globalThis as any).window = {
+      electronAPI: {
+        reanalyze: async (s: any) => {
+          calls.push(s)
+          return { ...report, verdict: { ...report.verdict, band: 'clean' } }
+        },
+        getTriage: async () => ({ whitelistedSignatures: ['titanium'] })
+      }
+    }
+  })
+
+  it('dismisses and restores a finding, re-scoring each time', async () => {
+    await useScanStore.getState().dismissFinding('abc')
+    expect(calls.at(-1)).toEqual({ whitelistedSignatures: [], dismissedFindingIds: ['abc'] })
+    expect(useScanStore.getState().report?.verdict.band).toBe('clean')
+    await useScanStore.getState().restoreFinding('abc')
+    expect(calls.at(-1)?.dismissedFindingIds).toEqual([])
+  })
+
+  it('ignores a signature once (case-insensitive) and can un-ignore it', async () => {
+    await useScanStore.getState().ignoreSignature('Undead')
+    await useScanStore.getState().ignoreSignature('undead')
+    expect(useScanStore.getState().whitelist).toEqual(['Undead'])
+    await useScanStore.getState().unignoreSignature('UNDEAD')
+    expect(useScanStore.getState().whitelist).toEqual([])
+  })
+
+  it('loads the persisted whitelist', async () => {
+    await useScanStore.getState().loadTriage()
+    expect(useScanStore.getState().whitelist).toEqual(['titanium'])
+  })
+
+  it('a new scan clears dismissals but keeps the whitelist', async () => {
+    await useScanStore.getState().ignoreSignature('undead')
+    await useScanStore.getState().dismissFinding('abc')
+    useScanStore.getState().reset()
+    expect(useScanStore.getState().dismissedIds).toEqual([])
+    expect(useScanStore.getState().whitelist).toEqual(['undead'])
+  })
+
+  it('ignores a re-scored report that belongs to a different scan', async () => {
+    ;(globalThis as any).window.electronAPI.reanalyze = async () => ({ ...report, id: 'other-scan', verdict: { ...report.verdict, band: 'critical' } })
+    await useScanStore.getState().dismissFinding('abc')
+    expect(useScanStore.getState().report?.id).toBe('scan-1')
+  })
+})
