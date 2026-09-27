@@ -22,11 +22,13 @@ export function TopBar({ onOpenPalette }: { onOpenPalette: () => void }) {
   const win = 'w-9 h-8 flex items-center justify-center rounded-lg text-ink-dim hover:text-ink hover:bg-panel-2 transition-colors'
 
   return (
-    <header className="h-12 shrink-0 grid grid-cols-[1fr_auto_1fr] items-center px-3 border-b border-[color:var(--line)] bg-bg/80 backdrop-blur-xl select-none" style={drag}>
+    // minmax(0,1fr) side columns: on a narrow window they shrink instead of
+    // pushing the bar wider than the window (which clipped the wordmark).
+    <header className="h-12 shrink-0 grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-3 px-4 border-b border-[color:var(--line)] bg-bg/80 backdrop-blur-xl select-none whitespace-nowrap" style={drag}>
       <div className="flex items-center gap-2 min-w-0">
-        <span className="text-[13px] font-semibold tracking-tight text-ink">custos</span>
+        <span className="shrink-0 text-[13px] font-semibold tracking-tight text-ink">custos</span>
         {selectedGame && (
-          <span className="px-1.5 py-0.5 rounded-md text-[10px] font-medium text-ink-dim border border-[color:var(--line)]">
+          <span className="hidden sm:inline truncate px-1.5 py-0.5 rounded-md text-[10px] font-medium text-ink-dim border border-[color:var(--line)]">
             {GAMES[selectedGame].name}
           </span>
         )}
@@ -39,7 +41,7 @@ export function TopBar({ onOpenPalette }: { onOpenPalette: () => void }) {
             to={item.path}
             end={item.path === '/'}
             className={({ isActive }) =>
-              `relative px-3.5 h-8 flex items-center gap-1.5 rounded-[10px] text-[13px] font-medium transition-colors ${
+              `relative px-2.5 lg:px-3.5 h-8 flex items-center gap-1.5 rounded-[10px] text-[13px] font-medium transition-colors ${
                 isActive ? 'bg-panel-2 text-ink shadow-[inset_0_0_0_1px_var(--line)]' : 'text-ink-dim hover:text-ink'
               }`
             }
@@ -50,15 +52,16 @@ export function TopBar({ onOpenPalette }: { onOpenPalette: () => void }) {
         ))}
       </nav>
 
-      <div className="flex items-center justify-end gap-1" style={noDrag}>
+      <div className="flex items-center justify-end gap-1 min-w-0" style={noDrag}>
         <button
           onClick={onOpenPalette}
-          className="h-8 pl-2.5 pr-1.5 mr-1 flex items-center gap-2 rounded-lg border border-[color:var(--line)] text-ink-dim hover:text-ink hover:border-[color:var(--line-strong)] transition-colors"
+          className="shrink-0 h-8 px-2 mr-1 flex items-center gap-2 rounded-lg border border-[color:var(--line)] text-ink-dim hover:text-ink hover:border-[color:var(--line-strong)] transition-colors"
           title={t('modern.palette.open')}
+          aria-label={t('modern.palette.open')}
         >
           <IconSearch className="w-3.5 h-3.5" />
-          <span className="text-xs hidden lg:inline">{t('modern.palette.short')}</span>
-          <span className="m-kbd">Ctrl K</span>
+          <span className="text-xs hidden xl:inline">{t('modern.palette.short')}</span>
+          <span className="m-kbd hidden md:inline-flex">Ctrl K</span>
         </button>
         <NavLink
           to="/settings"

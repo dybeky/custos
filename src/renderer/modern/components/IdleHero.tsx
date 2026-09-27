@@ -30,11 +30,14 @@ export function IdleHero() {
 
         <button
           onClick={() => void startScan(selectedGame ?? undefined)}
-          className="group mt-10 w-36 h-36 rounded-full bg-scan text-on-accent flex flex-col items-center justify-center gap-1 m-breathe transition-transform hover:scale-[1.03] active:scale-95 focus-visible:ring-4 focus-visible:ring-scan/30"
+          className="group relative mt-10 w-36 h-36 shrink-0 rounded-full bg-scan text-on-accent flex items-center justify-center m-breathe transition-transform hover:scale-[1.03] active:scale-95 focus-visible:ring-4 focus-visible:ring-scan/30"
           aria-keyshortcuts="Control+Enter"
         >
-          <IconPlay className="w-7 h-7 translate-x-0.5" />
-          <span className="text-sm font-semibold">{t('modern.check.start')}</span>
+          {/* The play glyph sits at the exact centre of the circle (nudged right
+              for optical balance — a triangle's mass is left of its box); the
+              label hangs below it without pulling it off-centre. */}
+          <IconPlay className="w-9 h-9 translate-x-[2px]" />
+          <span className="absolute inset-x-0 bottom-[22%] text-center text-sm font-semibold leading-none">{t('modern.check.start')}</span>
         </button>
         <p className="mt-4 text-xs text-ink-dim flex items-center gap-1.5">
           <span className="m-kbd">Ctrl</span><span className="m-kbd">Enter</span>
