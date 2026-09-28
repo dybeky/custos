@@ -25,7 +25,7 @@ export const appStore = new Store<AppStoreSchema>({
   clearInvalidConfig: true,
   defaults: {
     settings: {
-      colorTheme: 'espresso'
+      colorTheme: 'violet'
     },
     auth: {},
     triage: { whitelistedSignatures: [] }

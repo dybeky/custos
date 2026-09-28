@@ -18,12 +18,12 @@ import { configService } from './services/config-service'
 import { findCallbackInArgv } from './auth/callback-parser'
 import { isAllowedAuthUrl } from './utils/url-policy'
 import { IPC_CHANNELS } from '../shared/types'
-import { THEME_SWATCHES, isColorTheme } from '../shared/themes'
+import { DEFAULT_THEME, THEME_SWATCHES, isColorTheme } from '../shared/themes'
 import { applyGpuFallback, installCrashHandlers, watchWindow } from './diagnostics/crash-handler'
 
 // Window background shown before the renderer paints; matches the CSS `--bg`
-// token so there is no flash of a different colour on launch.
-const bgColor = '#0a0908'
+// token of the default theme so there is no flash of a different colour on launch.
+const bgColor = THEME_SWATCHES[DEFAULT_THEME].bg
 
 // Explain crashes instead of exiting silently, and start without GPU
 // acceleration if the graphics driver crashed last time. Both must be in place

@@ -13,6 +13,6 @@ describe('dead themes removed (spec §7.5)', () => {
   })
   it('main no longer reads a saved theme for backgroundColor', () => {
     expect(mainIdx).not.toContain('themeColors')
-    expect(mainIdx).toContain("'#0a0908'")
+    expect(mainIdx).toContain('THEME_SWATCHES[DEFAULT_THEME].bg')
   })
 })

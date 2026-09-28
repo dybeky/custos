@@ -14,13 +14,13 @@
     "theme": {
       "title": "Color theme",
       "espresso": "Espresso",
-      "espressoDesc": "Warm coffee-noir — the original look.",
+      "espressoDesc": "Warm coffee-noir with a caramel accent.",
       "graphite": "Graphite",
       "graphiteDesc": "Cool graphite with an electric-blue accent.",
       "emerald": "Emerald",
       "emeraldDesc": "Deep green-black with a mint accent.",
       "violet": "Violet",
-      "violetDesc": "Ink-violet with a soft lavender accent."
+      "violetDesc": "Ink-violet with a soft lavender accent — the default, matching 97437.dev."
     },
     "signatures": {
       "title": "Detection signatures",
@@ -182,11 +182,6 @@
     "failed": "Update failed: {{message}}. The current version is unchanged.",
     "available": "Update {{version}}",
     "reopen": "A new version is ready — click to see what changed and update"
-  },
-  "promo": {
-    "title": "Built by 97437",
-    "body": "Tools, mods & more — come say hi.",
-    "visit": "Visit 97437.dev"
   },
   "auth": {
     "signIn": "Sign in",

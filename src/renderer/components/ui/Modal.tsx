@@ -9,7 +9,7 @@ interface ModalProps {
   onClose: () => void
   title?: string
   children: ReactNode
-  size?: 'sm' | 'md' | 'lg'
+  size?: 'sm' | 'md' | 'lg' | 'xl'
   showCloseButton?: boolean
   'aria-describedby'?: string
 }
@@ -17,7 +17,9 @@ interface ModalProps {
 const sizes = {
   sm: 'max-w-sm',
   md: 'max-w-md',
-  lg: 'max-w-lg'
+  lg: 'max-w-lg',
+  // Wide dialogs (the update changelog) still leave a margin in a minimum-size window.
+  xl: 'max-w-[min(55rem,calc(100vw_-_4rem))]'
 }
 
 export function Modal({
