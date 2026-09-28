@@ -15,20 +15,18 @@ npm run dev
 
 This starts the Electron app in development mode with hot-reload via electron-vite.
 
-### Windows: rebuilding the native live-scan module
+### Native code (live scan)
 
-The live-memory scanner uses `memoryjs`, a native Node addon (Windows only).
-After `npm ci` (or `npm install`), rebuild it against Electron's ABI before
-starting the app or running tests that exercise the live scanner:
+The live-memory scanner calls Win32 directly through `koffi`, which ships
+prebuilt binaries for win32 x64 and arm64 — there is nothing to compile and no
+Visual Studio toolchain to install. (It used to depend on `memoryjs`, a
+compiled addon whose build silently failed and dropped Live Scan from release
+builds.) On macOS/Linux the live scanner reports "native unavailable" and the
+Windows-only tests are skipped.
 
-```bash
-npm run rebuild
-```
-
-This runs `electron-rebuild -f -w memoryjs`. On non-Windows hosts, or if the
-build toolchain is not present, the command will fail — that is expected. The
-live-scan feature degrades gracefully to "native unavailable" and all other
-scanners continue to work normally.
+If you run the app from a terminal inside VS Code and it dies with
+`Cannot read properties of undefined (reading 'isPackaged')`, the editor has
+set `ELECTRON_RUN_AS_NODE` — unset it before `npm run dev`.
 
 ## How to verify
 

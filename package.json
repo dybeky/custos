@@ -10,12 +10,11 @@
     "build": "electron-vite build",
     "preview": "electron-vite preview",
     "debug": "electron-vite build && electron-builder --win --dir",
-    "package": "electron-vite build && electron-builder",
-    "package:win": "electron-vite build && electron-builder --win --x64",
-    "package:win:arm64": "electron-vite build && electron-builder --win --arm64",
+    "package": "electron-vite build && node scripts/fetch-koffi-arm64.js && electron-builder",
+    "package:win": "electron-vite build && node scripts/fetch-koffi-arm64.js && electron-builder --win --x64",
+    "package:win:arm64": "electron-vite build && node scripts/fetch-koffi-arm64.js && electron-builder --win --arm64",
     "package:win:admin": "npm run package:win && node scripts/build-with-manifest.js",
     "lint": "eslint . --max-warnings 0",
-    "rebuild": "electron-rebuild -f -w memoryjs",
     "typecheck": "tsc -p tsconfig.node.json --noEmit && tsc -p tsconfig.web.json --noEmit",
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",
@@ -28,7 +27,7 @@
     "electron-store": "^10.1.0",
     "framer-motion": "^12.40.0",
     "i18next": "^26.3.0",
-    "koffi": "^3.0.2",
+    "koffi": "^3.3.2",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "react-easy-crop": "^6.0.2",
@@ -41,7 +40,6 @@
   },
   "devDependencies": {
     "@electron-toolkit/tsconfig": "^1.0.1",
-    "@electron/rebuild": "^4.0.4",
     "@eslint/js": "^10.0.1",
     "@testing-library/dom": "^10.4.1",
     "@testing-library/jest-dom": "^6.9.1",
@@ -52,7 +50,7 @@
     "@typescript-eslint/eslint-plugin": "^8.60.0",
     "@typescript-eslint/parser": "^8.60.0",
     "@vitejs/plugin-react": "^5.2.0",
-    "@vitest/coverage-v8": "^4.1.8",
+    "@vitest/coverage-v8": "^4.1.11",
     "autoprefixer": "^10.4.21",
     "electron": "^42.3.0",
     "electron-builder": "^26.8.1",
@@ -66,9 +64,6 @@
     "typescript": "^5.9.0",
     "typescript-eslint": "^8.60.1",
     "vite": "^7.3.0",
-    "vitest": "^4.1.0"
-  },
-  "optionalDependencies": {
-    "memoryjs": "^3.5.1"
+    "vitest": "^4.1.11"
   }
 }

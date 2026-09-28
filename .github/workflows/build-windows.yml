@@ -21,6 +21,8 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run build
+      # npm only installs the host (x64) koffi binary; the arm64 exe needs its own.
+      - run: node scripts/fetch-koffi-arm64.js
       - run: npx electron-builder --win --${{ matrix.arch }}
       - uses: actions/upload-artifact@v4
         with:
