@@ -13,3 +13,11 @@ export function isSessionDirName(name: string): boolean {
 export function isLegacyLogName(name: string): boolean {
   return /^custos-log-\d{4}-\d{2}-\d{2}\.txt$/.test(name)
 }
+
+/** Prefix of a downloaded update waiting to replace the exe (see updater.ts). */
+export const UPDATE_FILE_PREFIX = 'custos-update-'
+
+/** A downloaded update left in %TEMP% by a swap that never ran. */
+export function isUpdateFileName(name: string): boolean {
+  return /^custos-update-[0-9a-f]{16}\.exe$/.test(name)
+}

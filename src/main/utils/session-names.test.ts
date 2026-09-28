@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { randomBytes } from 'crypto'
-import { SESSION_PREFIX, isLegacyLogName, isSessionDirName } from './session-names'
+import { SESSION_PREFIX, UPDATE_FILE_PREFIX, isLegacyLogName, isSessionDirName, isUpdateFileName } from './session-names'
 
 describe('session folder names', () => {
   it('recognises the folders Custos creates', () => {
@@ -27,5 +27,12 @@ describe('session folder names', () => {
     expect(isLegacyLogName('custos-log-2026-09-27.txt.bak')).toBe(false)
     expect(isLegacyLogName('custos-x64.exe')).toBe(false)
     expect(isLegacyLogName('notes.txt')).toBe(false)
+  })
+
+  it('recognises only downloaded updates that never got swapped in', () => {
+    expect(isUpdateFileName(UPDATE_FILE_PREFIX + randomBytes(8).toString('hex') + '.exe')).toBe(true)
+    expect(isUpdateFileName('custos-update-0123456789abcdef')).toBe(false)
+    expect(isUpdateFileName('custos-update-0123456789ABCDEF.exe')).toBe(false)
+    expect(isUpdateFileName('custos-x64.exe')).toBe(false)
   })
 })

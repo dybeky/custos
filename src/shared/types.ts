@@ -294,6 +294,14 @@ export interface UpdateInfo {
   latestVersion: string | null
   url: string | null
   notes: ChangelogGroup[]
+  /** True when the app can download, verify and restart into the update itself. */
+  canInstall: boolean
+}
+
+/** Download progress of an in-app update, in bytes. */
+export interface UpdateProgress {
+  received: number
+  total: number
 }
 
 // IPC Channel names
@@ -327,9 +335,12 @@ export const IPC_CHANNELS = {
   // App operations
   GITHUB_GET_CHANGELOG: 'github:changelog',
   UPDATE_CHECK: 'update:check',
+  UPDATE_INSTALL: 'update:install',
+  UPDATE_PROGRESS: 'update:progress',
   APP_VERSION: 'app:version',
   APP_OPEN_EXTERNAL: 'app:open-external',
   APP_OPEN_PATH: 'app:open-path',
+  APP_OPEN_STEAM_FOLDER: 'app:open-steam-folder',
   APP_OPEN_REGISTRY: 'app:open-registry',
   APP_REVEAL_PATH: 'app:reveal-path',
   APP_QUIT: 'app:quit',

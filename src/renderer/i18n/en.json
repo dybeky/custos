@@ -97,7 +97,8 @@
     "windowsDefender": "Windows Defender",
     "videos": "Videos",
     "downloads": "Downloads",
-    "registryKeyNotFound": "Registry key does not exist on this system"
+    "registryKeyNotFound": "Registry key does not exist on this system",
+    "steamFolderNotFound": "Not found — Steam or the game is not installed on this PC."
   },
   "utilities": {
     "title": "Utilities",
@@ -170,9 +171,15 @@
   "update": {
     "title": "Update available",
     "newVersion": "Version {{version}} is available",
-    "download": "Download",
+    "download": "Open release page",
     "later": "Later",
-    "checkFailed": "Couldn't check for updates — try again later."
+    "checkFailed": "Couldn't check for updates — try again later.",
+    "install": "Update now",
+    "installHint": "Downloads the new version, checks its SHA-256 and restarts Custos.",
+    "starting": "Starting download…",
+    "downloading": "{{received}} / {{total}} MB · {{pct}}%",
+    "restarting": "Verified. Restarting into the new version…",
+    "failed": "Update failed: {{message}}. The current version is unchanged."
   },
   "promo": {
     "title": "Built by 97437",

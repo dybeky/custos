@@ -7,7 +7,9 @@ import { alpha } from '../utils/color'
 
 const ERROR_TOAST_MS = 6000
 
-type ActionType = 'path' | 'registry' | 'external'
+// 'steam': target is a game folder under steamapps/common (or '' for Steam itself),
+// found through Steam's own library list rather than a fixed path.
+type ActionType = 'path' | 'registry' | 'external' | 'steam'
 
 interface ManualItem {
   label: string
@@ -15,6 +17,8 @@ interface ManualItem {
   labelKey?: string
   hint?: string
   target: string
+  /** Overrides the category's action for this one item. */
+  action?: ActionType
 }
 
 interface ManualCategory {
@@ -71,7 +75,8 @@ const chevron = (
 
 export function Manual() {
   const { t } = useTranslation()
-  const [registryError, setRegistryError] = useState(false)
+  // i18n key of the failure toast, or false when hidden.
+  const [registryError, setRegistryError] = useState<string | false>(false)
   const errorTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
 
   useEffect(() => () => clearTimeout(errorTimer.current), [])
@@ -116,8 +121,8 @@ export function Manual() {
       action: 'path',
       showHint: true,
       items: [
-        { label: 'Unturned', hint: 'Steam\\steamapps\\common\\Unturned', target: 'C:\\Program Files (x86)\\Steam\\steamapps\\common\\Unturned' },
-        { label: 'Steam', hint: 'C:\\Program Files (x86)\\Steam', target: 'C:\\Program Files (x86)\\Steam' }
+        { label: 'Unturned', hint: 'Steam\\steamapps\\common\\Unturned', target: 'Unturned', action: 'steam' },
+        { label: 'Steam', hint: 'Steam', target: '', action: 'steam' }
       ]
     },
     {
@@ -173,14 +178,20 @@ export function Manual() {
     clearTimeout(errorTimer.current)
     setRegistryError(false)
     if (action === 'path') window.electronAPI.openPath(target)
-    else if (action === 'registry') {
+    else if (action === 'steam') {
+      if (!(await window.electronAPI.openSteamFolder(target))) {
+        clearTimeout(errorTimer.current)
+        setRegistryError('manual.steamFolderNotFound')
+        errorTimer.current = setTimeout(() => setRegistryError(false), ERROR_TOAST_MS)
+      }
+    } else if (action === 'registry') {
       const result = await window.electronAPI.openRegistry(target)
       if (!result.success) {
         // Clear again here (not just at run() start): two rapid failures both
         // resolve after their run() guards ran, so the first timer would
         // otherwise survive and dismiss this toast early.
         clearTimeout(errorTimer.current)
-        setRegistryError(true)
+        setRegistryError('manual.registryKeyNotFound')
         errorTimer.current = setTimeout(() => setRegistryError(false), ERROR_TOAST_MS)
       }
     } else window.electronAPI.openExternal(target)
@@ -234,7 +245,7 @@ export function Manual() {
                 {cat.items.map((item) => (
                   <button
                     key={item.target}
-                    onClick={() => run(cat.action, item.target)}
+                    onClick={() => run(item.action ?? cat.action, item.target)}
                     title={item.target}
                     className="group relative w-full flex items-center gap-3 pl-3.5 pr-2.5 py-2.5 rounded-xl bg-panel-2 hover:bg-panel-2 border border-[color:var(--line)] hover:border-[color:var(--line-strong)] transition-all duration-200 text-left overflow-hidden"
                   >
@@ -279,7 +290,7 @@ export function Manual() {
             className="fixed bottom-4 right-4 z-[60] w-72 rounded-xl bg-panel border border-[color:var(--line-strong)] shadow-lg overflow-hidden"
           >
             <div className="p-3 flex items-start justify-between gap-2">
-              <p className="text-xs text-ink-dim">{t('manual.registryKeyNotFound')}</p>
+              <p className="text-xs text-ink-dim">{registryError && t(registryError)}</p>
               <button onClick={() => setRegistryError(false)} aria-label={t('general.dismiss')} className="text-ink-dim hover:text-ink">
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />

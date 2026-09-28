@@ -4,7 +4,7 @@ import { mkdirSync, readdirSync, rmSync } from 'fs'
 import { tmpdir } from 'os'
 import { join } from 'path'
 import { randomBytes } from 'crypto'
-import { SESSION_PREFIX, isLegacyLogName, isSessionDirName } from './utils/session-names'
+import { SESSION_PREFIX, isLegacyLogName, isSessionDirName, isUpdateFileName } from './utils/session-names'
 
 /**
  * Custos runs on the checked player's PC and must leave nothing behind.
@@ -36,6 +36,7 @@ function sweepLeftovers(sessionDir: string, legacyUserData: string): void {
       // Another Custos window still running holds its folder open; rm fails
       // on the locked files and the folder is retried next launch.
       if (isSessionDirName(name) && path !== sessionDir) removeQuietly(path)
+      else if (isUpdateFileName(name)) removeQuietly(path) // an update whose swap never ran
     }
   } catch {
     // temp folder unreadable — nothing to sweep
