@@ -11,19 +11,40 @@ import { logger } from './logger'
 import { UPDATE_FILE_PREFIX } from '../utils/session-names'
 import type { UpdateInfo, UpdateProgress } from '../../shared/types'
 
+/** Section headings a hand-written release uses, mapped to changelog types. */
+const SECTION_TYPES: Array<[RegExp, string]> = [
+  [/^(new|features?|added)\b/i, 'feat'],
+  [/^(fix(es|ed)?|bug ?fixes)\b/i, 'fix'],
+  [/^performance\b/i, 'perf']
+]
+
 /**
- * Changelog lines from a release body. Handles both a hand-written list and
- * GitHub's generated notes: headings, "Full Changelog" links and the
- * "by @user in <PR url>" suffix are dropped.
+ * Changelog lines from a release body, as conventional-commit style messages
+ * so humanizeCommits can group them. Understands:
+ *  - hand-written notes with sections ("### New", "### Fixes",
+ *    "### Improvements") — bullets inherit their section's type;
+ *  - bullets that already carry a prefix ("fix: …");
+ *  - GitHub's generated notes — the "What's Changed" heading, "Full
+ *    Changelog" link and "by @user in <PR url>" suffixes are dropped.
  */
 export function releaseLines(body: string): string[] {
-  return body
-    .split('\n')
-    .map((l) => l.trim())
-    .filter((l) => l && !l.startsWith('#') && !/^\*\*Full Changelog\*\*/i.test(l) && !/^<!--/.test(l))
-    .map((l) => l.replace(/^[-*]\s*/, '').replace(/\s+by @[\w-]+(\[bot\])? in \S+$/, '').trim())
-    .filter(Boolean)
-    .slice(0, 100)
+  const out: string[] = []
+  let section: string | null = null
+  for (const raw of body.split('\n')) {
+    const l = raw.trim()
+    if (!l || /^<!--/.test(l) || /^\*\*Full Changelog\*\*/i.test(l)) continue
+    if (l.startsWith('#')) {
+      const title = l.replace(/^#+\s*/, '')
+      section = SECTION_TYPES.find(([re]) => re.test(title))?.[1] ?? null
+      continue
+    }
+    const text = l.replace(/^[-*]\s*/, '').replace(/\s+by @[\w-]+(\[bot\])? in \S+$/, '').trim()
+    if (!text) continue
+    const prefixed = /^\w+(\([^)]+\))?:\s/.test(text)
+    out.push(section && !prefixed ? `${section}: ${text}` : text)
+    if (out.length >= 100) break
+  }
+  return out
 }
 
 /** Turn a release body into humanized changelog groups. */
