@@ -15,10 +15,11 @@ import { ScanSession } from './scan-session'
 import { setupLiveIpcHandlers } from './live-ipc'
 import { getRecentCommits } from './services/github-service'
 import { humanizeCommits } from './services/changelog'
-import { checkForUpdate } from './services/updater'
+import { checkForUpdate, installUpdate } from './services/updater'
 import { appStore } from './services/app-store'
 import { safeOpenExternal, safeOpenPath } from './utils/safe-open'
 import { normalizeRevealPath } from './utils/url-policy'
+import { locateSteam } from './utils/steam-locator'
 import { HistoryStore } from './services/history-store'
 import { SignatureUpdater } from './services/signature-updater'
 import { bundleAdditions, bundleEntryCount } from './services/signature-bundle'
@@ -116,6 +117,18 @@ export function setupIpcHandlers(mainWindow: BrowserWindow): void {
       mainWindow.webContents.send(channel, data)
     }
   }
+
+  // Progress is throttled to whole percents so a fast link doesn't flood IPC.
+  ipcMain.handle(IPC_CHANNELS.UPDATE_INSTALL, () => {
+    let lastPct = -1
+    return installUpdate((p) => {
+      const pct = Math.floor((p.received / p.total) * 100)
+      if (pct !== lastPct) {
+        lastPct = pct
+        safeSend(IPC_CHANNELS.UPDATE_PROGRESS, p)
+      }
+    })
+  })
 
   // Get scanner info — only scanners that can actually run on this OS
   ipcMain.handle(IPC_CHANNELS.GET_SCANNERS, (): ScannerInfo[] => {
@@ -321,6 +334,17 @@ export function setupIpcHandlers(mainWindow: BrowserWindow): void {
   // Open path in explorer - validated; %ENV% expansion + scheme routing live in safeOpenPath
   ipcMain.handle(IPC_CHANNELS.APP_OPEN_PATH, (_event, path: string): void => {
     safeOpenPath(path)
+  })
+
+  // Steam and games can live on any drive; resolve through Steam's registry
+  // key + libraryfolders.vdf instead of guessing a fixed path.
+  ipcMain.handle(IPC_CHANNELS.APP_OPEN_STEAM_FOLDER, async (_event, game: unknown): Promise<boolean> => {
+    if (typeof game !== 'string' || !/^[A-Za-z0-9 ._-]{0,64}$/.test(game) || game.includes('..')) return false
+    const found = await locateSteam(game)
+    const dir = game ? found.game : found.steam
+    if (!dir) return false
+    const err = await shell.openPath(dir)
+    return err === ''
   })
 
   ipcMain.handle(IPC_CHANNELS.APP_OPEN_REGISTRY, async (_event, keyPath: string): Promise<{ success: boolean; error?: string }> => {

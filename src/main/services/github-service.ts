@@ -2,11 +2,19 @@ import { z } from 'zod'
 import { logger } from './logger'
 import type { RawCommit } from './changelog'
 
+const ApiAssetSchema = z.object({
+  name: z.string(),
+  browser_download_url: z.string(),
+  size: z.number(),
+  /** "sha256:<hex>" — GitHub computes it on upload; absent on very old assets. */
+  digest: z.string().nullish()
+})
 const ApiReleaseSchema = z.object({
   tag_name: z.string(),
   body: z.string().nullish(),
   html_url: z.string(),
-  published_at: z.string()
+  published_at: z.string(),
+  assets: z.array(ApiAssetSchema).default([])
 })
 const ApiCommitSchema = z.object({
   sha: z.string(),
@@ -18,11 +26,20 @@ const BASE = `https://api.github.com/repos/${REPO}`
 const HEADERS = { 'User-Agent': 'custos-app', Accept: 'application/vnd.github+json' }
 const TIMEOUT_MS = 8000
 
+export interface GithubAsset {
+  name: string
+  url: string
+  size: number
+  /** Lowercase SHA-256 hex, or null when GitHub has none for the asset. */
+  sha256: string | null
+}
+
 export interface GithubRelease {
   tagName: string
   body: string
   htmlUrl: string
   publishedAt: string
+  assets?: GithubAsset[]
 }
 
 // Per-session cache so launch-time changelog + update checks cost at most 2 calls.
@@ -75,7 +92,11 @@ export async function getLatestReleaseResult(): Promise<ReleaseResult> {
     tagName: parsed.data.tag_name,
     body: (parsed.data.body ?? '').slice(0, 10000),
     htmlUrl: parsed.data.html_url,
-    publishedAt: parsed.data.published_at
+    publishedAt: parsed.data.published_at,
+    assets: parsed.data.assets.map((a) => {
+      const m = /^sha256:([0-9a-f]{64})$/i.exec(a.digest ?? '')
+      return { name: a.name, url: a.browser_download_url, size: a.size, sha256: m ? m[1].toLowerCase() : null }
+    })
   }
   _releaseCache = release
   return { status: 'ok', release }

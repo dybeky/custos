@@ -320,6 +320,8 @@ Signed‑in staff get a **Site** card on the results screen, depending on what t
 - **Upload to site** — sends the check (with the player and your notes) to the staff panel. The site re‑computes the report's SHA‑256 and marks it *intact* only if nothing was edited after the scan.
 - **Checks of this player on the site** — every check of the same player (by SteamID, else name) uploaded by any checker, with a link to the player card.
 
+**App updates.** On launch Custos checks the latest GitHub release. **Update now** downloads the exe for this CPU (`custos-x64.exe` / `custos-arm64.exe`), refuses it unless its size and the SHA‑256 GitHub publishes for the asset match, then replaces the exe you started and restarts into it. If anything fails, the running version stays as it was; **Open release page** is always there as the manual route.
+
 **Signature updates.** The site can publish extra detection signatures (names, domains, confirmed file hashes). They are **added** to the built‑in ones — never replace them — and are signed with Ed25519: the app accepts a bundle only if it verifies against the public key in `resources/settings.json` → `signatures.publicKey`, and never goes back to an older bundle. With an empty key (the default in source builds) updates are off.
 
 **Minimum version.** Staff can require a minimum app version; older builds then cannot sign in, and the app says which version is needed.

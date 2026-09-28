@@ -1,6 +1,6 @@
 import { contextBridge, ipcRenderer } from 'electron'
 import { IPC_CHANNELS, ScanResult, ScanProgress, UserSettings, ScannerInfo, OsInfo, ScannerCapability, ScannerName, LiveFinding, LiveScanStatus, ScanReport } from '../shared/types'
-import type { ChangelogGroup, UpdateInfo, AuthState, AuthProvider, SuppressionState, TriageSettings, SiteUploadResult, SitePlayerResult, SignatureStatus } from '../shared/types'
+import type { ChangelogGroup, UpdateInfo, UpdateProgress, AuthState, AuthProvider, SuppressionState, TriageSettings, SiteUploadResult, SitePlayerResult, SignatureStatus } from '../shared/types'
 import type { GameId } from '../shared/games'
 import type { HistoryEntry, HistorySummary } from '../shared/history'
 
@@ -134,6 +134,10 @@ const api = {
     ipcRenderer.invoke(IPC_CHANNELS.APP_OPEN_PATH, path).catch(() => {})
   },
 
+  /** Open a game folder found through Steam's libraries ('' = Steam itself). Resolves false if not found. */
+  openSteamFolder: (game: string): Promise<boolean> =>
+    ipcRenderer.invoke(IPC_CHANNELS.APP_OPEN_STEAM_FOLDER, game).catch(() => false),
+
   /** Select a file/folder in Explorer (never opens it). Resolves false if it no longer exists. */
   revealPath: (path: string): Promise<boolean> => {
     return ipcRenderer.invoke(IPC_CHANNELS.APP_REVEAL_PATH, path)
@@ -211,6 +215,16 @@ const api = {
   /** Check for a newer release on GitHub. */
   checkForUpdate: (): Promise<UpdateInfo> =>
     ipcRenderer.invoke(IPC_CHANNELS.UPDATE_CHECK),
+
+  /** Download + verify the release from the last check and restart into it. */
+  installUpdate: (): Promise<void> =>
+    ipcRenderer.invoke(IPC_CHANNELS.UPDATE_INSTALL),
+
+  onUpdateProgress: (callback: (p: UpdateProgress) => void): (() => void) => {
+    const listener = (_event: Electron.IpcRendererEvent, p: UpdateProgress): void => callback(p)
+    ipcRenderer.on(IPC_CHANNELS.UPDATE_PROGRESS, listener)
+    return () => ipcRenderer.removeListener(IPC_CHANNELS.UPDATE_PROGRESS, listener)
+  },
 
   // ── Auth (token-free; all networking + the bearer token live in main) ──────
   /** Current public auth state (never exposes the token/grant/codeVerifier). */

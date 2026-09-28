@@ -1,7 +1,8 @@
+import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Modal } from './ui/Modal'
 import { Button } from './ui/Button'
-import type { UpdateInfo } from '../../shared/types'
+import type { UpdateInfo, UpdateProgress } from '../../shared/types'
 import { alpha } from '../utils/color'
 
 // Accent color per changelog group — keeps the emoji-free changelog readable.
@@ -13,10 +14,41 @@ const ACCENT: Record<string, string> = {
 }
 const ACCENT_DEFAULT = 'var(--scan)'
 
+type Phase = { kind: 'idle' } | { kind: 'downloading'; progress: UpdateProgress | null } | { kind: 'restarting' } | { kind: 'failed'; message: string }
+
+const mb = (bytes: number): string => (bytes / (1024 * 1024)).toFixed(1)
+
 export function UpdateModal({ info, onClose }: { info: UpdateInfo; onClose: () => void }) {
   const { t } = useTranslation()
+  const [phase, setPhase] = useState<Phase>({ kind: 'idle' })
+  const busy = phase.kind === 'downloading' || phase.kind === 'restarting'
+
+  useEffect(
+    () => window.electronAPI.onUpdateProgress((p) => setPhase({ kind: 'downloading', progress: p })),
+    []
+  )
+
+  const install = async () => {
+    setPhase({ kind: 'downloading', progress: null })
+    try {
+      await window.electronAPI.installUpdate()
+      setPhase({ kind: 'restarting' })
+    } catch (err) {
+      // ipcRenderer.invoke wraps main's error: "Error invoking remote method '…': Error: <message>"
+      const raw = err instanceof Error ? err.message : String(err)
+      setPhase({ kind: 'failed', message: raw.replace(/^.*?Error: /, '') })
+    }
+  }
+
+  const openPage = () => {
+    if (info.url) window.electronAPI.openExternal(info.url)
+    onClose()
+  }
+
+  const pct = phase.kind === 'downloading' && phase.progress ? Math.round((phase.progress.received / phase.progress.total) * 100) : 0
+
   return (
-    <Modal isOpen onClose={onClose} title={t('update.title')} size="md">
+    <Modal isOpen onClose={busy ? () => {} : onClose} showCloseButton={!busy} title={t('update.title')} size="md">
       <p className="text-sm text-ink-dim mb-3">
         {t('update.newVersion', { version: info.latestVersion })}
       </p>
@@ -52,16 +84,39 @@ export function UpdateModal({ info, onClose }: { info: UpdateInfo; onClose: () =
           )
         })}
       </div>
+
+      {phase.kind === 'downloading' && (
+        <div className="mb-4" role="status" aria-live="polite">
+          <div className="h-1.5 w-full rounded-full bg-panel-2 overflow-hidden">
+            <div className="h-full rounded-full bg-scan transition-[width] duration-200" style={{ width: `${pct}%` }} />
+          </div>
+          <p className="mt-1.5 text-xs text-ink-dim tabular-nums">
+            {phase.progress
+              ? t('update.downloading', { received: mb(phase.progress.received), total: mb(phase.progress.total), pct })
+              : t('update.starting')}
+          </p>
+        </div>
+      )}
+      {phase.kind === 'restarting' && (
+        <p className="mb-4 text-xs text-ok" role="status">{t('update.restarting')}</p>
+      )}
+      {phase.kind === 'failed' && (
+        <p className="mb-4 text-xs text-amber" role="alert">{t('update.failed', { message: phase.message })}</p>
+      )}
+
       <div className="flex justify-end gap-2">
-        <Button variant="secondary" size="sm" onClick={onClose}>{t('update.later')}</Button>
-        <Button
-          variant="primary"
-          size="sm"
-          onClick={() => { if (info.url) window.electronAPI.openExternal(info.url); onClose() }}
-        >
-          {t('update.download')}
-        </Button>
+        {!busy && <Button variant="secondary" size="sm" onClick={onClose}>{t('update.later')}</Button>}
+        {info.canInstall && phase.kind !== 'failed' ? (
+          <Button variant="primary" size="sm" disabled={busy} onClick={() => void install()}>
+            {t('update.install')}
+          </Button>
+        ) : (
+          <Button variant="primary" size="sm" onClick={openPage}>{t('update.download')}</Button>
+        )}
       </div>
+      {info.canInstall && phase.kind === 'idle' && (
+        <p className="mt-3 text-2xs text-ink-dim text-right">{t('update.installHint')}</p>
+      )}
     </Modal>
   )
 }
