@@ -2,7 +2,7 @@
 export const COLOR_THEMES = ['espresso', 'graphite', 'emerald', 'violet'] as const
 export type ColorTheme = (typeof COLOR_THEMES)[number]
 
-export const DEFAULT_THEME: ColorTheme = 'espresso'
+export const DEFAULT_THEME: ColorTheme = 'violet'
 
 export function isColorTheme(v: unknown): v is ColorTheme {
   return typeof v === 'string' && (COLOR_THEMES as readonly string[]).includes(v)

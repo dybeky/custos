@@ -3,42 +3,12 @@ import { useTranslation } from 'react-i18next'
 import { motion } from 'framer-motion'
 import { useScanStore, shownFindingCount } from '../../stores/scan-store'
 import { useState, useRef } from 'react'
-import { createPortal } from 'react-dom'
 
 interface NavItem {
   path: string
   icon: React.ReactNode
   labelKey: string
 }
-
-interface ExternalLink {
-  url: string
-  icon: React.ReactNode
-  label: string
-}
-
-const externalLinks: ExternalLink[] = [
-  {
-    url: 'https://97437.dev',
-    icon: (
-      <svg
-        className="w-5 h-5"
-        style={{ animation: 'spin 12s linear infinite' }}
-        fill="none"
-        viewBox="0 0 24 24"
-        strokeWidth={1.5}
-        stroke="currentColor"
-      >
-        <path
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          d="m20.893 13.393-1.135-1.135a2.252 2.252 0 0 1-.421-.585l-1.08-2.16a.414.414 0 0 0-.663-.107.827.827 0 0 1-.812.21l-1.273-.363a.89.89 0 0 0-.738 1.595l.587.39c.59.395.674 1.23.172 1.732l-.2.2c-.212.212-.33.498-.33.796v.41c0 .409-.11.809-.32 1.158l-1.315 2.191a2.11 2.11 0 0 1-1.81 1.025 1.055 1.055 0 0 1-1.055-1.055v-1.172c0-.92-.56-1.747-1.414-2.089l-.655-.261a2.25 2.25 0 0 1-1.383-2.46l.007-.042a2.25 2.25 0 0 1 .29-.787l.09-.15a2.25 2.25 0 0 1 2.37-1.048l1.178.236a1.125 1.125 0 0 0 1.302-.795l.208-.73a1.125 1.125 0 0 0-.578-1.315l-.665-.332-.091.091a2.25 2.25 0 0 1-1.591.659h-.18c-.249 0-.487.1-.662.274a.931.931 0 0 1-1.458-1.137l1.411-2.353a2.25 2.25 0 0 0 .286-.76m11.928 9.869A9 9 0 0 0 8.965 3.525m11.928 9.868A9 9 0 1 1 8.965 3.525"
-        />
-      </svg>
-    ),
-    label: 'WEB'
-  }
-]
 
 const navItems: NavItem[] = [
   {
@@ -125,59 +95,16 @@ const navItems: NavItem[] = [
   }
 ]
 
-// Tooltip component that renders via portal
-function Tooltip({ label, targetRect }: { label: string; targetRect: DOMRect | null }) {
-  if (!targetRect) return null
-
-  return createPortal(
-    <motion.div
-      initial={{ opacity: 0, x: -5 }}
-      animate={{ opacity: 1, x: 0 }}
-      transition={{ duration: 0.15 }}
-      className="fixed px-3 py-1.5 bg-panel-2 text-ink text-xs font-medium rounded-lg whitespace-nowrap shadow-lg border border-[color:var(--line-strong)] pointer-events-none"
-      style={{
-        zIndex: 99999,
-        left: targetRect.right + 8,
-        top: targetRect.top + targetRect.height / 2,
-        transform: 'translateY(-50%)',
-      }}
-    >
-      {label}
-    </motion.div>,
-    document.body
-  )
-}
-
 export function Sidebar() {
   const { t } = useTranslation()
   const { status, _evidenceCount, _totalFindings } = useScanStore()
   const [hoveredItem, setHoveredItem] = useState<string | null>(null)
-  const [hoveredExternal, setHoveredExternal] = useState<string | null>(null)
-  const [tooltipRect, setTooltipRect] = useState<DOMRect | null>(null)
   const itemRefs = useRef<Map<string, HTMLAnchorElement>>(new Map())
-  const externalRefs = useRef<Map<string, HTMLButtonElement>>(new Map())
 
   const totalFindings = shownFindingCount({ _evidenceCount, _totalFindings })
 
-  const handleMouseEnter = (path: string, element: HTMLAnchorElement) => {
-    setHoveredItem(path)
-    setTooltipRect(element.getBoundingClientRect())
-  }
-
-  const handleMouseLeave = () => {
-    setHoveredItem(null)
-    setHoveredExternal(null)
-    setTooltipRect(null)
-  }
-
-  const handleExternalMouseEnter = (url: string, element: HTMLButtonElement) => {
-    setHoveredExternal(url)
-    setTooltipRect(element.getBoundingClientRect())
-  }
-
-  const handleOpenExternal = (url: string) => {
-    window.electronAPI.openExternal(url)
-  }
+  const handleMouseEnter = (path: string) => setHoveredItem(path)
+  const handleMouseLeave = () => setHoveredItem(null)
 
   return (
     <>
@@ -198,7 +125,7 @@ export function Sidebar() {
                   : 'text-ink-dim hover:text-ink hover:bg-panel-2'
               }`
             }
-            onMouseEnter={(e) => handleMouseEnter(item.path, e.currentTarget)}
+            onMouseEnter={() => handleMouseEnter(item.path)}
             onMouseLeave={handleMouseLeave}
           >
             {({ isActive }) => (
@@ -240,41 +167,8 @@ export function Sidebar() {
         ))}
         </div>
 
-        {/* External Links */}
-        <div className="border-t border-[color:var(--line)] pt-4 mt-2">
-          {externalLinks.map((link) => (
-            <button
-              key={link.url}
-              ref={(el) => {
-                if (el) externalRefs.current.set(link.url, el)
-              }}
-              onClick={() => handleOpenExternal(link.url)}
-              onMouseEnter={(e) => handleExternalMouseEnter(link.url, e.currentTarget)}
-              onMouseLeave={handleMouseLeave}
-              className="group relative flex items-center justify-center py-3 mx-2 rounded-xl transition-all duration-200 text-ink-dim hover:text-ink hover:bg-panel-2 w-12"
-            >
-              <motion.span
-                className="relative"
-                animate={{
-                  scale: hoveredExternal === link.url ? 1.15 : 1
-                }}
-                transition={{ type: 'spring', stiffness: 400, damping: 20 }}
-              >
-                {link.icon}
-              </motion.span>
-            </button>
-          ))}
-        </div>
       </nav>
 
-      {/* Page-name tooltips are intentionally omitted — the nav is icon-only.
-          (aria-label on each NavLink keeps it accessible to screen readers.) */}
-      {hoveredExternal && (
-        <Tooltip
-          label={externalLinks.find(link => link.url === hoveredExternal)?.label || ''}
-          targetRect={tooltipRect}
-        />
-      )}
     </>
   )
 }

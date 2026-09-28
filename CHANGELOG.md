@@ -3,6 +3,14 @@
 Each version's section is published as its GitHub release notes, and the app
 shows it in the update dialog and under "What's new". Keep the `### New`,
 `### Fixes` and `### Improvements` headings — the app groups entries by them.
+Keep each entry to one line of about 100 characters so the dialog stays tidy.
+
+## Unreleased
+
+### Improvements
+- Violet is the default theme, matching 97437.dev (the others stay in Settings)
+- A wider update dialog: the changelog reads one line per entry and opens at the top
+- No more website promotion inside the app
 
 ## 3.0.0
 

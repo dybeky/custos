@@ -18,7 +18,6 @@ import { useAuthStore } from './stores/auth-store'
 import { subscribeToScanEvents, useScanStore } from './stores/scan-store'
 import { GamePicker } from './components/GamePicker'
 import { UpdateModal } from './components/UpdateModal'
-import { WebsitePromoToast } from './components/WebsitePromoToast'
 import { UpdateCheckFailedToast } from './components/UpdateCheckFailedToast'
 import { useGameStore } from './stores/game-store'
 import type { UpdateInfo } from '../shared/types'
@@ -32,9 +31,6 @@ export function App() {
   // brings it back — updating is always the user's choice.
   const [updateOpen, setUpdateOpen] = useState(false)
   const [checkFailed, setCheckFailed] = useState(false)
-  const [promoDone, setPromoDone] = useState(false)
-  const [updateChecked, setUpdateChecked] = useState(false)
-  const showPromo = !!selectedGame && updateChecked && update === null && !checkFailed && !promoDone
 
   useEffect(() => {
     if (!selectedGame) return
@@ -47,7 +43,6 @@ export function App() {
         else if (info.checkFailed) setCheckFailed(true)
       })
       .catch(() => {})
-      .finally(() => setUpdateChecked(true))
   }, [selectedGame])
 
   useEffect(() => {
@@ -101,7 +96,6 @@ export function App() {
           <GamePicker />
           {update && updateOpen && <UpdateModal info={update} onClose={() => setUpdateOpen(false)} />}
           {checkFailed && <UpdateCheckFailedToast onDone={() => setCheckFailed(false)} />}
-          {showPromo && <WebsitePromoToast onDone={() => setPromoDone(true)} />}
           <div className="relative z-10 flex flex-col flex-1 overflow-hidden">
             <Header updateVersion={update?.latestVersion} onUpdateClick={() => setUpdateOpen(true)} />
 
