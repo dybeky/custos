@@ -53,7 +53,8 @@ export function mergeKeywords(base: KeywordSettings, extra: ExtraSignatures | nu
   }
   return {
     patterns: uniq([...base.patterns, ...extra.patterns]),
-    exactMatch: uniq([...base.exactMatch, ...extra.exactMatch])
+    exactMatch: uniq([...base.exactMatch, ...extra.exactMatch]),
+    ambiguous: base.ambiguous
   }
 }
 
