@@ -51,6 +51,17 @@
     "arcane",
     "eggu"
   ],
+  "ambiguous": [
+    "undead",
+    "melony",
+    "ancient",
+    "medusa",
+    "mason",
+    "midnight",
+    "fatality",
+    "thanking",
+    "titanium"
+  ],
   "games": {
     "unturned": {
       "patterns": [

@@ -289,3 +289,43 @@ describe('KeywordMatcher', () => {
     })
   })
 })
+
+describe('ambiguous (everyday-word) keywords', () => {
+  const m = new KeywordMatcher({
+    patterns: ['midnight', 'titanium', 'aimbot', 'ezmod.vip'],
+    exactMatch: [],
+    ambiguous: ['midnight', 'titanium']
+  })
+
+  it('ignores them in ordinary page titles, songs and folders', () => {
+    expect(m.findKeyword('David Guetta - Titanium (Official Video) - YouTube')).toBeNull()
+    expect(m.findKeyword('https://www.youtube.com/results?search_query=midnight+city')).toBeNull()
+    expect(m.findKeyword('C:\\Program Files\\Midnight Commander\\mc.exe')).toBeNull()
+    expect(m.findKeyword('MIDNIGHT | MD Store')).toBeNull()
+  })
+
+  it('still catches a file named exactly like the cheat, with or without a version', () => {
+    expect(m.findKeyword('C:\\Users\\p\\Downloads\\Midnight.exe')).toBe('midnight')
+    expect(m.findKeyword('C:\\Users\\p\\AppData\\Local\\Temp\\titanium2.dll')).toBe('titanium')
+  })
+
+  it('still catches them next to a cheat-context word', () => {
+    expect(m.findKeyword('CS2 + GTA5 - MIDNIGHT store')).toBe('midnight')
+    expect(m.findKeyword('Titanium loader v3')).toBe('titanium')
+    expect(m.findKeyword('midnight cheat for unturned')).toBe('midnight')
+  })
+
+  it('does not let context words match inside longer words', () => {
+    expect(m.findKeyword('Midnight at the hackathon')).toBeNull()
+    expect(m.findKeyword('Midnight espresso bar')).toBeNull()
+  })
+
+  it('moves on to an unambiguous keyword later in the same text', () => {
+    expect(m.findKeyword('Midnight sale on ezmod.vip')).toBe('ezmod.vip')
+    expect(m.containsKeyword('Titanium aimbot')).toBe(true)
+  })
+
+  it('leaves non-ambiguous keywords untouched', () => {
+    expect(m.findKeyword('my aimbot.exe')).toBe('aimbot')
+  })
+})

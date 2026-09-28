@@ -79,6 +79,12 @@ const GameKeywordsSchema = z.object({
 const KeywordSettingsSchema = z.object({
   patterns: z.array(z.string()),
   exactMatch: z.array(z.string()),
+  /**
+   * Patterns that are also everyday words ("midnight", "titanium"). They only
+   * count on an exact file name or next to a cheat-context word — see
+   * KeywordMatcher.qualifies.
+   */
+  ambiguous: z.array(z.string()).default([]),
   games: z.record(z.string(), GameKeywordsSchema).optional()
 })
 
@@ -104,15 +110,15 @@ const KnownHashesSchema = z.object({
  * Flatten the per-game sections into one matcher configuration. Custos checks
  * a PC as a whole: a CS2 cheat found during an Unturned check is still a lead.
  */
-export function flattenKeywords(k: z.infer<typeof KeywordSettingsSchema>): { patterns: string[]; exactMatch: string[] } {
+export function flattenKeywords(k: z.input<typeof KeywordSettingsSchema>): KeywordSettings {
   const patterns = [...k.patterns]
   const exactMatch = [...k.exactMatch]
   for (const g of Object.values(k.games ?? {})) {
-    patterns.push(...g.patterns, ...g.domains)
-    exactMatch.push(...g.exactMatch)
+    patterns.push(...(g.patterns ?? []), ...(g.domains ?? []))
+    exactMatch.push(...(g.exactMatch ?? []))
   }
   const uniq = (xs: string[]) => [...new Map(xs.map((x) => [x.toLowerCase(), x])).values()]
-  return { patterns: uniq(patterns), exactMatch: uniq(exactMatch) }
+  return { patterns: uniq(patterns), exactMatch: uniq(exactMatch), ambiguous: uniq(k.ambiguous ?? []) }
 }
 
 // Export schemas for testing
@@ -128,7 +134,7 @@ export type RegistrySettings = z.infer<typeof RegistrySettingsSchema>
 export type TelegramBot = z.infer<typeof TelegramBotSchema>
 export type ExternalResourceSettings = z.infer<typeof ExternalResourceSettingsSchema>
 export type AppConfig = z.infer<typeof AppConfigSchema>
-export type KeywordSettings = { patterns: string[]; exactMatch: string[] }
+export type KeywordSettings = { patterns: string[]; exactMatch: string[]; ambiguous?: string[] }
 export type KnownHashes = z.infer<typeof KnownHashesSchema>
 
 // ── Desktop auth config (kill switch + web base URL) ──────────────────────────

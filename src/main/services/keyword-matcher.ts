@@ -1,10 +1,26 @@
 import { win32 } from 'path'
 import { KeywordSettings } from './config-service'
 
+/**
+ * Words that put an ambiguous keyword into a cheat context. Same boundary
+ * rules as the keywords themselves, so "hackathon" or "espresso" don't count.
+ */
+const CHEAT_CONTEXT = new RegExp(
+  '(?<![a-z0-9])(' +
+    [
+      'cheats?', 'cheating', 'hacks?', 'hacking', 'hacked', 'aim-?bot', 'wall-?hack', 'trigger-?bot', 'esp',
+      'inject(or|ed|ion)?', 'loader', 'spoofer', 'hwid', 'unturned', 'cs2', 'csgo', 'counter-strike',
+      'mod-?menu', 'undetected', 'bypass', 'cracked'
+    ].join('|') +
+    ')(?![a-z])'
+)
+
 export class KeywordMatcher {
   private patterns: string[]
   private patternsLower: string[]
   private exactMatch: Set<string>
+  /** Keywords that are also everyday words (see keywords.json → ambiguous). */
+  private ambiguous: Set<string>
   private compiledPattern: RegExp | null = null
   private patternIndexMap: Map<string, number> = new Map()
 
@@ -14,6 +30,7 @@ export class KeywordMatcher {
     this.exactMatch = new Set(
       (settings.exactMatch || []).map(e => e.toLowerCase())
     )
+    this.ambiguous = new Set((settings.ambiguous || []).map(e => e.toLowerCase()))
 
     // Compile all patterns into a single regex for O(1) matching
     if (this.patternsLower.length > 0) {
@@ -29,27 +46,17 @@ export class KeywordMatcher {
       // trailing DIGITS is still allowed ("Aimbot2.exe", "Fecurity64.dll",
       // "undead2024"), since version/arch suffixes are the most common way a
       // renamed cheat build dodges an exact-word match; digits followed by a
-      // letter ("aimbot2x") still do not match.
+      // letter ("aimbot2x") still do not match. Global, so findKeyword can
+      // step past an ambiguous match that has no cheat context.
       this.compiledPattern = new RegExp(
         `(?<![a-zA-Z0-9])(${escaped.join('|')})(?!\\d*[a-zA-Z])`,
-        'i'
+        'gi'
       )
     }
   }
 
   containsKeyword(text: string): boolean {
-    if (!text) return false
-
-    const textLower = text.toLowerCase()
-    const baseName = this.getFileNameWithoutExtension(textLower)
-
-    // Check exact matches first (O(1) lookup)
-    if (this.exactMatch.has(baseName)) {
-      return true
-    }
-
-    // Use compiled regex for pattern matching (single pass)
-    return this.compiledPattern?.test(textLower) ?? false
+    return this.findKeyword(text) !== null
   }
 
   private getFileNameWithoutExtension(filePath: string): string {
@@ -65,6 +72,18 @@ export class KeywordMatcher {
     return this.containsKeyword(text)
   }
 
+  /**
+   * An everyday-word keyword ("midnight", "titanium") only counts when the
+   * file is named exactly that ("Midnight.exe", "titanium2.dll") or the text
+   * also says what it is ("Midnight CS2 cheat loader"). A song title or a
+   * page about ancient Rome is not a lead.
+   */
+  private qualifies(keywordLower: string, textLower: string, baseName: string): boolean {
+    if (!this.ambiguous.has(keywordLower)) return true
+    if (new RegExp(`^${keywordLower.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\d*$`).test(baseName)) return true
+    return CHEAT_CONTEXT.test(textLower)
+  }
+
   findKeyword(text: string): string | null {
     if (!text) return null
 
@@ -76,16 +95,13 @@ export class KeywordMatcher {
     }
 
     if (this.compiledPattern) {
-      const match = textLower.match(this.compiledPattern)
-      if (match && match[1]) {
+      for (const match of textLower.matchAll(this.compiledPattern)) {
+        const matchedLower = match[1]
+        if (!this.qualifies(matchedLower, textLower, baseName)) continue
         // Use O(1) lookup with patternIndexMap instead of O(n) loop
-        const matchedLower = match[1].toLowerCase()
         const escapedMatch = matchedLower.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
         const index = this.patternIndexMap.get(escapedMatch)
-        if (index !== undefined) {
-          return this.patterns[index]
-        }
-        return match[1]
+        return index !== undefined ? this.patterns[index] : match[1]
       }
     }
 
