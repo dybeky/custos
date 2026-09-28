@@ -7,6 +7,18 @@ directories:
 compression: maximum
 npmRebuild: true
 
+# Electron fuses, flipped in the binary at package time. Custos runs elevated
+# on someone else's PC, so the exe must not double as a Node runtime or a
+# debugger target, and must only ever run its own integrity-checked app.asar.
+# grantFileProtocolExtraPrivileges stays on: the renderer loads from file://.
+electronFuses:
+  runAsNode: false
+  enableNodeOptionsEnvironmentVariable: false
+  enableNodeCliInspectArguments: false
+  enableEmbeddedAsarIntegrityValidation: true
+  onlyLoadAppFromAsar: true
+  enableCookieEncryption: true
+
 electronLanguages:
   - en
 
