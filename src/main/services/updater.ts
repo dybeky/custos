@@ -5,15 +5,30 @@ import { createWriteStream, rmSync } from 'fs'
 import { tmpdir } from 'os'
 import { join } from 'path'
 import { isNewer } from './semver'
-import { getLatestReleaseResult, REPO, type GithubAsset, type GithubRelease, type ReleaseResult } from './github-service'
+import { getLatestReleaseResult, getReleaseForVersion, REPO, type GithubAsset, type GithubRelease, type ReleaseResult } from './github-service'
 import { humanizeCommits } from './changelog'
 import { logger } from './logger'
 import { UPDATE_FILE_PREFIX } from '../utils/session-names'
 import type { UpdateInfo, UpdateProgress } from '../../shared/types'
 
-/** Turn a release body (one bullet per line) into humanized changelog groups. */
+/**
+ * Changelog lines from a release body. Handles both a hand-written list and
+ * GitHub's generated notes: headings, "Full Changelog" links and the
+ * "by @user in <PR url>" suffix are dropped.
+ */
+export function releaseLines(body: string): string[] {
+  return body
+    .split('\n')
+    .map((l) => l.trim())
+    .filter((l) => l && !l.startsWith('#') && !/^\*\*Full Changelog\*\*/i.test(l) && !/^<!--/.test(l))
+    .map((l) => l.replace(/^[-*]\s*/, '').replace(/\s+by @[\w-]+(\[bot\])? in \S+$/, '').trim())
+    .filter(Boolean)
+    .slice(0, 100)
+}
+
+/** Turn a release body into humanized changelog groups. */
 function notesFromRelease(rel: GithubRelease): UpdateInfo['notes'] {
-  const lines = rel.body.split('\n').map((l) => l.replace(/^[-*]\s*/, '').trim()).filter(Boolean).slice(0, 100)
+  const lines = releaseLines(rel.body)
   return humanizeCommits(lines.map((message, i) => ({ message, sha: `${rel.tagName}-${i}`, date: rel.publishedAt })))
 }
 
@@ -73,6 +88,12 @@ function launchedExe(): string | null {
 // installUpdate will download (the renderer cannot pass a URL of its own).
 let pendingAsset: GithubAsset | null = null
 let installing = false
+
+/** "What's new" for the running version: its release notes, grouped; [] if it was never released. */
+export async function currentReleaseNotes(): Promise<UpdateInfo['notes']> {
+  const release = await getReleaseForVersion(app.getVersion())
+  return release ? notesFromRelease(release) : []
+}
 
 /** Fetch the latest release and evaluate it against the running app version. */
 export async function checkForUpdate(): Promise<UpdateInfo> {

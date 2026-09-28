@@ -104,6 +104,39 @@ export function buildTimeline(report: ScanReport | null): TimelineEntry[] {
     .sort((a, b) => b.at - a.at || a.finding.id.localeCompare(b.finding.id))
 }
 
+/** A timeline row: the newest entry of a burst plus the similar ones folded under it. */
+export interface TimelineGroup {
+  head: TimelineEntry
+  /** Older entries from the same scanner + signature within the burst window. */
+  rest: TimelineEntry[]
+}
+
+const BURST_WINDOW_MS = 60 * 60_000
+
+/**
+ * Fold bursts: consecutive entries from the same scanner matching the same
+ * signature within an hour of the burst's newest one become one row. Ten page
+ * loads on one cheat shop are one visit, not ten leads to read. Expects the
+ * newest-first order buildTimeline returns.
+ */
+export function groupTimeline(entries: TimelineEntry[]): TimelineGroup[] {
+  const groups: TimelineGroup[] = []
+  for (const e of entries) {
+    const last = groups[groups.length - 1]
+    if (
+      last &&
+      last.head.finding.scannerId === e.finding.scannerId &&
+      (last.head.finding.matched ?? '').toLowerCase() === (e.finding.matched ?? '').toLowerCase() &&
+      last.head.at - e.at <= BURST_WINDOW_MS
+    ) {
+      last.rest.push(e)
+    } else {
+      groups.push({ head: e, rest: [] })
+    }
+  }
+  return groups
+}
+
 /** Localized "42 min before the scan" / "3 h …" / "5 days …". */
 export function relativeToScan(t: TFunction, minutesBeforeScan: number): string {
   const m = Math.max(0, minutesBeforeScan)

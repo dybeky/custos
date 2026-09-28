@@ -244,9 +244,10 @@ export function Manual() {
               <div className={cat.grid ? 'grid grid-cols-1 sm:grid-cols-2 gap-2' : 'space-y-2'}>
                 {cat.items.map((item) => (
                   <button
-                    key={item.target}
+                    key={item.label}
                     onClick={() => run(item.action ?? cat.action, item.target)}
-                    title={item.target}
+                    // Full name + target: grid labels truncate ("ShowJumpVi…").
+                    title={item.target && item.action !== 'steam' ? `${item.label}\n${item.target}` : item.label}
                     className="group relative w-full flex items-center gap-3 pl-3.5 pr-2.5 py-2.5 rounded-xl bg-panel-2 hover:bg-panel-2 border border-[color:var(--line)] hover:border-[color:var(--line-strong)] transition-all duration-200 text-left overflow-hidden"
                   >
                     {/* Hover accent bar */}

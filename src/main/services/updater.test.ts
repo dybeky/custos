@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, afterEach } from 'vitest'
-import { evaluateUpdate, pickAsset, downloadVerified, swapScript } from './updater'
+import { evaluateUpdate, pickAsset, downloadVerified, swapScript, releaseLines } from './updater'
 import type { GithubAsset, GithubRelease } from './github-service'
 import { createHash } from 'crypto'
 import { mkdtempSync, readFileSync, rmSync } from 'fs'
@@ -136,5 +136,22 @@ describe('swapScript', () => {
     const del = s.indexOf('del /f /q')
     expect(s.lastIndexOf('))', del)).toBeGreaterThan(s.indexOf('move /y'))
     expect(s).toContain('"D:\\My Tools\\custos-x64.exe"')
+  })
+})
+
+describe('releaseLines', () => {
+  it('keeps the changes from GitHub-generated notes and drops the chrome', () => {
+    const body = [
+      "## What's Changed",
+      '* feat: in-app updates by @dybeky in https://github.com/dybeky/custos/pull/12',
+      '* fix(ui): centred start button by @dependabot[bot] in https://github.com/dybeky/custos/pull/13',
+      '',
+      '**Full Changelog**: https://github.com/dybeky/custos/compare/3.0.0...3.0.1'
+    ].join('\n')
+    expect(releaseLines(body)).toEqual(['feat: in-app updates', 'fix(ui): centred start button'])
+  })
+
+  it('reads a hand-written bullet list as-is', () => {
+    expect(releaseLines('- fix: bug\r\n* feat: shiny\n')).toEqual(['fix: bug', 'feat: shiny'])
   })
 })

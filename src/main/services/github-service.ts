@@ -1,6 +1,5 @@
 import { z } from 'zod'
 import { logger } from './logger'
-import type { RawCommit } from './changelog'
 
 const ApiAssetSchema = z.object({
   name: z.string(),
@@ -15,10 +14,6 @@ const ApiReleaseSchema = z.object({
   html_url: z.string(),
   published_at: z.string(),
   assets: z.array(ApiAssetSchema).default([])
-})
-const ApiCommitSchema = z.object({
-  sha: z.string(),
-  commit: z.object({ message: z.string(), author: z.object({ date: z.string() }) })
 })
 
 export const REPO = 'dybeky/custos'
@@ -42,9 +37,10 @@ export interface GithubRelease {
   assets?: GithubAsset[]
 }
 
-// Per-session cache so launch-time changelog + update checks cost at most 2 calls.
-let _commitsCache: RawCommit[] | undefined
+// Per-session caches so launch-time "What's new" + update checks cost at most
+// a couple of calls (the unauthenticated API allows 60 an hour).
 let _releaseCache: GithubRelease | null | undefined
+const _versionCache = new Map<string, GithubRelease | null>()
 
 export async function getJson<T>(url: string): Promise<{ ok: boolean; status: number; data: T | null }> {
   const controller = new AbortController()
@@ -61,17 +57,23 @@ export async function getJson<T>(url: string): Promise<{ ok: boolean; status: nu
   }
 }
 
-export async function getRecentCommits(perPage = 30): Promise<RawCommit[]> {
-  if (_commitsCache) return _commitsCache
-  const { ok, data } = await getJson<unknown>(`${BASE}/commits?sha=main&per_page=${perPage}`)
-  if (!ok) return []
-  const parsed = z.array(ApiCommitSchema).safeParse(data)
+/** Validate an API release object; null when it doesn't match. */
+function parseRelease(data: unknown): GithubRelease | null {
+  const parsed = ApiReleaseSchema.safeParse(data)
   if (!parsed.success) {
-    logger.debug('commits response failed validation', { error: parsed.error.message })
-    return []
+    logger.debug('release response failed validation', { error: parsed.error.message })
+    return null
   }
-  _commitsCache = parsed.data.map((c) => ({ sha: c.sha, message: c.commit.message, date: c.commit.author.date }))
-  return _commitsCache
+  return {
+    tagName: parsed.data.tag_name,
+    body: (parsed.data.body ?? '').slice(0, 10000),
+    htmlUrl: parsed.data.html_url,
+    publishedAt: parsed.data.published_at,
+    assets: parsed.data.assets.map((a) => {
+      const m = /^sha256:([0-9a-f]{64})$/i.exec(a.digest ?? '')
+      return { name: a.name, url: a.browser_download_url, size: a.size, sha256: m ? m[1].toLowerCase() : null }
+    })
+  }
 }
 
 export interface ReleaseResult { status: 'ok' | 'error'; release: GithubRelease | null }
@@ -83,27 +85,34 @@ export async function getLatestReleaseResult(): Promise<ReleaseResult> {
     logger.debug('release check failed', { status })
     return { status: 'error', release: null }
   }
-  const parsed = ApiReleaseSchema.safeParse(data)
-  if (!parsed.success) {
-    logger.debug('release response failed validation', { error: parsed.error.message })
-    return { status: 'error', release: null }
-  }
-  const release: GithubRelease = {
-    tagName: parsed.data.tag_name,
-    body: (parsed.data.body ?? '').slice(0, 10000),
-    htmlUrl: parsed.data.html_url,
-    publishedAt: parsed.data.published_at,
-    assets: parsed.data.assets.map((a) => {
-      const m = /^sha256:([0-9a-f]{64})$/i.exec(a.digest ?? '')
-      return { name: a.name, url: a.browser_download_url, size: a.size, sha256: m ? m[1].toLowerCase() : null }
-    })
-  }
+  const release = parseRelease(data)
+  if (!release) return { status: 'error', release: null }
   _releaseCache = release
   return { status: 'ok', release }
 }
 
+/**
+ * The release this build was published as (tag "3.0.1" or "v3.0.1"), for the
+ * dashboard's "What's new". Null for a build that was never released.
+ */
+export async function getReleaseForVersion(version: string): Promise<GithubRelease | null> {
+  if (_versionCache.has(version)) return _versionCache.get(version) ?? null
+  let release: GithubRelease | null = null
+  for (const tag of [version, `v${version}`]) {
+    const { ok, status, data } = await getJson<unknown>(`${BASE}/releases/tags/${encodeURIComponent(tag)}`)
+    if (ok) {
+      release = parseRelease(data)
+      break
+    }
+    // Anything but "no such tag" (offline, rate limit) — don't cache, retry next launch.
+    if (status !== 404) return null
+  }
+  _versionCache.set(version, release)
+  return release
+}
+
 /** Test-only cache reset. */
 export function _resetGithubCache(): void {
-  _commitsCache = undefined
   _releaseCache = undefined
+  _versionCache.clear()
 }
