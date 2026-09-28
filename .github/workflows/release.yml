@@ -86,5 +86,8 @@ jobs:
         run: |
           ls -l dist
           if [ -s notes.md ]; then notes=(--notes-file notes.md); else notes=(--generate-notes); fi
+          # A re-pushed tag (a release rebuilt from a later commit) replaces
+          # the release it left behind instead of failing on the duplicate.
+          gh release delete "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --yes 2>/dev/null || true
           gh release create "$GITHUB_REF_NAME" dist/custos-x64.exe dist/custos-arm64.exe \
             --repo "$GITHUB_REPOSITORY" --title "Custos $GITHUB_REF_NAME" "${notes[@]}" --latest
