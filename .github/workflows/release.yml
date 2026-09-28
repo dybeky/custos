@@ -65,14 +65,26 @@ jobs:
     permissions:
       contents: write
     steps:
+      - uses: actions/checkout@v4
       - uses: actions/download-artifact@v4
         with:
           path: dist
           merge-multiple: true
+      # Release notes = this version's section of CHANGELOG.md (the app shows
+      # them in its update dialog); GitHub's generated notes if there is none.
+      - name: Extract release notes
+        run: |
+          ver="${GITHUB_REF_NAME#v}"
+          awk -v v="$ver" '
+            /^## / { if (found) exit; if ($2 == v) { found = 1; next } }
+            found { print }
+          ' CHANGELOG.md > notes.md
+          echo "--- notes for $ver ---"; cat notes.md
       - name: Create release
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           ls -l dist
+          if [ -s notes.md ]; then notes=(--notes-file notes.md); else notes=(--generate-notes); fi
           gh release create "$GITHUB_REF_NAME" dist/custos-x64.exe dist/custos-arm64.exe \
-            --repo "$GITHUB_REPOSITORY" --title "$GITHUB_REF_NAME" --generate-notes --latest
+            --repo "$GITHUB_REPOSITORY" --title "Custos $GITHUB_REF_NAME" "${notes[@]}" --latest

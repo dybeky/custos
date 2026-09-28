@@ -50,7 +50,7 @@ export function UpdateModal({ info, onClose }: { info: UpdateInfo; onClose: () =
   return (
     <Modal isOpen onClose={busy ? () => {} : onClose} showCloseButton={!busy} title={t('update.title')} size="md">
       <p className="text-sm text-ink-dim mb-3">
-        {t('update.newVersion', { version: info.latestVersion })}
+        {t('update.newVersion', { version: info.latestVersion, current: info.currentVersion })}
       </p>
       <div className="space-y-4 max-h-64 overflow-y-auto mb-4">
         {info.notes.map((group) => {

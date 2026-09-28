@@ -154,4 +154,48 @@ describe('releaseLines', () => {
   it('reads a hand-written bullet list as-is', () => {
     expect(releaseLines('- fix: bug\r\n* feat: shiny\n')).toEqual(['fix: bug', 'feat: shiny'])
   })
+
+  it('gives bullets the type of their section heading', () => {
+    const body = [
+      '## 3.0.0',
+      '### New',
+      '- Update now button',
+      '### Fixes',
+      '- Live Scan works in release builds',
+      '### Improvements',
+      '- Quieter timeline',
+      '- fix: already prefixed stays as-is'
+    ].join('\n')
+    expect(releaseLines(body)).toEqual([
+      'feat: Update now button',
+      'fix: Live Scan works in release builds',
+      'Quieter timeline',
+      'fix: already prefixed stays as-is'
+    ])
+  })
+
+  it('reads the shipped CHANGELOG.md section for this version into all three groups', () => {
+    const md = readFileSync(join(process.cwd(), 'CHANGELOG.md'), 'utf8')
+    const version = JSON.parse(readFileSync(join(process.cwd(), 'package.json'), 'utf8')).version as string
+    const start = md.indexOf(`## ${version}\n`) >= 0 ? md.indexOf(`## ${version}\n`) : md.indexOf(`## ${version}\r\n`)
+    expect(start, `CHANGELOG.md has no "## ${version}" section`).toBeGreaterThanOrEqual(0)
+    const after = md.slice(start + 3)
+    const next = after.search(/\n## /)
+    const section = next === -1 ? after : after.slice(0, next)
+    const info = evaluateUpdate('0.0.1', { status: 'ok', release: { ...rel(version), body: section } })
+    expect(info.notes.map((g) => g.group)).toEqual(['New', 'Fixes', 'Improvements'])
+    expect(info.notes.every((g) => g.entries.every((e) => e.text.length > 0))).toBe(true)
+  })
+
+  it('groups a sectioned release into New / Fixes / Improvements for the dialog', () => {
+    const info = evaluateUpdate('2.2.2', {
+      status: 'ok',
+      release: { ...rel('3.0.0'), body: '### New\n- A\n### Fixes\n- B\n### Improvements\n- C' }
+    })
+    expect(info.notes.map((g) => [g.group, g.entries.map((e) => e.text)])).toEqual([
+      ['New', ['A']],
+      ['Fixes', ['B']],
+      ['Improvements', ['C']]
+    ])
+  })
 })

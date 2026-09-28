@@ -6,7 +6,11 @@ import { GAMES } from '../../../shared/games'
 import { UserMenu } from '../auth/UserMenu'
 import { alpha } from '../../utils/color'
 
-export function Header() {
+/**
+ * `updateVersion`: a newer release the user dismissed with "Later" — shown as
+ * a quiet pill that reopens the update dialog. Updating is never forced.
+ */
+export function Header({ updateVersion, onUpdateClick }: { updateVersion?: string | null; onUpdateClick?: () => void } = {}) {
   const { t } = useTranslation()
   const { status, osInfo, isLoaded, initialize } = useAppHealthStore()
   const { selectedGame } = useGameStore()
@@ -48,6 +52,19 @@ export function Header() {
 
       {/* Window controls */}
       <div className="flex items-center gap-1" style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}>
+        {updateVersion && onUpdateClick && (
+          <button
+            onClick={onUpdateClick}
+            title={t('update.reopen')}
+            className="mr-1 flex items-center gap-1.5 h-6 px-2.5 rounded-full border border-scan/40 bg-scan/10 text-[11px] font-semibold text-scan font-display hover:bg-scan/20 transition-colors"
+          >
+            <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v11m-4.5-4.5L12 15l4.5-4.5M5 19h14" />
+            </svg>
+            {t('update.available', { version: updateVersion })}
+          </button>
+        )}
+
         {/* Auth cluster — sign-in / avatar + dropdown (interactive: no-drag) */}
         <UserMenu />
 

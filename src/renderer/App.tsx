@@ -28,6 +28,9 @@ export function App() {
   const { loadSettings, isLoading } = useSettingsStore()
   const { selectedGame } = useGameStore()
   const [update, setUpdate] = useState<UpdateInfo | null>(null)
+  // The dialog opens once per session; "Later" only hides it. The header pill
+  // brings it back — updating is always the user's choice.
+  const [updateOpen, setUpdateOpen] = useState(false)
   const [checkFailed, setCheckFailed] = useState(false)
   const [promoDone, setPromoDone] = useState(false)
   const [updateChecked, setUpdateChecked] = useState(false)
@@ -37,7 +40,10 @@ export function App() {
     if (!selectedGame) return
     window.electronAPI.checkForUpdate()
       .then((info) => {
-        if (info.updateAvailable) setUpdate(info)
+        if (info.updateAvailable) {
+          setUpdate(info)
+          setUpdateOpen(true)
+        }
         else if (info.checkFailed) setCheckFailed(true)
       })
       .catch(() => {})
@@ -93,11 +99,11 @@ export function App() {
         <div className="h-screen w-screen bg-background text-text-primary flex flex-col overflow-hidden relative">
           <AnimatedBackground />
           <GamePicker />
-          {update && <UpdateModal info={update} onClose={() => setUpdate(null)} />}
+          {update && updateOpen && <UpdateModal info={update} onClose={() => setUpdateOpen(false)} />}
           {checkFailed && <UpdateCheckFailedToast onDone={() => setCheckFailed(false)} />}
           {showPromo && <WebsitePromoToast onDone={() => setPromoDone(true)} />}
           <div className="relative z-10 flex flex-col flex-1 overflow-hidden">
-            <Header />
+            <Header updateVersion={update?.latestVersion} onUpdateClick={() => setUpdateOpen(true)} />
 
             <div className="flex flex-1 overflow-hidden relative z-10">
               <Sidebar />

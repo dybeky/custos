@@ -170,7 +170,7 @@
   },
   "update": {
     "title": "Update available",
-    "newVersion": "Version {{version}} is available",
+    "newVersion": "Version {{version}} is available — you have {{current}}. Here is what changed:",
     "download": "Open release page",
     "later": "Later",
     "checkFailed": "Couldn't check for updates — try again later.",
@@ -179,7 +179,9 @@
     "starting": "Starting download…",
     "downloading": "{{received}} / {{total}} MB · {{pct}}%",
     "restarting": "Verified. Restarting into the new version…",
-    "failed": "Update failed: {{message}}. The current version is unchanged."
+    "failed": "Update failed: {{message}}. The current version is unchanged.",
+    "available": "Update {{version}}",
+    "reopen": "A new version is ready — click to see what changed and update"
   },
   "promo": {
     "title": "Built by 97437",
