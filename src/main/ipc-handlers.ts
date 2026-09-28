@@ -13,9 +13,7 @@ import { getScannerCapabilities, getSupportedScannerIds, getAllCapabilities } fr
 import { runScan } from './scan-orchestrator'
 import { ScanSession } from './scan-session'
 import { setupLiveIpcHandlers } from './live-ipc'
-import { getRecentCommits } from './services/github-service'
-import { humanizeCommits } from './services/changelog'
-import { checkForUpdate, installUpdate } from './services/updater'
+import { checkForUpdate, currentReleaseNotes, installUpdate } from './services/updater'
 import { appStore } from './services/app-store'
 import { safeOpenExternal, safeOpenPath } from './utils/safe-open'
 import { normalizeRevealPath } from './utils/url-policy'
@@ -102,10 +100,8 @@ export function setupIpcHandlers(mainWindow: BrowserWindow): void {
   // Register live-scan IPC handlers
   setupLiveIpcHandlers(mainWindow)
 
-  ipcMain.handle(IPC_CHANNELS.GITHUB_GET_CHANGELOG, async () => {
-    const commits = await getRecentCommits(30)
-    return humanizeCommits(commits)
-  })
+  // "What's new" = the notes of the release this build was published as.
+  ipcMain.handle(IPC_CHANNELS.GITHUB_GET_CHANGELOG, () => currentReleaseNotes())
 
   ipcMain.handle(IPC_CHANNELS.UPDATE_CHECK, () => checkForUpdate())
 

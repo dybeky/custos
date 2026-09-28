@@ -140,8 +140,11 @@ export function Results() {
                   <h2 className="text-xl font-bold text-ink font-display">
                     {t('results.scanResults')}
                   </h2>
-                  <p className={`text-sm ${findingCount > 0 ? 'text-alert' : 'text-scan'}`}>
-                    {findingCount > 0
+                  <p className={`text-sm ${findingCount > 0 ? 'text-alert' : hasResults ? 'text-scan' : 'text-ink-dim'}`}>
+                    {/* Before any check there is nothing to call clean. */}
+                    {!hasResults
+                      ? t('results.noCheckYet')
+                      : findingCount > 0
                       ? `${findingCount} ${t('results.evidenceFound')}`
                       : contextOnly
                       ? t('results.contextOnly')

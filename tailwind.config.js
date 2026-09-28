@@ -67,8 +67,8 @@ module.exports = {
         }
       },
       fontFamily: {
-        display: ['MuseoModerno', 'Inter', 'system-ui', 'sans-serif'],
-        body: ['MuseoModerno', 'Inter', 'system-ui', 'sans-serif'],
+        display: ['Custos G', 'MuseoModerno', 'Inter', 'system-ui', 'sans-serif'],
+        body: ['Custos G', 'MuseoModerno', 'Inter', 'system-ui', 'sans-serif'],
         sans: ['Inter', 'system-ui', 'sans-serif'],
         mono: ['JetBrains Mono', 'monospace']
       },

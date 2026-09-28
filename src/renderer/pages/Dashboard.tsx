@@ -31,7 +31,6 @@ export function Dashboard() {
   const { t } = useTranslation()
   const [appVersion, setAppVersion] = useState<string>('')
   const [changelog, setChangelog] = useState<ChangelogGroup[]>([])
-  const [changelogLoaded, setChangelogLoaded] = useState(false)
   const { osInfo, capabilities, initialize } = useAppHealthStore()
   const { selectedGame } = useGameStore()
 
@@ -41,7 +40,6 @@ export function Dashboard() {
     window.electronAPI.getChangelog()
       .then((groups) => setChangelog(groups))
       .catch(() => setChangelog([]))
-      .finally(() => setChangelogLoaded(true))
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
@@ -201,13 +199,12 @@ export function Dashboard() {
           </CardContent>
         </Card>
 
-        {/* Changelog Card */}
+        {/* What's new — this version's release notes; hidden when there are none
+            (offline, or a build that was never released). */}
+        {changelog.length > 0 && (
         <Card className="mt-4">
           <CardContent>
             <h2 className="text-lg font-semibold text-ink font-display mb-3">{t('dashboard.changelog')}</h2>
-            {changelogLoaded && changelog.length === 0 && (
-              <p className="text-sm text-ink-dim">{t('dashboard.changelogEmpty')}</p>
-            )}
             <div className="space-y-5">
               {changelog.map((group) => {
                 const accent = CHANGELOG_ACCENT[group.group] ?? CHANGELOG_ACCENT_DEFAULT
@@ -247,6 +244,7 @@ export function Dashboard() {
             </div>
           </CardContent>
         </Card>
+        )}
 
         {/* Emulation notice — x64 build running on an ARM PC */}
         {osInfo?.isEmulated && (

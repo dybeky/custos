@@ -52,7 +52,6 @@
     "categoryUtilities": "Utilities",
     "categoryExport": "Results & Export",
     "changelog": "What's new",
-    "changelogEmpty": "Couldn't load the changelog right now.",
     "autoDetected": "Auto-detected for your system",
     "emulatedTitle": "Running under emulation",
     "emulatedDesc": "This PC is {{arch}}, but you're running the {{appArch}} build. Download custos-{{arch}}.exe for full speed."
@@ -138,7 +137,8 @@
     "evidenceFound": "leads found",
     "contextOnly": "Only system information — no cheat evidence",
     "contextItems": "{{count}} informational",
-    "checkFailed": "Check did not complete"
+    "checkFailed": "Check did not complete",
+    "noCheckYet": "No check yet"
   },
   "header": {
     "allSystemsOk": "All systems OK",
@@ -489,15 +489,15 @@
     },
     "nativeUnavailableArm64": {
       "title": "Native module unavailable ({{arch}} build)",
-      "detail": "Live memory scanning requires the memoryjs native addon, which did not load in this {{arch}} build. If this persists, run the x64 build (custos-x64.exe) on Windows 11 ARM, where it works under emulation."
+      "detail": "The Win32 bridge Live Scan uses (koffi) did not load in this {{arch}} build. If this persists, run the x64 build (custos-x64.exe) on Windows 11 ARM, where it works under emulation."
     },
     "nativeUnavailableX64": {
       "title": "Native module unavailable ({{arch}} build)",
-      "detail": "Live memory scanning requires the memoryjs native addon, which did not load in this {{arch}} build. Try re-downloading the latest release."
+      "detail": "The Win32 bridge Live Scan uses (koffi) did not load in this {{arch}} build. Try re-downloading the latest release."
     },
     "nativeUnavailableNonWin": {
       "title": "Native module unavailable (Windows only)",
-      "detail": "Live memory scanning requires the memoryjs native addon, which is only available on Windows. Run Custos on a Windows machine to use this feature."
+      "detail": "Live memory scanning uses Windows APIs and only works on Windows. Run Custos on a Windows machine to use this feature."
     },
     "gameNotRunning": {
       "title": "Game not running — start it and rescan",
@@ -603,7 +603,10 @@
     "daysBefore_one": "{{count}} day before the scan",
     "daysBefore_other": "{{count}} days before the scan",
     "showAll": "Show all ({{count}})",
-    "showLess": "Show less"
+    "showLess": "Show less",
+    "similar_one": "+{{count}} similar",
+    "similar_other": "+{{count}} similar",
+    "hideSimilar": "Hide similar"
   },
   "triage": {
     "reveal": "Show in folder",
