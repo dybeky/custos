@@ -17,6 +17,14 @@ const MeSchema = z.object({
   minVersion: z.string().max(40).nullable().optional()
 })
 const UploadResultSchema = z.object({ id: z.string(), url: z.string(), hashVerified: z.boolean() })
+const PublicUploadResultSchema = z.object({ id: z.string().regex(/^[A-Za-z0-9_-]{1,64}$/), hashVerified: z.boolean() })
+
+/** Case details sent with a check. */
+export interface UploadCase {
+  player: string
+  notes: string
+  checker: string
+}
 const PlayerChecksSchema = z.object({
   checks: z.array(z.object({
     id: z.string(),
@@ -226,7 +234,7 @@ export class AuthClient {
   }
 
   /** Upload a saved check (report + case details) to the site. */
-  async uploadReport(token: string, payload: { report: unknown; case: { player: string; notes: string } }): Promise<{ id: string; url: string; hashVerified: boolean }> {
+  async uploadReport(token: string, payload: { report: unknown; case: UploadCase }): Promise<{ id: string; url: string; hashVerified: boolean }> {
     const res = await this.request('/api/desktop/reports', {
       method: 'POST',
       headers: { Authorization: `Bearer ${token}`, 'content-type': 'application/json' },
@@ -238,6 +246,22 @@ export class AuthClient {
     const parsed = UploadResultSchema.parse(body)
     if (!this.isSiteUrl(parsed.url)) throw new Error('bad_response')
     return parsed
+  }
+
+  /**
+   * Upload a check without an account. `syncKey` is this check's secret: the
+   * site keeps its hash and accepts later re-sends of the same scan only with it.
+   */
+  async uploadReportPublic(payload: { report: unknown; case: UploadCase; syncKey: string }): Promise<{ id: string; hashVerified: boolean }> {
+    const res = await this.request('/api/desktop/reports/public', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(payload)
+    })
+    await checkUpdateRequired(res)
+    const body = (await res.json().catch(() => ({}))) as { error?: string }
+    if (!res.ok) throw new Error(body?.error ?? `upload failed: ${res.status}`)
+    return PublicUploadResultSchema.parse(body)
   }
 
   /** Every uploaded check of one player (all checkers), newest first. */

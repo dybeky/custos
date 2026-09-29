@@ -249,8 +249,8 @@ const api = {
     ipcRenderer.invoke(IPC_CHANNELS.AUTH_UPLOAD_AVATAR, { bytes, mime }),
 
   /** Upload a saved check to the site (main loads it from history by id). */
-  uploadCheckToSite: (historyId: string, player: string, notes: string): Promise<SiteUploadResult> =>
-    ipcRenderer.invoke(IPC_CHANNELS.SITE_UPLOAD_CHECK, { historyId, player, notes }),
+  uploadCheckToSite: (historyId: string, player: string, notes: string, checker = ''): Promise<SiteUploadResult> =>
+    ipcRenderer.invoke(IPC_CHANNELS.SITE_UPLOAD_CHECK, { historyId, player, notes, checker }),
 
   /** Checks of this player uploaded to the site by any checker. */
   getSitePlayerChecks: (player: string): Promise<SitePlayerResult> =>

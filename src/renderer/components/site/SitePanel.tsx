@@ -11,8 +11,8 @@ const BTN = 'px-3 py-1.5 rounded-lg text-xs font-medium transition-colors disabl
 /**
  * The check's link to the site, for signed-in staff: the check is uploaded on
  * its own when the scan finishes (see site-sync), and this shows how that went
- * and this player's checks by every checker. Shown only for the capabilities
- * the site granted; the site re-checks each call regardless.
+ * and — for signed-in staff with the right — this player's checks by every
+ * checker. Sending needs no account; the site re-checks every call regardless.
  */
 export function SitePanel() {
   const { t, i18n } = useTranslation()
@@ -27,16 +27,8 @@ export function SitePanel() {
   useEffect(() => { setChecks(null); setChecksError('') }, [caseInfo.player])
 
   if (!report) return null
-  if (status !== 'authed') {
-    return (
-      <div className="rounded-2xl border border-dashed border-[color:var(--line)] px-5 py-3 mb-6 text-xs text-ink-dim">
-        {t('site.signInToSync')}
-      </div>
-    )
-  }
-  const canUpload = capabilities.includes('upload_reports')
-  const canView = capabilities.includes('view_reports')
-  if (!updateRequired && !canUpload && !canView) return null
+  // Sending a check needs no account; browsing the site's checks does.
+  const canView = status === 'authed' && capabilities.includes('view_reports')
 
   const errorText = (code?: string) =>
     t(`site.errors.${code ?? 'failed'}`, { defaultValue: t('site.errors.failed') })
@@ -70,27 +62,25 @@ export function SitePanel() {
         <p className="mt-2 text-xs text-amber">{t('site.updateRequired', { version: updateRequired })}</p>
       ) : (
         <>
-          {canUpload && (
-            <div className="mt-2 flex flex-wrap items-center gap-2">
-              <button onClick={() => void doUpload()} disabled={uploading} className={`${BTN} bg-scan/15 text-scan hover:bg-scan/25`}>
-                {uploading ? t('site.uploading') : upload?.ok ? t('site.reupload') : t('site.upload')}
-              </button>
-              {upload?.ok && (
-                <>
-                  <span className={`text-xs ${upload.hashVerified ? 'text-scan' : 'text-amber'}`}>
-                    {upload.hashVerified ? t('site.uploadedIntact') : t('site.uploadedUnverified')}
-                  </span>
-                  {uploadedId && (
-                    <button onClick={() => void window.electronAPI.openOnSite({ checkId: uploadedId })} className="text-xs text-scan hover:underline">
-                      {t('site.openCheck')}
-                    </button>
-                  )}
-                </>
-              )}
-              {upload && !upload.ok && <span className="text-xs text-alert">{errorText(upload.error)}</span>}
-            </div>
-          )}
-          {canUpload && !caseInfo.player.trim() && (
+          <div className="mt-2 flex flex-wrap items-center gap-2">
+            <button onClick={() => void doUpload()} disabled={uploading} className={`${BTN} bg-scan/15 text-scan hover:bg-scan/25`}>
+              {uploading ? t('site.uploading') : upload?.ok ? t('site.reupload') : t('site.upload')}
+            </button>
+            {upload?.ok && (
+              <>
+                <span className={`text-xs ${upload.hashVerified ? 'text-scan' : 'text-amber'}`}>
+                  {upload.hashVerified ? t('site.uploadedIntact') : t('site.uploadedUnverified')}
+                </span>
+                {uploadedId && canView && (
+                  <button onClick={() => void window.electronAPI.openOnSite({ checkId: uploadedId })} className="text-xs text-scan hover:underline">
+                    {t('site.openCheck')}
+                  </button>
+                )}
+              </>
+            )}
+            {upload && !upload.ok && <span className="text-xs text-alert">{errorText(upload.error)}</span>}
+          </div>
+          {!caseInfo.player.trim() && (
             <p className="mt-1.5 text-[11px] text-ink-dim">{t('site.addPlayerHint')}</p>
           )}
 

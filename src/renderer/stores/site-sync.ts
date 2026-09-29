@@ -24,13 +24,15 @@ export const useSiteSync = create<SiteSyncState>((set, get) => ({
   result: null,
 
   upload: async () => {
-    const { report, caseInfo } = useScanStore.getState()
+    const { report, caseInfo, checker } = useScanStore.getState()
     if (!report || get().uploading) return
     const reportId = report.id
     set({ reportId, uploading: true, ...(get().reportId === reportId ? {} : { result: null }) })
     let result: SiteUploadResult
     try {
-      result = await window.electronAPI.uploadCheckToSite(reportId, caseInfo.player, caseInfo.notes)
+      // An empty checker field falls back to the signed-in account name, if any.
+      const name = checker.trim() || useAuthStore.getState().user?.username || ''
+      result = await window.electronAPI.uploadCheckToSite(reportId, caseInfo.player, caseInfo.notes, name)
     } catch {
       result = { ok: false, error: 'failed' }
     }
@@ -39,14 +41,14 @@ export const useSiteSync = create<SiteSyncState>((set, get) => ({
   }
 }))
 
+// Sending needs no account — only an app version the site still accepts.
 function canUpload(): boolean {
-  const { status, capabilities, updateRequired } = useAuthStore.getState()
-  return status === 'authed' && !updateRequired && capabilities.includes('upload_reports')
+  return !useAuthStore.getState().updateRequired
 }
 
 /**
- * Every finished check goes to the site on its own when the checker is signed
- * in with upload rights — right after the scan, or after signing in later.
+ * Every finished check goes to the site on its own, signed in or not: what
+ * matters is who was checked.
  * Checks reopened from history are left alone (they were synced when made).
  * Once uploaded, edits to the player, notes or triage are re-sent.
  *
@@ -79,12 +81,12 @@ export function startSiteSync(): () => void {
       useSiteSync.setState({ reportId: null, uploading: false, result: null })
     }
     if (state.status !== prev.status || state.report?.id !== prev.report?.id) trySync()
-    else if (state.report && state.report.id === sync.reportId && (state.caseInfo !== prev.caseInfo || state.report !== prev.report)) {
+    else if (state.report && state.report.id === sync.reportId && (state.caseInfo !== prev.caseInfo || state.checker !== prev.checker || state.report !== prev.report)) {
       scheduleResync()
     }
   })
   const unsubAuth = useAuthStore.subscribe((state, prev) => {
-    if (state.status !== prev.status || state.capabilities !== prev.capabilities) trySync()
+    if (state.updateRequired !== prev.updateRequired) trySync()
   })
   trySync()
   return () => {

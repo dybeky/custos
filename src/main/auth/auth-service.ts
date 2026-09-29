@@ -1,7 +1,7 @@
 // src/main/auth/auth-service.ts
 import { generateState, generatePkce } from './pkce'
 import { parseCallback } from './callback-parser'
-import { UpdateRequiredError, type AuthClient, type DevicePollResult } from './auth-client'
+import { UpdateRequiredError, type AuthClient, type DevicePollResult, type UploadCase } from './auth-client'
 import type { TokenStore } from './token-store'
 import type { AuthConfig } from '../services/config-service'
 import type { AuthState, AuthProvider, PublicUser, DeviceProgress, SiteUploadResult, SitePlayerResult, ScanReport } from '../../shared/types'
@@ -274,11 +274,31 @@ export class AuthService {
     }
   }
 
-  /** Upload a saved check (with its case details) to the site. */
-  async uploadCheck(report: ScanReport, kase: { player: string; notes: string }): Promise<SiteUploadResult> {
-    const res = await this.withToken((t) => this.client.uploadReport(t, { report, case: kase }))
-    if (!res.ok) return { ok: false, error: res.error }
-    return { ok: true, url: res.value.url, hashVerified: res.value.hashVerified }
+  /**
+   * Send a check to the site. Staff signed in with upload rights upload under
+   * their account; everyone else — no sign-in needed — sends it with the
+   * check's sync secret, so what matters (who was checked) always reaches the site.
+   */
+  async uploadCheck(report: ScanReport, kase: UploadCase, syncKey: string): Promise<SiteUploadResult> {
+    if (!this.deps.config.enabled) return { ok: false, error: 'disabled' }
+    if (this.status === 'authed' && this.capabilities.includes('upload_reports')) {
+      const res = await this.withToken((t) => this.client.uploadReport(t, { report, case: kase }))
+      if (res.ok) return { ok: true, url: res.value.url, hashVerified: res.value.hashVerified }
+      // A session that lapsed mid-run still gets the check through without it.
+      if (res.error !== 'not_signed_in' && res.error !== 'unauthorized') return { ok: false, error: res.error }
+    }
+    try {
+      const value = await this.client.uploadReportPublic({ report, case: kase, syncKey })
+      return { ok: true, url: this.siteCheckUrl(value.id), hashVerified: value.hashVerified }
+    } catch (e) {
+      if (e instanceof UpdateRequiredError) {
+        this.markUpdateRequired(e.minVersion)
+        this.emit()
+        return { ok: false, error: 'update_required' }
+      }
+      const msg = (e as Error).message
+      return { ok: false, error: /fetch failed|network|ENOTFOUND|ECONN|timeout/i.test(msg) ? 'network' : msg || 'failed' }
+    }
   }
 
   /** Checks of one player (by player key) uploaded by any checker. */
