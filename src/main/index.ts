@@ -1,7 +1,7 @@
 // First: moves every app path into a per-launch temp folder that is wiped on
 // quit (nothing is left on the checked PC). Must run before anything below
 // resolves userData.
-import './ephemeral'
+import { ownsInstanceLock } from './ephemeral'
 import { app, BrowserWindow, safeStorage, shell } from 'electron'
 import { join, resolve } from 'path'
 import { fileURLToPath } from 'url'
@@ -46,19 +46,24 @@ let ipcRegistered = false
 // Register custos:// as the default protocol client so the OS routes the
 // auth-callback deep link back to this app. On Windows in dev, the protocol
 // must point at the electron binary + the launched script path.
-if (process.defaultApp) {
-  if (process.argv.length >= 2) {
-    app.setAsDefaultProtocolClient('custos', process.execPath, [process.argv[1]])
+// Only the running (lock-owning) instance registers: a forwarding second
+// launch — possibly another copy of the exe — must not repoint the link.
+if (ownsInstanceLock) {
+  if (process.defaultApp) {
+    if (process.argv.length >= 2) {
+      app.setAsDefaultProtocolClient('custos', process.execPath, [process.argv[1]])
+    }
+  } else {
+    app.setAsDefaultProtocolClient('custos')
   }
-} else {
-  app.setAsDefaultProtocolClient('custos')
 }
 
 // Single-instance lock: a second launch (e.g. Windows delivering the deep link
 // as a fresh process) must forward its argv to the running instance, not start
 // a parallel one. If we don't own the lock, quit — the primary handles it.
-const gotSingleInstanceLock = app.requestSingleInstanceLock()
-if (!gotSingleInstanceLock) {
+// The lock itself is taken in ephemeral.ts, on a fixed folder, before the
+// per-launch session folder is chosen (see there for why).
+if (!ownsInstanceLock) {
   app.quit()
 } else {
   app.on('second-instance', (_event, argv) => {
