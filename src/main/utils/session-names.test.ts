@@ -1,6 +1,22 @@
 import { describe, it, expect } from 'vitest'
 import { randomBytes } from 'crypto'
-import { SESSION_PREFIX, UPDATE_FILE_PREFIX, isLegacyLogName, isSessionDirName, isUpdateFileName } from './session-names'
+import {
+  LOCK_DIR_NAME, SESSION_PREFIX, UPDATE_FILE_PREFIX, isLauncherDirName, isLegacyLogName, isSessionDirName, isUpdateFileName
+} from './session-names'
+
+describe('lock and launcher folder names', () => {
+  it('never sweeps the lock folder as a session folder', () => {
+    expect(isSessionDirName(LOCK_DIR_NAME)).toBe(false)
+    expect(isLauncherDirName(LOCK_DIR_NAME)).toBe(false)
+  })
+
+  it('matches the portable launcher folder shape only', () => {
+    expect(isLauncherDirName('3JyG3JBmonYk3Zo5C0d9RomnrJU')).toBe(true)
+    expect(isLauncherDirName('custos-session-0123456789abcdef')).toBe(false)
+    expect(isLauncherDirName('short')).toBe(false)
+    expect(isLauncherDirName('has space in the name here')).toBe(false)
+  })
+})
 
 describe('session folder names', () => {
   it('recognises the folders Custos creates', () => {

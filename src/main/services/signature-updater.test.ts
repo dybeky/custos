@@ -1,6 +1,6 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { generateKeyPairSync, sign } from 'crypto'
-import { mkdtempSync, readFileSync, writeFileSync } from 'fs'
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'fs'
 import { tmpdir } from 'os'
 import { join } from 'path'
 import { SignatureUpdater } from './signature-updater'
@@ -17,6 +17,7 @@ const reply = (status: number, body?: unknown) => ({ ok: status >= 200 && status
 
 let dir: string
 beforeEach(() => { dir = mkdtempSync(join(tmpdir(), 'custos-sig-')) })
+afterEach(() => rmSync(dir, { recursive: true, force: true }))
 
 function make(fetchImpl: (url: string) => unknown, publicKey = PUB) {
   const applied: number[] = []
