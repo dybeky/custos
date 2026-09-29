@@ -4,6 +4,7 @@ import { render, screen, fireEvent } from '@testing-library/react'
 import { SitePanel } from './SitePanel'
 import { useAuthStore } from '../../stores/auth-store'
 import { useScanStore } from '../../stores/scan-store'
+import { useSiteSync } from '../../stores/site-sync'
 
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({ t: (k: string) => k, i18n: { language: 'en' } }),
@@ -27,16 +28,15 @@ beforeEach(() => {
   vi.clearAllMocks()
   ;(window as any).electronAPI = api
   useScanStore.setState({ report, caseInfo: { player: 'Bob', notes: 'n' } } as any)
+  useSiteSync.setState({ reportId: null, uploading: false, result: null })
 })
 
 describe('SitePanel', () => {
-  it('asks a signed-out checker to sign in, and renders nothing without site capabilities', () => {
+  it('lets a signed-out checker send the check, without the staff-only history', () => {
     useAuthStore.setState({ status: 'anon', capabilities: [], updateRequired: undefined } as any)
-    const { container, rerender } = render(<SitePanel />)
-    expect(container.textContent).toBe('site.signInToSync')
-    useAuthStore.setState({ status: 'authed', capabilities: [] } as any)
-    rerender(<SitePanel />)
-    expect(container.innerHTML).toBe('')
+    render(<SitePanel />)
+    expect(screen.getByText('site.upload')).toBeTruthy()
+    expect(screen.queryByText('site.playerHistory')).toBeNull()
   })
 
   it('uploads the check with its case details and offers to open it', async () => {
@@ -44,11 +44,18 @@ describe('SitePanel', () => {
     render(<SitePanel />)
     fireEvent.click(screen.getByText('site.upload'))
     expect(await screen.findByText('site.uploadedIntact')).toBeTruthy()
-    expect(api.uploadCheckToSite).toHaveBeenCalledWith('scan_1', 'Bob', 'n')
-    fireEvent.click(screen.getByText('site.openCheck'))
-    expect(api.openOnSite).toHaveBeenCalledWith({ checkId: 'r1' })
-    // Viewing needs its own capability.
+    expect(api.uploadCheckToSite).toHaveBeenCalledWith('scan_1', 'Bob', 'n', '')
+    // Opening it on the site, like the player's history, needs the view right.
+    expect(screen.queryByText('site.openCheck')).toBeNull()
     expect(screen.queryByText('site.playerHistory')).toBeNull()
+  })
+
+  it('offers to open an uploaded check to staff who can view checks', async () => {
+    useAuthStore.setState({ status: 'authed', capabilities: ['view_reports'], updateRequired: undefined } as any)
+    render(<SitePanel />)
+    fireEvent.click(screen.getByText('site.upload'))
+    fireEvent.click(await screen.findByText('site.openCheck'))
+    expect(api.openOnSite).toHaveBeenCalledWith({ checkId: 'r1' })
   })
 
   it("lists the player's other checks on the site", async () => {

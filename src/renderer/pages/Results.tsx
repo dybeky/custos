@@ -35,8 +35,9 @@ export function Results() {
   const correlations = rankedCorrelations(report)
   const primaryReason = report?.verdict.reasons.find(r => r.code !== 'incomplete-coverage')
 
-  const checker = useAuthStore(s => s.user?.username)
-  const exportCase = { ...caseInfo, checkedBy: checker }
+  const account = useAuthStore(s => s.user?.username)
+  const checker = useScanStore(s => s.checker)
+  const exportCase = { ...caseInfo, checkedBy: checker.trim() || account }
 
   const handleExport = () => {
     const text = buildTextReport(t, report, results, i18n.language, exportCase)

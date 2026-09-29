@@ -29,7 +29,8 @@ export const AuthUploadAvatarPayloadSchema = z.object({
 export const SiteUploadPayloadSchema = z.object({
   historyId: z.string().regex(/^[A-Za-z0-9_-]{1,80}$/),
   player: z.string().max(200),
-  notes: z.string().max(20000)
+  notes: z.string().max(20000),
+  checker: z.string().max(200).default('')
 }).strict()
 
 /** site:player-checks — the player field as typed (main derives the key). */

@@ -456,20 +456,33 @@ describe('AuthService site features', () => {
     expect(svc.getState()).toMatchObject({ status: 'anon', updateRequired: '9.0.0' })
   })
 
-  it('uploads a check only when signed in', async () => {
+  it('sends a check without an account, and under the account when signed in with upload rights', async () => {
     const uploadReport = vi.fn(async () => ({ id: 'r1', url: 'http://localhost:3000/admin/reports/r1', hashVerified: true }))
+    const uploadReportPublic = vi.fn(async () => ({ id: 'r2', hashVerified: true }))
     const { svc, tokens } = build({
       getSession: vi.fn(async () => ({ user })),
       getMe: vi.fn(async () => ({ capabilities: ['upload_reports'], minVersion: null })),
-      uploadReport
+      uploadReport,
+      uploadReportPublic
     } as any)
-    expect(await svc.uploadCheck(report, { player: 'p', notes: '' })).toEqual({ ok: false, error: 'not_signed_in' })
+    const kase = { player: 'p', notes: 'n', checker: 'Anna' }
+    expect(await svc.uploadCheck(report, kase, 'kkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkk')).toEqual({
+      ok: true, url: 'http://localhost:3000/admin/reports/r2', hashVerified: true
+    })
+    expect(uploadReportPublic).toHaveBeenCalledWith({ report, case: kase, syncKey: 'kkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkk' })
+    expect(uploadReport).not.toHaveBeenCalled()
+
     tokens.save('b')
     await svc.validateOnStartup()
-    expect(await svc.uploadCheck(report, { player: 'p', notes: 'n' })).toEqual({
+    expect(await svc.uploadCheck(report, kase, 'kkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkk')).toEqual({
       ok: true, url: 'http://localhost:3000/admin/reports/r1', hashVerified: true
     })
-    expect(uploadReport).toHaveBeenCalledWith('b', { report, case: { player: 'p', notes: 'n' } })
+    expect(uploadReport).toHaveBeenCalledWith('b', { report, case: kase })
+  })
+
+  it('maps a public upload failure to an error code', async () => {
+    const { svc } = build({ uploadReportPublic: vi.fn(async () => { throw new TypeError('fetch failed') }) } as any)
+    expect(await svc.uploadCheck(report, { player: '', notes: '', checker: '' }, 'kkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkk')).toEqual({ ok: false, error: 'network' })
   })
 
   it('opens site pages only through the allowlisted opener, and only when signed in', async () => {

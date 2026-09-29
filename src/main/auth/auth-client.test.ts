@@ -113,7 +113,7 @@ describe('AuthClient site integration', () => {
     const c = new AuthClient(BASE, mockFetch(() => json({ error: 'update_required', minVersion: '4.0.0' }, 426)))
     await expect(c.exchange({ state: 's', code: 'c', codeVerifier: 'v' })).rejects.toMatchObject({ name: 'UpdateRequiredError', minVersion: '4.0.0' })
     await expect(c.getMe('t')).rejects.toBeInstanceOf(UpdateRequiredError)
-    await expect(c.uploadReport('t', { report: {}, case: { player: '', notes: '' } })).rejects.toBeInstanceOf(UpdateRequiredError)
+    await expect(c.uploadReport('t', { report: {}, case: { player: '', notes: '', checker: '' } })).rejects.toBeInstanceOf(UpdateRequiredError)
     expect(await c.pollDeviceToken('d')).toEqual({ kind: 'update_required', minVersion: '4.0.0' })
   })
 
@@ -124,11 +124,11 @@ describe('AuthClient site integration', () => {
 
   it('accepts an upload only when the site returns one of its own check URLs', async () => {
     const ok = new AuthClient(BASE, mockFetch(() => json({ id: 'r1', url: `${BASE}/admin/reports/r1`, hashVerified: true })))
-    expect(await ok.uploadReport('t', { report: {}, case: { player: 'p', notes: '' } })).toMatchObject({ id: 'r1', hashVerified: true })
+    expect(await ok.uploadReport('t', { report: {}, case: { player: 'p', notes: '', checker: '' } })).toMatchObject({ id: 'r1', hashVerified: true })
     const evil = new AuthClient(BASE, mockFetch(() => json({ id: 'r1', url: 'https://evil.example/admin/reports/r1', hashVerified: true })))
-    await expect(evil.uploadReport('t', { report: {}, case: { player: 'p', notes: '' } })).rejects.toThrow('bad_response')
+    await expect(evil.uploadReport('t', { report: {}, case: { player: 'p', notes: '', checker: '' } })).rejects.toThrow('bad_response')
     const denied = new AuthClient(BASE, mockFetch(() => json({ error: 'forbidden' }, 403)))
-    await expect(denied.uploadReport('t', { report: {}, case: { player: 'p', notes: '' } })).rejects.toThrow('forbidden')
+    await expect(denied.uploadReport('t', { report: {}, case: { player: 'p', notes: '', checker: '' } })).rejects.toThrow('forbidden')
   })
 
   it('lists a player\'s site checks and encodes the key', async () => {

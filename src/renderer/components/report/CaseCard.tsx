@@ -14,12 +14,13 @@ const INPUT =
 /**
  * Case details for the report: the player being checked (filled from the Steam
  * account detected during the scan, or one click from any other account found
- * on the PC), the signed-in checker, and free-form notes.
+ * on the PC), who is checking (optional, kept for the session), and notes.
  */
 export function CaseCard({ report }: { report: ScanReport | null }) {
   const { t } = useTranslation()
-  const { caseInfo, setCaseInfo } = useScanStore()
-  const checker = useAuthStore((s) => s.user?.username)
+  const { caseInfo, setCaseInfo, checker, setChecker } = useScanStore()
+  // Signed-in staff: their account name is used when the field is left empty.
+  const account = useAuthStore((s) => s.user?.username)
   const identities = steamIdentities(report)
   const detected = report?.meta.player
 
@@ -29,11 +30,6 @@ export function CaseCard({ report }: { report: ScanReport | null }) {
         <div className="flex items-center gap-1.5 mb-3">
           <h3 className="text-sm font-bold text-ink font-display">{t('case.title')}</h3>
           <InfoTip title={t('case.title')} text={t('case.hint')} />
-          {checker && (
-            <span className="ml-auto text-xs text-ink-dim">
-              {t('case.checkedBy')}: <span className="text-ink">{checker}</span>
-            </span>
-          )}
         </div>
 
         <label className="block text-xs text-ink-dim mb-1" htmlFor="case-player">{t('case.player')}</label>
@@ -67,6 +63,16 @@ export function CaseCard({ report }: { report: ScanReport | null }) {
             })}
           </div>
         )}
+
+        <label className="block text-xs text-ink-dim mt-3 mb-1" htmlFor="case-checker">{t('case.checker')}</label>
+        <input
+          id="case-checker"
+          className={INPUT}
+          value={checker}
+          maxLength={60}
+          placeholder={account ?? t('case.checkerPlaceholder')}
+          onChange={(e) => setChecker(e.target.value)}
+        />
 
         <label className="block text-xs text-ink-dim mt-3 mb-1" htmlFor="case-notes">{t('case.notes')}</label>
         <textarea

@@ -26,6 +26,7 @@ import { configService } from './services/config-service'
 import { COLOR_THEMES, DEFAULT_THEME, isColorTheme } from '../shared/themes'
 import { playerKey, type HistoryEntry, type HistorySummary } from '../shared/history'
 import { join } from 'path'
+import { randomBytes } from 'crypto'
 import {
   AuthLoginPayloadSchema, AuthUploadAvatarPayloadSchema, SiteOpenPayloadSchema, SitePlayerPayloadSchema, SiteUploadPayloadSchema
 } from './auth/auth-ipc-schema'
@@ -449,6 +450,18 @@ export function setupIpcHandlers(mainWindow: BrowserWindow): void {
  * the AuthService `onChange` callback (kept beside construction so a single
  * import in index.ts wires both the handlers and the push).
  */
+// Per-check secret for uploads without an account: the site stores its hash
+// and lets only this app update that check later. Session-only, like history.
+const syncKeys = new Map<string, string>()
+function syncKeyFor(reportId: string): string {
+  let key = syncKeys.get(reportId)
+  if (!key) {
+    key = randomBytes(32).toString('hex')
+    syncKeys.set(reportId, key)
+  }
+  return key
+}
+
 export function setupAuthHandlers(_mainWindow: BrowserWindow, authService: AuthService): void {
   ipcMain.handle(IPC_CHANNELS.AUTH_GET_STATE, (): AuthState => authService.getState())
 
@@ -477,16 +490,21 @@ export function setupAuthHandlers(_mainWindow: BrowserWindow, authService: AuthS
     }
   )
 
-  // Upload a saved check to the site. The report comes from this machine's
-  // history (by id), never from the renderer; the case text is the checker's.
+  // Send a saved check to the site (with or without an account). The report
+  // comes from this machine's history (by id), never from the renderer; the
+  // case text is the checker's.
   ipcMain.handle(IPC_CHANNELS.SITE_UPLOAD_CHECK, async (_e, payload: unknown): Promise<SiteUploadResult> => {
     const parsed = SiteUploadPayloadSchema.safeParse(payload)
     if (!parsed.success) return { ok: false, error: 'invalid_payload' }
     const entry = await history().get(parsed.data.historyId)
     if (!entry) return { ok: false, error: 'not_found' }
-    // The site stores up to 120 / 4000 characters of case text.
-    const kase = { player: parsed.data.player.trim().slice(0, 120), notes: parsed.data.notes.trim().slice(0, 4000) }
-    return authService.uploadCheck(entry.report, kase)
+    // The site stores up to 120 / 4000 / 60 characters of case text.
+    const kase = {
+      player: parsed.data.player.trim().slice(0, 120),
+      notes: parsed.data.notes.trim().slice(0, 4000),
+      checker: parsed.data.checker.trim().slice(0, 60)
+    }
+    return authService.uploadCheck(entry.report, kase, syncKeyFor(entry.report.id))
   })
 
   ipcMain.handle(IPC_CHANNELS.SITE_PLAYER_CHECKS, async (_e, payload: unknown): Promise<SitePlayerResult> => {

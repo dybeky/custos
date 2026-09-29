@@ -27,6 +27,9 @@ interface ScanState {
   whitelist: string[]
   /** Who is being checked + checker notes; kept across scans until edited. */
   caseInfo: { player: string; notes: string }
+  /** Who is running the checks (optional; kept for the whole session, sent with each check). */
+  checker: string
+  setChecker: (name: string) => void
   setCaseInfo: (patch: Partial<{ player: string; notes: string }>) => void
 
   /** Saved checks (newest first). */
@@ -131,6 +134,8 @@ export const useScanStore = create<ScanState>((set, get) => ({
   dismissedIds: [],
   whitelist: [],
   caseInfo: { player: '', notes: '' },
+  checker: '',
+  setChecker: (checker) => set({ checker }),
   setCaseInfo: (patch) => {
     set((state) => ({ caseInfo: { ...state.caseInfo, ...patch } }))
     scheduleCaseSync(get, set)
