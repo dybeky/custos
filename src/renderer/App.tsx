@@ -16,6 +16,7 @@ import { ErrorBoundary } from './components/ErrorBoundary'
 import { useSettingsStore } from './stores/settings-store'
 import { useAuthStore } from './stores/auth-store'
 import { subscribeToScanEvents, useScanStore } from './stores/scan-store'
+import { startSiteSync } from './stores/site-sync'
 import { GamePicker } from './components/GamePicker'
 import { UpdateModal } from './components/UpdateModal'
 import { UpdateCheckFailedToast } from './components/UpdateCheckFailedToast'
@@ -52,6 +53,9 @@ export function App() {
   // Keep the scan store in sync with main for the whole session, independent
   // of which page is mounted.
   useEffect(() => subscribeToScanEvents(), [])
+
+  // Finished checks go to the site on their own for signed-in staff.
+  useEffect(() => startSiteSync(), [])
 
   // Persisted signature whitelist, so triage state shows on the first scan.
   useEffect(() => {

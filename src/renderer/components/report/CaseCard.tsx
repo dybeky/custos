@@ -5,20 +5,23 @@ import { InfoTip } from '../ui/InfoTip'
 import { useScanStore } from '../../stores/scan-store'
 import { useAuthStore } from '../../stores/auth-store'
 import { steamIdentities, steamIdentityLabel } from '../../utils/report-view'
+import { scanPlayerLabel } from '../../../shared/history'
 
 const INPUT =
   'w-full rounded-xl bg-panel-2 border border-[color:var(--line)] px-3 py-2 text-sm text-ink ' +
   'placeholder:text-ink-dim/60 focus:outline-none focus:border-scan/50'
 
 /**
- * Case details for the report: the player being checked (one click from any
- * Steam account found on the PC), the signed-in checker, and free-form notes.
+ * Case details for the report: the player being checked (filled from the Steam
+ * account detected during the scan, or one click from any other account found
+ * on the PC), the signed-in checker, and free-form notes.
  */
 export function CaseCard({ report }: { report: ScanReport | null }) {
   const { t } = useTranslation()
   const { caseInfo, setCaseInfo } = useScanStore()
   const checker = useAuthStore((s) => s.user?.username)
   const identities = steamIdentities(report)
+  const detected = report?.meta.player
 
   return (
     <Card className="mb-6">
@@ -42,6 +45,9 @@ export function CaseCard({ report }: { report: ScanReport | null }) {
           placeholder={t('case.playerPlaceholder')}
           onChange={(e) => setCaseInfo({ player: e.target.value })}
         />
+        {detected && caseInfo.player === scanPlayerLabel(detected) && (
+          <p className="mt-1.5 text-[11px] text-scan">{t(`case.detected.${detected.source}`)}</p>
+        )}
         {identities.length > 0 && (
           <div className="mt-2 flex flex-wrap items-center gap-1.5">
             <span className="text-xs text-ink-dim">{t('case.foundOnPc')}</span>

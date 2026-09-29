@@ -453,6 +453,16 @@ export interface TriageSettings {
   whitelistedSignatures: string[]
 }
 
+/** The Steam account being checked, detected on the PC when the scan ran. */
+export interface ScanPlayer {
+  steamId: string
+  /** Login name; empty when Steam never saved the account to loginusers.vdf. */
+  accountName: string
+  personaName?: string
+  /** 'running': Steam was signed in to it during the scan; 'recent': the account that signed in last. */
+  source: 'running' | 'recent'
+}
+
 export interface ScanReportMeta {
   appVersion: string
   engineVersion: string
@@ -461,6 +471,8 @@ export interface ScanReportMeta {
   gameId: GameId | null
   os?: { name: string; version: string; arch: string; appArch: string }
   signatureVersion: string
+  /** Part of the hashed report, so the identity can't be swapped after the scan. */
+  player?: ScanPlayer
   caseLabel?: string
   caseNote?: string
 }

@@ -2,7 +2,7 @@ import { create } from 'zustand'
 import { ScanResult, ScanProgress, ScannerInfo, ScanReport } from '../../shared/types'
 import type { GameId } from '../../shared/games'
 import { evidenceFindings } from '../utils/report-view'
-import { diffReports, findPrevious, type HistorySummary, type ReportDiff } from '../../shared/history'
+import { diffReports, findPrevious, scanPlayerLabel, type HistorySummary, type ReportDiff } from '../../shared/history'
 
 export type ScanStatus = 'idle' | 'scanning' | 'completed' | 'error'
 
@@ -231,6 +231,8 @@ export const useScanStore = create<ScanState>((set, get) => ({
     _failedScans: 0,
     _evidenceCount: null,
     dismissedIds: [],
+    // A new check is a new case: never carry the last player's name over.
+    caseInfo: { player: '', notes: '' },
     previous: null,
     viewingHistory: false
   }),
@@ -313,7 +315,14 @@ export function subscribeToScanEvents(api: ScanEventsApi = window.electronAPI): 
       if (scanning()) store.getState().addResult(result)
     }),
     api.onScanReport((report) => {
-      if (scanning()) store.getState().setReport(report)
+      if (!scanning()) return
+      // The player detected on the PC fills the case (main saved the same
+      // label into this check's history entry).
+      const { caseInfo } = store.getState()
+      if (report.meta.player && !caseInfo.player.trim()) {
+        store.setState({ caseInfo: { ...caseInfo, player: scanPlayerLabel(report.meta.player) } })
+      }
+      store.getState().setReport(report)
     }),
     api.onScanComplete((results) => {
       if (!scanning()) return

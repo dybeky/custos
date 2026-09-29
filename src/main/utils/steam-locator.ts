@@ -11,7 +11,7 @@ export function parseLibraryFolders(vdf: string): string[] {
 }
 
 /** Steam's install folder: the registry first, then the usual locations. */
-async function findSteamRoot(): Promise<string | null> {
+export async function findSteamRoot(): Promise<string | null> {
   try {
     const { stdout } = await execFileP('reg', ['query', 'HKCU\\Software\\Valve\\Steam', '/v', 'SteamPath'], { windowsHide: true, timeout: 5000 })
     const m = /SteamPath\s+REG_SZ\s+(.+)/i.exec(stdout)

@@ -4,6 +4,8 @@ export interface SteamAccount {
   personaName?: string
   rememberPassword: boolean
   timestamp?: number
+  /** Steam's "MostRecent" flag: the account that signed in last. */
+  mostRecent?: boolean
 }
 
 export class VdfParseException extends Error {
@@ -118,6 +120,8 @@ export class VdfParser {
           } else if (line.toLowerCase().includes('"rememberpassword"')) {
             const value = this.extractKeyValue(line, lineNumber)
             currentAccount.rememberPassword = value === '1'
+          } else if (line.toLowerCase().includes('"mostrecent"')) {
+            currentAccount.mostRecent = this.extractKeyValue(line, lineNumber) === '1'
           } else if (line.toLowerCase().includes('"timestamp"')) {
             const value = this.extractKeyValue(line, lineNumber)
             const timestamp = parseInt(value, 10)
