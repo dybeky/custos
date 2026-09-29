@@ -1,32 +1,39 @@
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import type { SiteCheck, SiteUploadResult } from '../../../shared/types'
+import type { SiteCheck } from '../../../shared/types'
 import { useAuthStore } from '../../stores/auth-store'
 import { useScanStore } from '../../stores/scan-store'
+import { useSiteSync } from '../../stores/site-sync'
 import { bandChipClass } from '../../utils/report-view'
 
 const BTN = 'px-3 py-1.5 rounded-lg text-xs font-medium transition-colors disabled:opacity-50'
 
 /**
- * The check's link to the site, for signed-in staff: upload it for review and
- * see this player's checks by every checker. Shown only for the capabilities
+ * The check's link to the site, for signed-in staff: the check is uploaded on
+ * its own when the scan finishes (see site-sync), and this shows how that went
+ * and this player's checks by every checker. Shown only for the capabilities
  * the site granted; the site re-checks each call regardless.
  */
 export function SitePanel() {
   const { t, i18n } = useTranslation()
   const { status, capabilities, updateRequired } = useAuthStore()
   const { report, caseInfo } = useScanStore()
-  const [upload, setUpload] = useState<SiteUploadResult | null>(null)
-  const [uploading, setUploading] = useState(false)
+  const { reportId: syncedId, uploading: syncing, result, upload: doUpload } = useSiteSync()
   const [checks, setChecks] = useState<SiteCheck[] | null>(null)
   const [checksError, setChecksError] = useState('')
   const [loadingChecks, setLoadingChecks] = useState(false)
 
-  // A different check or player invalidates what was shown.
-  useEffect(() => { setUpload(null) }, [report?.id])
+  // A different player invalidates the checks shown.
   useEffect(() => { setChecks(null); setChecksError('') }, [caseInfo.player])
 
-  if (status !== 'authed' || !report) return null
+  if (!report) return null
+  if (status !== 'authed') {
+    return (
+      <div className="rounded-2xl border border-dashed border-[color:var(--line)] px-5 py-3 mb-6 text-xs text-ink-dim">
+        {t('site.signInToSync')}
+      </div>
+    )
+  }
   const canUpload = capabilities.includes('upload_reports')
   const canView = capabilities.includes('view_reports')
   if (!updateRequired && !canUpload && !canView) return null
@@ -34,16 +41,8 @@ export function SitePanel() {
   const errorText = (code?: string) =>
     t(`site.errors.${code ?? 'failed'}`, { defaultValue: t('site.errors.failed') })
 
-  const doUpload = async () => {
-    setUploading(true)
-    try {
-      setUpload(await window.electronAPI.uploadCheckToSite(report.id, caseInfo.player, caseInfo.notes))
-    } catch {
-      setUpload({ ok: false, error: 'failed' })
-    } finally {
-      setUploading(false)
-    }
-  }
+  const upload = syncedId === report.id ? result : null
+  const uploading = syncedId === report.id && syncing
 
   const loadChecks = async () => {
     setLoadingChecks(true)

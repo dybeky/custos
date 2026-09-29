@@ -1,4 +1,4 @@
-import type { AnalyzedFinding, ScanReport, ScanResult, VerdictBand } from './types'
+import type { AnalyzedFinding, ScanPlayer, ScanReport, ScanResult, VerdictBand } from './types'
 
 /** Case details saved with a check. */
 export interface HistoryCase {
@@ -41,6 +41,16 @@ export function playerKey(player: string | null | undefined): string | null {
   const steam = /\b7656119\d{10}\b/.exec(p)
   if (steam) return `steam:${steam[0]}`
   return `name:${p.toLowerCase().replace(/\s+/g, ' ')}`
+}
+
+/**
+ * "Persona (SteamID64)" — how a detected player fills the case's player
+ * field. The SteamID makes it the same player key on this PC and on the site,
+ * whatever the nickname; the name is cut so the label fits the site's 120.
+ */
+export function scanPlayerLabel(p: ScanPlayer): string {
+  const name = (p.personaName || p.accountName).trim().slice(0, 96)
+  return name ? `${name} (${p.steamId})` : p.steamId
 }
 
 /** Evidence count used in summaries: non-informational, not suppressed. */

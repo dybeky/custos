@@ -620,17 +620,21 @@
   },
   "case": {
     "title": "Case",
-    "hint": "Who you are checking and your notes. Included in the exported report (not in its integrity hash). Steam accounts found on this PC can fill the player in one click.",
+    "hint": "Who you are checking and your notes. Custos fills the player from the Steam account on this PC; other accounts found here can replace it in one click. Included in the exported report (not in its integrity hash).",
     "player": "Player",
     "playerPlaceholder": "Nickname or SteamID",
     "checkedBy": "Checked by",
     "notes": "Notes",
     "notesPlaceholder": "What you observed, what the player said, decision…",
-    "foundOnPc": "Found on this PC:"
+    "foundOnPc": "Found on this PC:",
+    "detected": {
+      "running": "Detected automatically: Steam was signed in to this account during the check.",
+      "recent": "Detected automatically: the last account signed in to Steam on this PC."
+    }
   },
   "history": {
     "title": "Check history",
-    "subtitle": "Checks from this session. Custos keeps nothing on this PC after it closes — upload a check to the site to keep it. Re-checks of the same player are compared automatically.",
+    "subtitle": "Checks from this session. Custos keeps nothing on this PC after it closes — signed-in staff have every check saved to the site automatically. Re-checks of the same player are compared automatically.",
     "search": "Search by player…",
     "empty": "No saved checks yet — run a check and it will appear here.",
     "noMatches": "No checks match this player.",
@@ -666,9 +670,10 @@
     "title": "Site",
     "upload": "Upload to site",
     "reupload": "Upload again",
-    "uploading": "Uploading…",
-    "uploadedIntact": "Uploaded — integrity verified",
-    "uploadedUnverified": "Uploaded — integrity could not be verified",
+    "uploading": "Saving to the site…",
+    "uploadedIntact": "Saved to the site — integrity verified",
+    "uploadedUnverified": "Saved to the site — integrity could not be verified",
+    "signInToSync": "Sign in to save every check to the site automatically, on the player's card.",
     "openCheck": "Open on site",
     "addPlayerHint": "Add the player above so this check appears on their card.",
     "playerHistory": "Checks of this player on the site",

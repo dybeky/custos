@@ -94,13 +94,15 @@ export function Scan() {
                 : t('scan.readyToScan')}
               <InfoTip title={t('scan.title')} text={t('help.scanPage')} />
             </h2>
-            <p className="text-ink-dim mb-6">
-              {status === 'scanning' && progress
-                ? progress.currentPath
-                : status === 'completed'
-                ? `${findingCount} ${t('scan.found')}`
-                : `${scanners.length} ${t('scan.scannersReady')}`}
-            </p>
+            {status === 'scanning' && progress ? (
+              <ScanPathLine scanner={progress.scannerName} path={progress.currentPath} />
+            ) : (
+              <p className="text-ink-dim mb-6">
+                {status === 'completed'
+                  ? `${findingCount} ${t('scan.found')}`
+                  : `${scanners.length} ${t('scan.scannersReady')}`}
+              </p>
+            )}
 
             {/* Action Button */}
             {status === 'scanning' ? (
@@ -174,6 +176,26 @@ export function Scan() {
           </Card>
         )}
       </div>
+    </div>
+  )
+}
+
+/**
+ * What the scan is looking at, on one fixed-height line so the card never
+ * jumps or overflows: long paths lose their middle, never the file name (the
+ * full path is in the tooltip).
+ */
+function ScanPathLine({ scanner, path }: { scanner: string; path?: string }) {
+  const cut = path ? Math.max(path.lastIndexOf('\\'),path.lastIndexOf('/')) : -1
+  const head = path && cut > 0 ? path.slice(0, cut + 1) : ''
+  const tail = path ? (cut > 0 ? path.slice(cut + 1) : path) : ''
+  return (
+    <div className="mb-6 w-full max-w-md mx-auto min-w-0">
+      <p className="text-sm text-ink truncate">{scanner}</p>
+      <p className="mt-0.5 h-4 flex min-w-0 font-mono text-[11px] leading-4 text-ink-dim" title={path}>
+        <span className="truncate min-w-0">{head}</span>
+        <span className="truncate shrink-0 max-w-[60%]">{tail}</span>
+      </p>
     </div>
   )
 }

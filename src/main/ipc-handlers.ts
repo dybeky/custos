@@ -18,6 +18,7 @@ import { appStore } from './services/app-store'
 import { safeOpenExternal, safeOpenPath } from './utils/safe-open'
 import { normalizeRevealPath } from './utils/url-policy'
 import { locateSteam } from './utils/steam-locator'
+import { detectSteamPlayer } from './services/player-detect'
 import { HistoryStore } from './services/history-store'
 import { SignatureUpdater } from './services/signature-updater'
 import { bundleAdditions, bundleEntryCount } from './services/signature-bundle'
@@ -74,9 +75,12 @@ function history(): HistoryStore {
   return historyStore
 }
 
-/** Best-effort save; a history failure must never fail the scan itself. */
-function saveToHistory(report: ScanReport, results: ScanResult[]): void {
-  history().save(report, results).catch((err) =>
+/**
+ * Best-effort save; a history failure must never fail the scan itself.
+ * Awaitable so the report is on disk before the renderer can upload it by id.
+ */
+function saveToHistory(report: ScanReport, results: ScanResult[]): Promise<void> {
+  return history().save(report, results).catch((err) =>
     logger.warn('Could not save check to history', { error: err instanceof Error ? err.message : String(err) })
   )
 }
@@ -193,6 +197,8 @@ export function setupIpcHandlers(mainWindow: BrowserWindow): void {
     // The session stays "in progress" until runScan settles — even after a
     // SCAN_CANCEL — so a second SCAN_START can't interleave and clobber state.
     const scanStartedAt = Date.now()
+    // Who is being checked, read while the scan runs (Steam's signed-in account).
+    const playerPromise = detectSteamPlayer()
     try {
       return await scanSession.run(async (signal) => {
         const results = await runScan({
@@ -220,6 +226,7 @@ export function setupIpcHandlers(mainWindow: BrowserWindow): void {
           signatureVersion: scannerFactory.getSignatureVersion(),
           gameId: gameId ?? null,
           os: osMetaFromOsInfo(getOsInfo()),
+          player: await playerPromise,
           findKeyword: (value: string) => scannerFactory.getKeywordMatcher().findKeyword(value)
         }
         lastScan = { results, context }
@@ -227,7 +234,7 @@ export function setupIpcHandlers(mainWindow: BrowserWindow): void {
           ...context,
           suppression: { whitelistedSignatures: loadTriage().whitelistedSignatures, dismissedFindingIds: [] }
         })
-        saveToHistory(report, results)
+        await saveToHistory(report, results)
         safeSend(IPC_CHANNELS.SCAN_REPORT, report)
         safeSend(IPC_CHANNELS.SCAN_COMPLETE, results)
         return results
@@ -247,7 +254,7 @@ export function setupIpcHandlers(mainWindow: BrowserWindow): void {
   // Re-score the last scan after the checker dismissed a finding or changed
   // the whitelist. Pure re-analysis of the kept results — nothing is rescanned.
   // The whitelist is persisted for future scans; dismissals are per-scan.
-  ipcMain.handle(IPC_CHANNELS.SCAN_REANALYZE, (_event, payload: unknown): ScanReport | null => {
+  ipcMain.handle(IPC_CHANNELS.SCAN_REANALYZE, async (_event, payload: unknown): Promise<ScanReport | null> => {
     const parsed = SuppressionSchema.safeParse(payload)
     if (!parsed.success) throw new Error(`Invalid triage payload: ${parsed.error.message}`)
     const whitelistedSignatures = [...new Set(parsed.data.whitelistedSignatures.map(s => s.trim()).filter(Boolean))]
@@ -257,7 +264,7 @@ export function setupIpcHandlers(mainWindow: BrowserWindow): void {
       ...lastScan.context,
       suppression: { whitelistedSignatures, dismissedFindingIds: parsed.data.dismissedFindingIds }
     })
-    saveToHistory(report, lastScan.results)
+    await saveToHistory(report, lastScan.results)
     return report
   })
 

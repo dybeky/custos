@@ -1,5 +1,6 @@
 import type { TFunction } from 'i18next'
 import type { AnalyzedFinding, Correlation, ScanReport, ScoreReason, Severity, VerdictBand } from '../../shared/types'
+import { scanPlayerLabel } from '../../shared/history'
 
 export function severityKey(scannerId: string, value: string): string {
   return `${scannerId}\n${value}`
@@ -194,5 +195,6 @@ export function steamIdentities(report: ScanReport | null): SteamIdentity[] {
 
 /** "Persona (SteamID)" — the label used when a Steam account fills the player field. */
 export function steamIdentityLabel(id: SteamIdentity): string {
-  return `${id.personaName ?? id.accountName} (${id.steamId})`
+  // Same label as the auto-detected player, so the matching chip lights up.
+  return scanPlayerLabel({ ...id, source: 'recent' })
 }

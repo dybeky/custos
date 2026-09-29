@@ -30,10 +30,10 @@ beforeEach(() => {
 })
 
 describe('SitePanel', () => {
-  it('renders nothing when signed out or without site capabilities', () => {
+  it('asks a signed-out checker to sign in, and renders nothing without site capabilities', () => {
     useAuthStore.setState({ status: 'anon', capabilities: [], updateRequired: undefined } as any)
     const { container, rerender } = render(<SitePanel />)
-    expect(container.innerHTML).toBe('')
+    expect(container.textContent).toBe('site.signInToSync')
     useAuthStore.setState({ status: 'authed', capabilities: [] } as any)
     rerender(<SitePanel />)
     expect(container.innerHTML).toBe('')

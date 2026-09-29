@@ -1,7 +1,7 @@
 import { createHash } from 'crypto'
 import type {
   ScanResult, AnalyzedFinding, Confidence, FindingCategory, Correlation, Severity, ScoreReason,
-  Verdict, VerdictBand, ScanReport, SuppressionState, ScannerName
+  Verdict, VerdictBand, ScanReport, SuppressionState, ScannerName, ScanPlayer
 } from '../../shared/types'
 import type { GameId } from '../../shared/games'
 import { scannerIdFromDisplayName } from '../../shared/scanners-meta'
@@ -253,6 +253,7 @@ export interface AnalyzeContext {
   signatureVersion: string
   gameId: GameId | null
   os?: { name: string; version: string; arch: string; appArch: string }
+  player?: ScanPlayer | null
   findKeyword: (value: string) => string | null
   suppression: SuppressionState
 }
@@ -313,7 +314,8 @@ export function analyze(results: ScanResult[], ctx: AnalyzeContext): ScanReport 
       durationMs: ctx.durationMs,
       gameId: ctx.gameId,
       os: ctx.os,
-      signatureVersion: ctx.signatureVersion
+      signatureVersion: ctx.signatureVersion,
+      ...(ctx.player ? { player: ctx.player } : {})
     },
     verdict,
     findings: sortFindings(findings),

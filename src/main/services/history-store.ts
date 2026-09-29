@@ -1,7 +1,7 @@
 import { mkdir, readFile, rename, rm, writeFile } from 'fs/promises'
 import { join } from 'path'
 import {
-  HISTORY_LIMIT, summarize, type HistoryCase, type HistoryEntry, type HistorySummary
+  HISTORY_LIMIT, scanPlayerLabel, summarize, type HistoryCase, type HistoryEntry, type HistorySummary
 } from '../../shared/history'
 import type { ScanReport, ScanResult } from '../../shared/types'
 
@@ -74,7 +74,8 @@ export class HistoryStore {
         savedAt: new Date().toISOString(),
         report,
         results,
-        case: existing?.case ?? { player: '', notes: '' }
+        // A new check starts with the player detected on the PC.
+        case: existing?.case ?? { player: report.meta.player ? scanPlayerLabel(report.meta.player) : '', notes: '' }
       }
       await this.writeAtomic(this.file(report.id), entry)
       await this.putIndex(summarize(entry))
