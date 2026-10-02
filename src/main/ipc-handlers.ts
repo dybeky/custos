@@ -453,6 +453,8 @@ export function setupIpcHandlers(mainWindow: BrowserWindow): void {
 // Per-check secret for uploads without an account: the site stores its hash
 // and lets only this app update that check later. Session-only, like history.
 const syncKeys = new Map<string, string>()
+// How each check reached the site, so re-sends take the same path.
+const uploadedVia = new Map<string, 'account' | 'public'>()
 function syncKeyFor(reportId: string): string {
   let key = syncKeys.get(reportId)
   if (!key) {
@@ -504,7 +506,10 @@ export function setupAuthHandlers(_mainWindow: BrowserWindow, authService: AuthS
       notes: parsed.data.notes.trim().slice(0, 4000),
       checker: parsed.data.checker.trim().slice(0, 60)
     }
-    return authService.uploadCheck(entry.report, kase, syncKeyFor(entry.report.id))
+    const id = entry.report.id
+    const result = await authService.uploadCheck(entry.report, kase, syncKeyFor(id), uploadedVia.get(id))
+    if (result.ok && result.via) uploadedVia.set(id, result.via)
+    return result
   })
 
   ipcMain.handle(IPC_CHANNELS.SITE_PLAYER_CHECKS, async (_e, payload: unknown): Promise<SitePlayerResult> => {

@@ -467,7 +467,7 @@ describe('AuthService site features', () => {
     } as any)
     const kase = { player: 'p', notes: 'n', checker: 'Anna' }
     expect(await svc.uploadCheck(report, kase, 'kkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkk')).toEqual({
-      ok: true, url: 'http://localhost:3000/admin/reports/r2', hashVerified: true
+      ok: true, url: 'http://localhost:3000/admin/reports/r2', hashVerified: true, via: 'public'
     })
     expect(uploadReportPublic).toHaveBeenCalledWith({ report, case: kase, syncKey: 'kkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkk' })
     expect(uploadReport).not.toHaveBeenCalled()
@@ -475,9 +475,18 @@ describe('AuthService site features', () => {
     tokens.save('b')
     await svc.validateOnStartup()
     expect(await svc.uploadCheck(report, kase, 'kkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkk')).toEqual({
-      ok: true, url: 'http://localhost:3000/admin/reports/r1', hashVerified: true
+      ok: true, url: 'http://localhost:3000/admin/reports/r1', hashVerified: true, via: 'account'
     })
     expect(uploadReport).toHaveBeenCalledWith('b', { report, case: kase })
+
+    // Re-sends keep the path the check first took: one check, one row.
+    uploadReport.mockClear()
+    expect(await svc.uploadCheck(report, kase, 'k'.repeat(64), 'public')).toMatchObject({ ok: true, via: 'public' })
+    expect(uploadReport).not.toHaveBeenCalled()
+    await svc.logout()
+    uploadReportPublic.mockClear()
+    expect(await svc.uploadCheck(report, kase, 'k'.repeat(64), 'account')).toEqual({ ok: false, error: 'not_signed_in' })
+    expect(uploadReportPublic).not.toHaveBeenCalled()
   })
 
   it('maps a public upload failure to an error code', async () => {
