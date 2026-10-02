@@ -121,6 +121,8 @@ export interface SiteUploadResult {
   url?: string
   /** The site re-hashed the report and it matched. */
   hashVerified?: boolean
+  /** How it reached the site: under the signed-in account, or without one. */
+  via?: 'account' | 'public'
   error?: string
 }
 

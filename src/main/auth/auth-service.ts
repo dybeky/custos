@@ -278,18 +278,23 @@ export class AuthService {
    * Send a check to the site. Staff signed in with upload rights upload under
    * their account; everyone else — no sign-in needed — sends it with the
    * check's sync secret, so what matters (who was checked) always reaches the site.
+   *
+   * `via` is how this check reached the site before: re-sends stay on that
+   * path, so one check never ends up as two rows (one per path).
    */
-  async uploadCheck(report: ScanReport, kase: UploadCase, syncKey: string): Promise<SiteUploadResult> {
+  async uploadCheck(report: ScanReport, kase: UploadCase, syncKey: string, via?: 'account' | 'public'): Promise<SiteUploadResult> {
     if (!this.deps.config.enabled) return { ok: false, error: 'disabled' }
-    if (this.status === 'authed' && this.capabilities.includes('upload_reports')) {
+    const canUseAccount = this.status === 'authed' && this.capabilities.includes('upload_reports')
+    if (via === 'account' && !canUseAccount) return { ok: false, error: 'not_signed_in' }
+    if (via !== 'public' && canUseAccount) {
       const res = await this.withToken((t) => this.client.uploadReport(t, { report, case: kase }))
-      if (res.ok) return { ok: true, url: res.value.url, hashVerified: res.value.hashVerified }
-      // A session that lapsed mid-run still gets the check through without it.
-      if (res.error !== 'not_signed_in' && res.error !== 'unauthorized') return { ok: false, error: res.error }
+      if (res.ok) return { ok: true, url: res.value.url, hashVerified: res.value.hashVerified, via: 'account' }
+      // A first send whose session lapsed still gets through without it.
+      if (via || (res.error !== 'not_signed_in' && res.error !== 'unauthorized')) return { ok: false, error: res.error }
     }
     try {
       const value = await this.client.uploadReportPublic({ report, case: kase, syncKey })
-      return { ok: true, url: this.siteCheckUrl(value.id), hashVerified: value.hashVerified }
+      return { ok: true, url: this.siteCheckUrl(value.id), hashVerified: value.hashVerified, via: 'public' }
     } catch (e) {
       if (e instanceof UpdateRequiredError) {
         this.markUpdateRequired(e.minVersion)

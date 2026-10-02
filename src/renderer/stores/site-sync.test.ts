@@ -65,6 +65,35 @@ describe('site auto-sync', () => {
     expect(upload).not.toHaveBeenCalled()
   })
 
+  it('retries a send that failed for a passing reason, but not a refusal', async () => {
+    upload.mockResolvedValueOnce({ ok: false, error: 'network' } as never)
+    finishScan('scan-7')
+    await vi.advanceTimersByTimeAsync(0)
+    expect(upload).toHaveBeenCalledTimes(1)
+    await vi.advanceTimersByTimeAsync(15_000)
+    expect(upload).toHaveBeenCalledTimes(2)
+    expect(useSiteSync.getState().result).toMatchObject({ ok: true })
+
+    upload.mockClear()
+    upload.mockResolvedValueOnce({ ok: false, error: 'invalid_report' } as never)
+    finishScan('scan-8')
+    await vi.runAllTimersAsync()
+    expect(upload).toHaveBeenCalledTimes(1)
+  })
+
+  it('sends an edit made while a send is still in flight right after it', async () => {
+    let release!: () => void
+    upload.mockImplementationOnce(() => new Promise((r) => { release = () => r({ ok: true, url: 'u', hashVerified: true }) }) as never)
+    finishScan('scan-9')
+    await vi.advanceTimersByTimeAsync(0)
+    useScanStore.setState({ caseInfo: { player: 'Bob (76561198012345678)', notes: 'late' } })
+    await vi.advanceTimersByTimeAsync(4_000) // the resync fires while the first send is pending
+    release()
+    await vi.runAllTimersAsync()
+    expect(upload).toHaveBeenCalledTimes(2)
+    expect(upload).toHaveBeenLastCalledWith('scan-9', 'Bob (76561198012345678)', 'late', '')
+  })
+
   it('re-sends notes and the checker once the checker pauses typing', async () => {
     finishScan('scan-6')
     await vi.runAllTimersAsync()
