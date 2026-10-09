@@ -65,3 +65,25 @@ describe('ScanSession', () => {
     expect(session.isScanning).toBe(false)
   })
 })
+
+describe('ScanSession cancellation hand-off', () => {
+  it('reports a cancelled run until it settles, and lets a caller wait for that', async () => {
+    const session = new ScanSession()
+    let resolveTask!: () => void
+    const gate = new Promise<void>((r) => { resolveTask = r })
+    const run = session.run(async () => { await gate })
+    expect(session.isCancelling).toBe(false)
+    session.cancel()
+    expect(session.isCancelling).toBe(true)
+    let idle = false
+    const waiting = session.idle().then(() => { idle = true })
+    await Promise.resolve()
+    expect(idle).toBe(false)
+    resolveTask()
+    await run
+    await waiting
+    expect(idle).toBe(true)
+    expect(session.isScanning).toBe(false)
+    expect(session.isCancelling).toBe(false)
+  })
+})

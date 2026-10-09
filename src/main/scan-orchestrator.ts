@@ -140,7 +140,12 @@ async function runScannerGroup(
 }
 
 export async function runScan(opts: RunScanOptions): Promise<ScanResult[]> {
-  const { factory, requestedIds, supportedIds, emit, signal, timeoutMs } = opts
+  const { factory, requestedIds, supportedIds, signal, timeoutMs } = opts
+  // After a cancel the scanners keep unwinding, but nothing they report may
+  // reach the window: a new scan may already be on screen.
+  const emit = (channel: string, payload: unknown): void => {
+    if (!signal.aborted) opts.emit(channel, payload)
+  }
 
   const allScanners = requestedIds
     .filter(id => supportedIds.has(id))

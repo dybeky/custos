@@ -26,7 +26,7 @@ export function setupLiveIpcHandlers(mainWindow: BrowserWindow): void {
 
   // ── live:get-status ──────────────────────────────────────────────────────
   ipcMain.handle(IPC_CHANNELS.LIVE_GET_STATUS, (_e, gameId?: GameId): LiveScanStatus => {
-    if (gameId !== undefined && !(gameId in GAMES)) {
+    if (gameId !== undefined && (typeof gameId !== 'string' || !Object.hasOwn(GAMES, gameId))) {
       throw new Error(`Invalid game ID: ${String(gameId)}`)
     }
     const names = gameId ? GAMES[gameId].processNames : undefined
@@ -48,7 +48,7 @@ export function setupLiveIpcHandlers(mainWindow: BrowserWindow): void {
 
   // ── live:scan:start ──────────────────────────────────────────────────────
   ipcMain.handle(IPC_CHANNELS.LIVE_SCAN_START, async (_e, gameId?: GameId): Promise<LiveFinding[]> => {
-    if (gameId !== undefined && !(gameId in GAMES)) {
+    if (gameId !== undefined && (typeof gameId !== 'string' || !Object.hasOwn(GAMES, gameId))) {
       throw new Error(`Invalid game ID: ${String(gameId)}`)
     }
     if (isLiveScanning) {
