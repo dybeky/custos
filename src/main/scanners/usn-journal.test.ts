@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { UsnAggregator, dateOrderFromPattern, parseUsnRecord, parseUsnTimestamp, splitCsv, usnColumns } from './usn-journal'
+import { UsnAggregator, dateOrderFromPattern, lineReader, parseUsnRecord, parseUsnTimestamp, splitCsv, usnColumns } from './usn-journal'
 
 const HEADER = 'Usn,File name,File name length,Reason,Time stamp,File attributes,File ID,Parent file ID,Source info,Security ID,Major version,Minor version,Record length'
 const row = (name: string, reason: string, time: string, id: string) =>
@@ -60,5 +60,32 @@ describe('USN journal parsing', () => {
 
   it('ignores malformed lines', () => {
     expect(parseUsnRecord('not,a,record', usnColumns(HEADER), 'MDY')).toBeNull()
+  })
+})
+
+describe('lineReader', () => {
+  it('decodes whole lines even when a chunk cuts a character or a CRLF in half', async () => {
+    const { outputDecoder } = await import('../utils/async-exec')
+    const decode = await outputDecoder()
+    const bytes = Buffer.from('File name,Reason\r\nчиты.exe,0x100\r\nlast', 'utf8')
+    const got: string[] = []
+    const r = lineReader(decode, (l) => got.push(l))
+    // Split inside "ч" (2 bytes in UTF-8) and between \r and \n.
+    const cut1 = bytes.indexOf(Buffer.from('ч')) + 1
+    const cut2 = bytes.indexOf(0x0a, cut1)
+    r.push(bytes.subarray(0, cut1))
+    r.push(bytes.subarray(cut1, cut2))
+    r.push(bytes.subarray(cut2))
+    r.end()
+    expect(got).toEqual(['File name,Reason', 'читы.exe,0x100', 'last'])
+  })
+
+  it('falls back to the console code page for bytes that are not UTF-8', () => {
+    const cp866 = Buffer.from([0xe7, 0xa8, 0xe2, 0xeb]) // "читы" in CP866
+    const got: string[] = []
+    const r = lineReader((b) => new TextDecoder('ibm866').decode(b), (l) => got.push(l))
+    r.push(cp866)
+    r.end()
+    expect(got).toEqual(['читы'])
   })
 })
