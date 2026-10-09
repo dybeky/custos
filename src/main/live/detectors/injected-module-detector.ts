@@ -44,6 +44,17 @@ const CHEAT_KEYWORDS: string[] = [
   'trainer',
 ]
 
+/**
+ * Short keywords must stand alone ("esp.dll", "my_esp64.dll") — as a bare
+ * substring "esp" sits inside ordinary names ("despatch", "respawn.dll").
+ */
+const WHOLE_WORD = new Set(['esp'])
+
+function hasCheatKeyword(lowerName: string, kw: string): boolean {
+  if (!WHOLE_WORD.has(kw)) return lowerName.includes(kw)
+  return new RegExp(`(?<![a-z])${kw}(?![a-z])`).test(lowerName)
+}
+
 export interface ModuleClassification {
   suspicious: boolean
   reason: string
@@ -86,7 +97,7 @@ export function classifyModule(
 
   // Cheat keyword in module name — high confidence
   for (const kw of CHEAT_KEYWORDS) {
-    if (lowerName.includes(kw)) {
+    if (hasCheatKeyword(lowerName, kw)) {
       return {
         suspicious: true,
         reason: `Module name contains cheat keyword "${kw}": ${moduleName}`,
@@ -164,7 +175,7 @@ export const injectedModuleDetector = {
       if (classification.suspicious) {
         // Distinguish high-confidence (denylist/keyword/no-path) from heuristic
         const isDenylist = denylistSet.has(name.toLowerCase())
-        const isKeyword = CHEAT_KEYWORDS.some(kw => name.toLowerCase().includes(kw))
+        const isKeyword = CHEAT_KEYWORDS.some(kw => hasCheatKeyword(name.toLowerCase(), kw))
         const isNoPath = !path || path.toLowerCase() === name.toLowerCase()
         const confidence: LiveFinding['confidence'] =
           isDenylist || isKeyword || isNoPath ? 'high' : 'suspicious'

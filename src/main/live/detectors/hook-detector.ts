@@ -1,4 +1,4 @@
-import { listModules, readBuffer } from '../native/memory'
+import { close, listModules, openGameProcess, readBuffer } from '../native/memory'
 import { resolveExportAddresses, type ResolvedExport } from '../native/winapi'
 import { formatPtr } from '../native/ptr'
 import type { LiveContext, LiveFinding } from '../../../shared/types'
@@ -26,6 +26,18 @@ export function isHookedPrologue(bytes: Buffer): boolean {
  */
 export function isHookCheckSupported(appArch: string): boolean {
   return appArch === 'x64'
+}
+
+/**
+ * A hook planted in the game: its prologue looks like a trampoline AND differs
+ * from the same function in Custos's own process. System DLLs are mapped at
+ * the same address in every process, so identical bytes mean the code is
+ * stock (a forwarder stub) or patched system-wide (antivirus, overlay) — not
+ * something done to the game. Without our own bytes, fall back to the pattern.
+ */
+export function isGameHook(target: Buffer, own: Buffer | null): boolean {
+  if (!isHookedPrologue(target)) return false
+  return !own || !own.equals(target)
 }
 
 /** A module mapped in the target process, as reported by listModules(). */
@@ -110,23 +122,30 @@ export const hookDetector = {
     }
 
     // Read the first bytes at each validated hook-prone export's entry point in
-    // the target process and flag trampoline prologues.
-    for (const exp of exportsValidInTarget(resolved, targetModules)) {
-      // Safe to narrow the bigint to Number for memoryjs: user-mode x64 export
-      // addresses are < 2^48, well within Number.MAX_SAFE_INTEGER (2^53);
-      // formatPtr keeps the bigint for display.
-      const bytes = readBuffer(ctx.handle, Number(exp.address), 8)
-      if (bytes && isHookedPrologue(bytes)) {
-        findings.push({
-          detectorId: 'hook',
-          detectorName: 'IAT / Inline Hook Check',
-          title: 'Possible inline hook',
-          detail: `Trampoline-like prologue at ${exp.module}!${exp.fn} (${formatPtr(exp.address)}).`,
-          confidence: 'suspicious',
-          i18nKey: 'inlineHook',
-          params: { module: exp.module, fn: exp.fn, address: formatPtr(exp.address) }
-        })
+    // the target process and flag trampoline prologues — compared with our own
+    // copy, to tell a hook in the game from stock code or a system-wide patch.
+    const self = openGameProcess(process.pid)
+    try {
+      for (const exp of exportsValidInTarget(resolved, targetModules)) {
+        // Safe to narrow the bigint to Number: user-mode x64 export addresses
+        // are < 2^48, well within Number.MAX_SAFE_INTEGER (2^53); formatPtr
+        // keeps the bigint for display.
+        const bytes = readBuffer(ctx.handle, Number(exp.address), 8)
+        const own = self ? readBuffer(self.handle, Number(exp.address), 8) : null
+        if (bytes && isGameHook(bytes, own)) {
+          findings.push({
+            detectorId: 'hook',
+            detectorName: 'IAT / Inline Hook Check',
+            title: 'Possible inline hook',
+            detail: `Trampoline-like prologue at ${exp.module}!${exp.fn} (${formatPtr(exp.address)}).`,
+            confidence: 'suspicious',
+            i18nKey: 'inlineHook',
+            params: { module: exp.module, fn: exp.fn, address: formatPtr(exp.address) }
+          })
+        }
       }
+    } finally {
+      if (self) close(self.handle)
     }
 
     return findings

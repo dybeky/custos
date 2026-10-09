@@ -29,6 +29,9 @@ export const aobDetector = {
     const findings: LiveFinding[] = []
     for (const sig of ctx.signatures.aob) {
       if (!isScannablePattern(sig.pattern)) continue
+      // Each scan reads memory synchronously (up to the scan budget); let the
+      // main process handle IPC and window events between signatures.
+      await new Promise<void>((resolve) => setImmediate(resolve))
       const result = scanPattern(ctx.handle, sig.module ?? '', sig.pattern)
       // memoryjs returns address 0 when not found.
       if (result && typeof result === 'number' && result !== 0) {

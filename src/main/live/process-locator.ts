@@ -1,7 +1,7 @@
 /**
  * Locates a target game process in the running process list.
  *
- * Uses the memoryjs wrapper — returns null when native is unavailable or the
+ * Uses the native memory layer — returns null when native is unavailable or the
  * game is not currently running.
  */
 
