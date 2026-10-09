@@ -26,7 +26,7 @@ export const monoDetector = {
   async run(ctx: LiveContext): Promise<LiveFinding[]> {
     const findings: LiveFinding[] = []
 
-    if (hasDebuggerAgentFlag(getProcessCommandLine(ctx.pid))) {
+    if (hasDebuggerAgentFlag(await getProcessCommandLine(ctx.pid))) {
       findings.push({
         detectorId: 'mono',
         detectorName: 'Mono Debugger-Agent Check',

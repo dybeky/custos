@@ -185,6 +185,21 @@ export async function decodeOutput(bytes: Buffer, decoder?: TextDecoder): Promis
   }
 }
 
+/**
+ * Synchronous decodeOutput for streamed output (e.g. one line at a time):
+ * resolves the OEM code page once up front.
+ */
+export async function outputDecoder(): Promise<(bytes: Buffer) => string> {
+  const fallback = await oem()
+  return (bytes) => {
+    try {
+      return utf8Strict.decode(bytes)
+    } catch {
+      return fallback.decode(bytes)
+    }
+  }
+}
+
 export async function execFileAsync(
   file: string,
   args: string[],

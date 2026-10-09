@@ -1,10 +1,9 @@
 import { spawn } from 'child_process'
-import { createInterface } from 'readline'
 import { BaseScanner, ScannerEventEmitter } from './base-scanner'
 import { ScanResult } from '../../shared/types'
-import { execFileAsync } from '../utils/async-exec'
+import { execFileAsync, outputDecoder } from '../utils/async-exec'
 import { formatTimestamp } from '../utils/format'
-import { UsnAggregator, dateOrderFromPattern, parseUsnRecord, splitCsv, usnColumns } from './usn-journal'
+import { UsnAggregator, dateOrderFromPattern, lineReader, parseUsnRecord, splitCsv, usnColumns } from './usn-journal'
 import { parseRegValues } from './anti-forensics'
 
 /** Stop reading after this long and report what was found — the journal can be huge. */
@@ -28,6 +27,9 @@ export class UsnJournalScanner extends BaseScanner {
     const { stdout: intl } = await execFileAsync('reg', ['query', 'HKCU\\Control Panel\\International', '/v', 'sShortDate'], { timeoutMs: 5000 })
     const order = dateOrderFromPattern(parseRegValues(intl).get('sshortdate'))
     const agg = new UsnAggregator((name) => this.keywordMatcher.containsKeyword(name))
+    // fsutil writes in the console code page when piped (CP866 on Russian
+    // Windows): read bytes and decode per line, or Cyrillic names are garbage.
+    const decode = await outputDecoder()
 
     const outcome = await new Promise<{ records: number; error: string | null; truncated: boolean }>((resolve) => {
       let records = 0
@@ -41,9 +43,8 @@ export class UsnJournalScanner extends BaseScanner {
       const deadline = setTimeout(() => stop('deadline'), READ_BUDGET_MS)
       const cancelPoll = setInterval(() => { if (this.cancelled) stop('cancel') }, 250)
 
-      const rl = createInterface({ input: proc.stdout })
       let cols: ReturnType<typeof usnColumns> | null = null
-      rl.on('line', (line) => {
+      const lines = lineReader(decode, (line) => {
         if (firstLines.length < 2000) firstLines += line + '\n'
         if (!cols) {
           // The first CSV-shaped line is the (possibly localized) header;
@@ -56,20 +57,25 @@ export class UsnJournalScanner extends BaseScanner {
         records++
         agg.add(r)
       })
-      proc.stderr.on('data', (d) => { if (firstLines.length < 2000) firstLines += String(d) })
+      proc.stdout.on('data', (chunk: Buffer) => lines.push(chunk))
+      proc.stderr.on('data', (d: Buffer) => { if (firstLines.length < 2000) firstLines += decode(d) })
+      let finished = false
       const done = () => {
+        if (finished) return
+        finished = true
+        lines.end()
         clearTimeout(deadline)
         clearInterval(cancelPoll)
         resolve({ records, error: records === 0 ? firstLines.trim().split(/\r?\n/)[0] ?? 'no output' : null, truncated })
       }
       proc.on('error', (e) => { firstLines = e.message; done() })
-      rl.on('close', done)
+      proc.stdout.on('close', done)
     })
 
     if (this.cancelled) return this.createErrorResult('Scan cancelled', startTime)
     if (outcome.records === 0) {
       return this.createErrorResult(
-        /administrat|privilege|denied/i.test(outcome.error ?? '')
+        /administrat|privilege|denied|администратор|привилеги|отказано/i.test(outcome.error ?? '')
           ? 'Requires administrator rights'
           : `Change journal unavailable${outcome.error ? `: ${outcome.error}` : ''}`,
         startTime

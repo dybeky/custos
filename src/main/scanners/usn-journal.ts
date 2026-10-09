@@ -140,3 +140,30 @@ export class UsnAggregator {
       })
   }
 }
+
+/**
+ * Splits a byte stream into lines (on \n, dropping a trailing \r) and decodes
+ * each whole line — a multi-byte character is never cut at a chunk boundary.
+ */
+export function lineReader(decode: (bytes: Buffer) => string, onLine: (line: string) => void): {
+  push(chunk: Buffer): void
+  end(): void
+} {
+  let pending: Buffer = Buffer.alloc(0)
+  const emit = (raw: Buffer) => onLine(decode(raw).replace(/\r$/, ''))
+  return {
+    push(chunk) {
+      let buf = pending.length ? Buffer.concat([pending, chunk]) : chunk
+      let nl: number
+      while ((nl = buf.indexOf(0x0a)) !== -1) {
+        emit(buf.subarray(0, nl))
+        buf = buf.subarray(nl + 1)
+      }
+      pending = Buffer.from(buf)
+    },
+    end() {
+      if (pending.length) emit(pending)
+      pending = Buffer.alloc(0)
+    }
+  }
+}
