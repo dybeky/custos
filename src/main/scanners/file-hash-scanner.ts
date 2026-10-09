@@ -2,7 +2,7 @@ import { createHash } from 'crypto'
 import { createReadStream, existsSync } from 'fs'
 import type { Dirent } from 'fs'
 import { readdir, realpath, stat } from 'fs/promises'
-import { basename, join } from 'path'
+import { basename, dirname, join } from 'path'
 import { homedir, tmpdir } from 'os'
 import { BaseScanner, ScannerEventEmitter } from './base-scanner'
 import { ScanResult } from '../../shared/types'
@@ -10,6 +10,7 @@ import { KeywordMatcher } from '../services/keyword-matcher'
 import { ScanSettings, configService } from '../services/config-service'
 import { isWithin } from '../utils/path-safety'
 import { formatFileHashFinding } from '../intel/finding-tags'
+import { LOCK_DIR_NAME, isSessionDirName } from '../utils/session-names'
 
 /** Maximum file size to hash (100 MB). Files larger than this are skipped. */
 const MAX_FILE_SIZE_BYTES = 100 * 1024 * 1024
@@ -29,6 +30,12 @@ export async function hashFile(filePath: string): Promise<string> {
     stream.on('end', () => resolve(hash.digest('hex')))
     stream.on('error', (err) => reject(err))
   })
+}
+
+/** Custos's own folders in %TEMP% (session data, instance lock, unpacked exe). */
+function isOwnTempDir(name: string, fullPath: string): boolean {
+  if (isSessionDirName(name) || name === LOCK_DIR_NAME) return true
+  return fullPath.toLowerCase() === dirname(process.execPath).toLowerCase()
 }
 
 export class FileHashScanner extends BaseScanner {
@@ -71,13 +78,17 @@ export class FileHashScanner extends BaseScanner {
       }
 
       try {
+        const name = basename(filePath)
+        const isKeywordMatch = this.keywordMatcher.containsKeyword(name)
+        // Hashing is only worth the disk reads when there are hashes to compare
+        // against; a name match is hashed so the finding carries its SHA-256.
+        if (!isKeywordMatch && this.knownHashSet.size === 0) continue
+
         const stats = await stat(filePath)
         if (stats.size > MAX_FILE_SIZE_BYTES) continue
 
         const hash = await hashFile(filePath)
-        const name = basename(filePath)
         const isKnownHash = this.knownHashSet.has(hash)
-        const isKeywordMatch = this.keywordMatcher.containsKeyword(name)
 
         if (isKnownHash || isKeywordMatch) {
           findings.push(formatFileHashFinding(filePath, hash, isKnownHash))
@@ -132,6 +143,8 @@ export class FileHashScanner extends BaseScanner {
 
       if (entry.isDirectory()) {
         if (this.excludedDirs.has(entry.name.toLowerCase())) continue
+        // Custos's own unpacked app and session folders live in %TEMP%.
+        if (isOwnTempDir(entry.name, fullPath)) continue
         // Defend against Windows junctions / reparse points (not flagged as
         // symlinks): skip directories whose real path escapes the target root
         // or has already been walked (junction loop).
