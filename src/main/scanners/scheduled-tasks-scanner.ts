@@ -9,19 +9,6 @@ interface ScheduledTask {
   status: string
 }
 
-/** Prefixes for system tasks that should be filtered out to reduce noise */
-const SYSTEM_TASK_PREFIXES = [
-  '\\microsoft\\',
-  '\\windows\\',
-  '\\apple\\',
-  '\\google\\update',
-  '\\mozilla\\',
-  '\\nvidia\\',
-  '\\intel\\',
-  '\\amd\\',
-  '\\adobe\\',
-]
-
 export class ScheduledTasksScanner extends BaseScanner {
   readonly name = 'Scheduled Tasks Scanner'
   readonly description = 'Scanning Windows Task Scheduler for suspicious persistence entries'
@@ -81,9 +68,9 @@ export class ScheduledTasksScanner extends BaseScanner {
       for (const task of tasks) {
         if (this.cancelled) break
 
-        // Skip known system tasks
-        if (this.isSystemTask(task.taskName)) continue
-
+        // Every folder is checked, \Microsoft\Windows\ included: only keyword
+        // matches are reported, so system tasks add no noise — and that folder
+        // is exactly where persistence is hidden to look legitimate.
         // Dedup by task name
         const key = task.taskName.toLowerCase()
         if (seenTasks.has(key)) continue
@@ -173,10 +160,5 @@ export class ScheduledTasksScanner extends BaseScanner {
 
     fields.push(current.trim())
     return fields
-  }
-
-  private isSystemTask(taskName: string): boolean {
-    const nameLower = taskName.toLowerCase()
-    return SYSTEM_TASK_PREFIXES.some(prefix => nameLower.includes(prefix))
   }
 }

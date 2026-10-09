@@ -11,6 +11,25 @@ const BATCH_SIZE = 15
 // Overall scan timeout (30 seconds max)
 const SCAN_TIMEOUT_MS = 30000
 
+/** stdin for the shortcut resolver: each path as base64 of UTF-16LE, one per line. */
+export function encodeLnkPaths(paths: string[]): string {
+  return paths.map((p) => Buffer.from(p, 'utf16le').toString('base64')).join('\n') + '\n'
+}
+
+/** The resolver's `{"<index>": "<target>"}` JSON as [index, target] pairs. */
+export function parseLnkTargets(output: string): Array<[number, string]> {
+  const trimmed = output.trim()
+  if (!trimmed || trimmed === '{}') return []
+  try {
+    const parsed = JSON.parse(trimmed) as Record<string, unknown>
+    return Object.entries(parsed)
+      .filter((e): e is [string, string] => /^\d+$/.test(e[0]) && typeof e[1] === 'string' && e[1] !== '')
+      .map(([i, t]) => [Number(i), t])
+  } catch {
+    return []
+  }
+}
+
 export class RecentFilesScanner extends BaseScanner {
   readonly name = 'Recent Files Scanner'
   readonly description = 'Scanning recently accessed files'
@@ -25,20 +44,26 @@ export class RecentFilesScanner extends BaseScanner {
 
     try {
       // Static script: no attacker-influenced data is interpolated. The .lnk paths
-      // arrive on stdin (one per line) so a crafted shortcut name cannot alter the
-      // script body.
+      // arrive on stdin, one per line, as base64 of UTF-16 — so a crafted
+      // shortcut name cannot alter the script body, and a non-ASCII user folder
+      // (C:\\Users\\Иван) survives PowerShell's console-code-page stdin. Targets
+      // come back keyed by line index, written as UTF-8.
       const psScript = `
 $ErrorActionPreference = 'SilentlyContinue'
+[Console]::OutputEncoding = [System.Text.Encoding]::UTF8
 $shell = New-Object -ComObject WScript.Shell
 $results = @{}
-foreach ($p in $input) {
-  $p = $p.Trim()
-  if ($p) {
+$i = 0
+foreach ($line in $input) {
+  $line = "$line".Trim()
+  if ($line) {
     try {
+      $p = [System.Text.Encoding]::Unicode.GetString([Convert]::FromBase64String($line))
       $sc = $shell.CreateShortcut($p)
-      if ($sc.TargetPath) { $results[$p] = $sc.TargetPath }
+      if ($sc.TargetPath) { $results["$i"] = $sc.TargetPath }
     } catch {}
   }
+  $i++
 }
 $results | ConvertTo-Json -Compress
 `
@@ -46,22 +71,12 @@ $results | ConvertTo-Json -Compress
       const { stdout: output } = await execFileAsync(
         'powershell',
         ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-EncodedCommand', encoded],
-        { timeoutMs: 8000, input: lnkPaths.join('\n') }
+        { timeoutMs: 8000, input: encodeLnkPaths(lnkPaths) }
       )
 
-      // Parse JSON output
-      const trimmed = output.trim()
-      if (trimmed && trimmed !== '{}') {
-        try {
-          const parsed = JSON.parse(trimmed)
-          for (const [lnkPath, targetPath] of Object.entries(parsed)) {
-            if (typeof targetPath === 'string' && targetPath) {
-              results.set(lnkPath, targetPath)
-            }
-          }
-        } catch {
-          // JSON parsing failed, try line-by-line fallback
-        }
+      for (const [i, target] of parseLnkTargets(output)) {
+        const lnk = lnkPaths[i]
+        if (lnk) results.set(lnk, target)
       }
     } catch {
       // Batch resolution failed

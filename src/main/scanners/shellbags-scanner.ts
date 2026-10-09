@@ -2,6 +2,46 @@ import { ScannerEventEmitter } from './base-scanner'
 import { ScanResult } from '../../shared/types'
 import { RegistryQueryScanner } from './registry-query-scanner'
 
+/**
+ * Readable names inside a shell item list (a BagMRU REG_BINARY value): Explorer
+ * stores each folder's long name as UTF-16LE and its short name as 8-bit
+ * text. Returns runs of printable text, longest first, deduplicated.
+ */
+export function shellItemStrings(hex: string): string[] {
+  const clean = hex.replace(/[^0-9a-f]/gi, '')
+  if (clean.length < 8 || clean.length % 2) return []
+  const bytes = Buffer.from(clean, 'hex')
+  const out = new Set<string>()
+
+  // UTF-16LE runs (long names), at both byte alignments. Only Latin and
+  // Cyrillic text counts: binary fields decode as stray CJK-looking chars.
+  const nameChar = (c: number) =>
+    (c >= 0x20 && c <= 0x7e) || (c >= 0xa0 && c <= 0x24f) || (c >= 0x400 && c <= 0x4ff)
+  for (let start = 0; start < 2; start++) {
+    let run = ''
+    for (let i = start; i + 1 < bytes.length; i += 2) {
+      const c = bytes[i] | (bytes[i + 1] << 8)
+      if (nameChar(c)) run += String.fromCharCode(c)
+      else {
+        if (run.trim().length >= 3) out.add(run.trim())
+        run = ''
+      }
+    }
+    if (run.trim().length >= 3) out.add(run.trim())
+  }
+  // 8-bit ASCII runs (short 8.3 names).
+  let run = ''
+  for (const b of bytes) {
+    if (b >= 0x20 && b < 0x7f) run += String.fromCharCode(b)
+    else {
+      if (run.length >= 4) out.add(run)
+      run = ''
+    }
+  }
+  if (run.length >= 4) out.add(run)
+  return [...out].filter((x) => /[a-z0-9]{3}/i.test(x)).sort((a, b) => b.length - a.length)
+}
+
 export class ShellbagsScanner extends RegistryQueryScanner {
   readonly name = 'Shellbags Scanner'
   readonly description = 'Scanning Shellbags for folder access history'
@@ -82,6 +122,18 @@ export class ShellbagsScanner extends RegistryQueryScanner {
       // Track current registry key
       if (trimmed.startsWith('HKEY_')) {
         currentKey = trimmed
+        continue
+      }
+
+      // BagMRU values are binary shell items: the folder names are inside.
+      const binary = /^(\S+)\s{4,}REG_BINARY\s{4,}([0-9a-f]+)$/i.exec(trimmed)
+      if (binary) {
+        for (const name of shellItemStrings(binary[2])) {
+          const key = `item:${name.toLowerCase()}`
+          if (seenPaths.has(key) || !this.keywordMatcher.containsKeyword(name)) continue
+          seenPaths.add(key)
+          results.push(`[Shellbags] ${name}`)
+        }
         continue
       }
 

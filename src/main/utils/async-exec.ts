@@ -33,7 +33,7 @@ export interface AsyncExecOptions {
   throwOnError?: boolean
 }
 
-/** Check if command starts with powershell (already outputs UTF-8 JSON or ASCII-only) */
+/** Check if command starts with powershell (no `chcp` prefix; its output is decoded instead) */
 function isPowerShellCommand(command: string): boolean {
   return command.trimStart().toLowerCase().startsWith('powershell')
 }
@@ -70,7 +70,7 @@ export async function asyncExec(
   await acquireSlot()
 
   // Force UTF-8 code page for cmd.exe commands to prevent mojibake on non-English Windows.
-  // PowerShell commands that use ConvertTo-Json already produce ASCII-safe JSON output.
+  // PowerShell output is decoded from the OEM code page when it is not UTF-8.
   const finalCommand = isPowerShellCommand(command)
     ? command
     : `chcp 65001 >nul && ${command}`
@@ -78,11 +78,13 @@ export async function asyncExec(
   return new Promise((resolve, reject) => {
     const proc = exec(finalCommand, {
       windowsHide: true,
-      encoding: 'utf8',
+      // Decoded below: PowerShell writes in the console's OEM code page, which
+      // is not UTF-8 on e.g. Russian Windows.
+      encoding: 'buffer',
       maxBuffer,
       timeout,
       killSignal: 'SIGKILL'
-    }, (error, stdout) => {
+    }, (error, stdoutBytes) => {
       releaseSlot()
       if (error) {
         const errorType = classifyError(error as Error & { code?: string | number; killed?: boolean; signal?: string })
@@ -96,7 +98,7 @@ export async function asyncExec(
           return
         }
       }
-      resolve(stdout || '')
+      decodeOutput(Buffer.isBuffer(stdoutBytes) ? stdoutBytes : Buffer.from(stdoutBytes ?? '')).then(resolve, () => resolve(''))
     })
 
     // Extra safety: force kill after timeout + 1s
@@ -129,16 +131,58 @@ function execFileWithInput(
 ): Promise<{ stdout: string; stderr: string }> {
   return new Promise((resolve) => {
     const proc = spawn(file, args, { windowsHide: true })
-    let stdout = ''
-    let stderr = ''
+    const out: Buffer[] = []
+    const err: Buffer[] = []
+    const finish = (): void => {
+      clearTimeout(timer)
+      void Promise.all([decodeOutput(Buffer.concat(out)), decodeOutput(Buffer.concat(err))])
+        .then(([stdout, stderr]) => resolve({ stdout, stderr }))
+    }
     const timer = setTimeout(() => { try { proc.kill('SIGKILL') } catch { /* ignore */ } }, timeoutMs)
-    proc.stdout.on('data', (d) => { stdout += d.toString() })
-    proc.stderr.on('data', (d) => { stderr += d.toString() })
-    proc.on('close', () => { clearTimeout(timer); resolve({ stdout, stderr }) })
-    proc.on('error', () => { clearTimeout(timer); resolve({ stdout, stderr }) })
+    proc.stdout.on('data', (d: Buffer) => { out.push(d) })
+    proc.stderr.on('data', (d: Buffer) => { err.push(d) })
+    proc.on('close', finish)
+    proc.on('error', finish)
     proc.stdin.on('error', () => { /* ignore EPIPE if process never started */ })
     try { proc.stdin.end(input) } catch { /* ignore */ }
   })
+}
+
+const utf8Strict = new TextDecoder('utf-8', { fatal: true })
+let oemDecoder: Promise<TextDecoder> | null = null
+
+/**
+ * Decoder for the console's OEM code page. Windows tools (reg.exe, tasklist,
+ * wevtutil) write in it when their output is piped — CP866 on Russian Windows —
+ * so a path like C:\Users\Иван\… is not UTF-8.
+ */
+function oem(): Promise<TextDecoder> {
+  oemDecoder ??= execFilePromise(
+    'reg', ['query', 'HKLM\\SYSTEM\\CurrentControlSet\\Control\\Nls\\CodePage', '/v', 'OEMCP'],
+    { windowsHide: true, timeout: 5000 }
+  ).then(({ stdout }) => oemDecoderFor(/OEMCP\s+REG_SZ\s+(\d+)/.exec(stdout)?.[1] ?? ''))
+    .catch(() => oemDecoderFor(''))
+  return oemDecoder
+}
+
+/** TextDecoder for an OEM code page number; latin1 when the page has no WHATWG decoder. */
+export function oemDecoderFor(codePage: string): TextDecoder {
+  const label = codePage === '866' ? 'ibm866' : codePage === '65001' ? 'utf-8' : 'latin1'
+  try {
+    return new TextDecoder(label)
+  } catch {
+    return new TextDecoder('latin1') // runtime without legacy encodings
+  }
+}
+
+/** UTF-8 when the bytes are valid UTF-8 (all ASCII output included), else the OEM code page. */
+export async function decodeOutput(bytes: Buffer, decoder?: TextDecoder): Promise<string> {
+  if (bytes.length === 0) return ''
+  try {
+    return utf8Strict.decode(bytes)
+  } catch {
+    return (decoder ?? (await oem())).decode(bytes)
+  }
 }
 
 export async function execFileAsync(
@@ -153,19 +197,21 @@ export async function execFileAsync(
     }
     const result = await execFilePromise(file, args, {
       windowsHide: true,
-      encoding: 'utf8',
+      encoding: 'buffer',
       maxBuffer: 1024 * 1024 * 64, // 64 MB
       timeout: opts?.timeoutMs ?? 15000,
       killSignal: 'SIGKILL'
     })
-    return { stdout: result.stdout ?? '', stderr: result.stderr ?? '' }
+    return { stdout: await decodeOutput(result.stdout), stderr: await decodeOutput(result.stderr) }
   } catch (error) {
     // execFile rejects when the process exits with a non-zero code.
     // For `reg query`, a non-zero exit means "key not found" — not a hard error.
     // Return whatever stdout/stderr the process produced so callers can still parse.
-    const execError = error as Error & { stdout?: string; stderr?: string; code?: number | string }
-    logger.debug('execFileAsync non-zero exit', { file, code: execError.code, stderr: execError.stderr?.substring(0, 200) })
-    return { stdout: execError.stdout ?? '', stderr: execError.stderr ?? '' }
+    const execError = error as Error & { stdout?: Buffer; stderr?: Buffer; code?: number | string }
+    const stdout = execError.stdout ? await decodeOutput(execError.stdout) : ''
+    const stderr = execError.stderr ? await decodeOutput(execError.stderr) : ''
+    logger.debug('execFileAsync non-zero exit', { file, code: execError.code, stderr: stderr.substring(0, 200) })
+    return { stdout, stderr }
   } finally {
     releaseSlot()
   }

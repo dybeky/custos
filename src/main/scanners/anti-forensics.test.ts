@@ -171,6 +171,7 @@ describe('system tampering', () => {
 
   it('detects reg.exe itself being blocked', () => {
     expect(assessRegBlocked(['ERROR: Registry editing has been disabled by your administrator.\r\n'])).toHaveLength(1)
+    expect(assessRegBlocked(['ОШИБКА: Редактирование реестра запрещено администратором системы.\r\n'])).toHaveLength(1)
     expect(assessRegBlocked(['ERROR: The system was unable to find the specified registry key or value.'])).toEqual([])
     expect(assessRegBlocked([])).toEqual([])
   })

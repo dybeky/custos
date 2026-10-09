@@ -274,7 +274,10 @@ export function assessDisabledServices(start: { eventLog: number | null; bam: nu
  * returns nothing, so say so explicitly.
  */
 export function assessRegBlocked(stderrs: string[]): string[] {
-  const blocked = stderrs.some((e) => /registry editing has been disabled by your administrator/i.test(e))
+  // English and Russian Windows wording of the same reg.exe refusal.
+  const blocked = stderrs.some((e) =>
+    /registry editing has been disabled by your administrator|редактирование реестра запрещено/i.test(e)
+  )
   return blocked
     ? [`${TAMPER_PREFIX} reg.exe is blocked by policy — registry-based checks (BAM, Amcache, ShellBags, Registry) cannot read anything`]
     : []

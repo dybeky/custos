@@ -6,6 +6,21 @@ import { logger } from '../services/logger'
 import { RegistryQueryScanner } from './registry-query-scanner'
 import { formatTimestamp } from '../utils/format'
 
+/**
+ * One finding per executable. CurrentControlSet is normally ControlSet001 (and
+ * DAM often repeats BAM), so the same entry is read several times; the first
+ * source read — the live control set — is kept.
+ */
+export function dedupeByPath(entries: string[]): string[] {
+  const seen = new Set<string>()
+  return entries.filter((e) => {
+    const key = e.replace(/^\[[^\]]*\]\s*/, '').replace(/\s*\|.*$/, '').toLowerCase()
+    if (seen.has(key)) return false
+    seen.add(key)
+    return true
+  })
+}
+
 export class BamScanner extends RegistryQueryScanner {
   readonly name = 'BAM/DAM Scanner'
   readonly description = 'Scanning Background Activity Moderator for execution history'
@@ -128,8 +143,10 @@ export class BamScanner extends RegistryQueryScanner {
     // Check if BAM is available on this Windows version (requires build 16299+)
     const bamAvailable = isBAMAvailable()
     if (!bamAvailable) {
-      return this.createSuccessResult(
-        ['[BAM/DAM] Not available on this Windows version (requires Windows 10 build 16299 or later)'],
+      // A source this Windows lacks is a coverage gap, not evidence: reported
+      // as a scanner that could not run, never as a finding.
+      return this.createErrorResult(
+        'BAM/DAM is not available on this Windows version (requires Windows 10 build 16299 or later)',
         startTime
       )
     }
@@ -212,7 +229,7 @@ export class BamScanner extends RegistryQueryScanner {
       }
     }
 
-    return this.createSuccessResult(results, startTime)
+    return this.createSuccessResult(dedupeByPath(results), startTime)
   }
 
   private async getUserSids(): Promise<string[]> {
