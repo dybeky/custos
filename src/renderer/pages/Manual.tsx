@@ -108,7 +108,7 @@ export function Manual() {
         { label: 'Downloads', labelKey: 'manual.downloads', hint: '%USERPROFILE%\\Downloads', target: '%USERPROFILE%\\Downloads' },
         { label: 'AppData', hint: '%APPDATA%', target: '%APPDATA%' },
         { label: 'LocalAppData', hint: '%LOCALAPPDATA%', target: '%LOCALAPPDATA%' },
-        { label: 'Prefetch', hint: 'C:\\Windows\\Prefetch', target: 'C:\\Windows\\Prefetch' },
+        { label: 'Prefetch', hint: '%SystemRoot%\\Prefetch', target: '%SystemRoot%\\Prefetch' },
         { label: 'OneDrive', hint: '%USERPROFILE%\\OneDrive', target: '%USERPROFILE%\\OneDrive' }
       ]
     },
