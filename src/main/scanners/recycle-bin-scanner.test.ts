@@ -3,10 +3,11 @@ import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from 'fs'
 import { tmpdir } from 'os'
 import { join } from 'path'
 
-// The scanner reads `<drive>\$Recycle.Bin`; on this test host the "drive" is a
-// temp folder whose name ends in a backslash.
+// The scanner reads `<drive>\$Recycle.Bin`; here the "drive" is a temp folder.
+// The bin path is built exactly as the scanner builds it, so this works on
+// Windows and on other hosts alike.
 const root = mkdtempSync(join(tmpdir(), 'custos-bin-'))
-const drive = join(root, 'C:')
+const drive = join(root, 'd')
 vi.mock('../utils/drive-utils', () => ({ getAvailableDrives: async () => [drive] }))
 
 import { RecycleBinScanner } from './recycle-bin-scanner'
