@@ -15,3 +15,37 @@ describe('scanner grouping', () => {
     for (const id of ALL) expect(getGroupForScanner(id)).toBeDefined()
   })
 })
+
+describe('runScan after a cancel', () => {
+  it('stops reporting results once the scan is aborted', async () => {
+    const { runScan } = await import('./scan-orchestrator')
+    const controller = new AbortController()
+    let release!: () => void
+    const gate = new Promise<void>((r) => { release = r })
+    const scanner = {
+      name: 'Prefetch Scanner',
+      scan: async () => {
+        await gate
+        return { scannerName: 'Prefetch Scanner', success: true, findings: ['x'], startTime: new Date(), endTime: new Date(), duration: 1, count: 1, hasFindings: true }
+      }
+    }
+    const factory = { getScanner: (id: string) => (id === 'prefetch' ? scanner : undefined) }
+    const channels: string[] = []
+    const done = runScan({
+      factory: factory as never,
+      requestedIds: ['prefetch'],
+      supportedIds: new Set(['prefetch']) as never,
+      emit: (channel) => channels.push(channel),
+      signal: controller.signal,
+      timeoutMs: 5000
+    })
+    await Promise.resolve()
+    const beforeCancel = channels.length
+    controller.abort()
+    release()
+    await done
+    // Only the "starting" progress from before the cancel; no late result.
+    expect(channels.length).toBe(beforeCancel)
+    expect(channels).not.toContain('scan:result')
+  })
+})

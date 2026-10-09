@@ -36,6 +36,16 @@ export class ScanSession {
     }
   }
 
+  /** True while a cancelled scan is still unwinding. */
+  get isCancelling(): boolean {
+    return this.inflight !== null && this.abortController?.signal.aborted === true
+  }
+
+  /** Resolves once the in-flight run (if any) has settled, however it ended. */
+  async idle(): Promise<void> {
+    await this.inflight?.catch(() => {})
+  }
+
   /** Request cancellation of the in-flight scan. No-op when nothing is running. */
   cancel(): void {
     this.abortController?.abort()

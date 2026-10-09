@@ -176,6 +176,9 @@ export function setupIpcHandlers(mainWindow: BrowserWindow): void {
     if (gameId !== undefined && gameId !== null && !Object.hasOwn(GAMES, gameId)) {
       throw new Error('Invalid gameId')
     }
+    // "Cancel" then "Start" again: let the cancelled scan finish unwinding
+    // (its scanners stop at their next check) instead of refusing the new one.
+    if (scanSession.isCancelling) await scanSession.idle()
     if (scanSession.isScanning) {
       logger.warn('Scan already in progress')
       throw new Error('Scan already in progress')
