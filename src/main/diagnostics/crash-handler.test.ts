@@ -16,13 +16,14 @@ const h = vi.hoisted(() => {
       getGPUInfo: vi.fn(async () => ({ gpuDevice: [{ vendorId: 0x10de, active: true }] }))
     },
     dialog: { showMessageBoxSync: vi.fn((..._args: any[]) => 0), showErrorBox: vi.fn() },
-    shell: { showItemInFolder: vi.fn() },
+    clipboard: { writeText: vi.fn() },
     fatal: { fn: null as null | ((e: Error) => void) },
     openExternal: vi.fn()
   }
 })
 
-vi.mock('electron', () => ({ app: h.app, dialog: h.dialog, shell: h.shell, BrowserWindow: { getAllWindows: () => [] } }))
+vi.mock('electron', () => ({ app: h.app, dialog: h.dialog, clipboard: h.clipboard, BrowserWindow: { getAllWindows: () => [] } }))
+vi.mock('fs', async (orig) => ({ ...(await orig<typeof import('fs')>()), readFileSync: () => 'log line 1\nlog line 2' }))
 vi.mock('../services/app-store', () => ({
   appStore: { get: (k: string) => h.store[k], set: (k: string, v: any) => { h.store[k] = v } }
 }))
@@ -56,7 +57,14 @@ describe('crash handler', () => {
     installCrashHandlers()
     h.fatal.fn!(new TypeError('x is undefined'))
     const opts = h.dialog.showMessageBoxSync.mock.calls[0][0] as any
-    expect(opts.buttons).toEqual(['Close', 'Show log file'])
+    expect(opts.buttons).toEqual(['Close', 'Copy log'])
+  })
+
+  it('copies the log (the session folder holding it is wiped on exit)', () => {
+    installCrashHandlers()
+    h.dialog.showMessageBoxSync.mockReturnValueOnce(1) // [Close, Copy log] → Copy log
+    h.fatal.fn!(new TypeError('x is undefined'))
+    expect(h.clipboard.writeText).toHaveBeenCalledWith('log line 1\nlog line 2')
   })
 
   it('falls back to a plain error box before the app is ready', () => {
