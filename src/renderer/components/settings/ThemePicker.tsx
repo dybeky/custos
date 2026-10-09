@@ -11,7 +11,7 @@ export function ThemePicker() {
   const { colorTheme, setColorTheme } = useSettingsStore()
 
   return (
-    <div className="grid grid-cols-2 lg:grid-cols-5 gap-3" role="radiogroup" aria-label={t('settings.theme.title')}>
+    <div className="grid grid-cols-2 xl:grid-cols-3 gap-3" role="radiogroup" aria-label={t('settings.theme.title')}>
       {COLOR_THEMES.map((id) => {
         const sw = THEME_SWATCHES[id]
         const active = colorTheme === id

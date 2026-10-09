@@ -234,7 +234,7 @@ export function Sidebar() {
                       to={item.path}
                       end={item.path === '/'}
                       aria-label={label}
-                      title={collapsed ? `${label}  ·  Ctrl+${index}` : undefined}
+                      title={`${label} (Ctrl+${index})`}
                       onClick={() => {
                         if (pathname !== item.path) playClick()
                       }}
@@ -282,13 +282,9 @@ export function Sidebar() {
                           {!collapsed && (
                             <>
                               <span className="relative flex-1 min-w-0 truncate text-[13px] font-medium">{label}</span>
-                              {badge !== null ? (
+                              {badge !== null && (
                                 <span className="relative shrink-0 min-w-5 h-5 px-1.5 rounded-full bg-alert/15 text-alert border border-alert/30 text-[10px] font-bold flex items-center justify-center">
                                   {badge > 99 ? '99+' : badge}
-                                </span>
-                              ) : (
-                                <span className="relative shrink-0 text-[10px] font-mono text-ink-dim/0 group-hover:text-ink-dim/60 transition-colors">
-                                  ^{index}
                                 </span>
                               )}
                             </>
