@@ -9,6 +9,7 @@ import { ScanResult } from '../../shared/types'
 import { logger } from '../services/logger'
 import { formatTimestamp } from '../utils/format'
 import { applyWal } from './sqlite-wal'
+import { redactSecrets, safeFreeText } from '../utils/redact'
 
 interface BrowserProfile {
   browser: string
@@ -345,7 +346,7 @@ export class BrowserHistoryScanner extends BaseScanner {
               let entry = `[${browserName}/${source}] `
               if (keyword) entry += `{${keyword}} `
               entry += url
-              if (title && title !== url) entry += ` | "${title}"`
+              if (title && title !== url) entry += ` | "${safeFreeText(title)}"`
 
               // Add timestamp if available
               // A missing or odd visit time only drops the time, never the entry.
@@ -357,7 +358,7 @@ export class BrowserHistoryScanner extends BaseScanner {
                 }
               }
 
-              results.push(entry)
+              results.push(redactSecrets(entry))
             }
           }
         }
@@ -481,7 +482,7 @@ export class BrowserHistoryScanner extends BaseScanner {
               let entry = `[Firefox/History] `
               if (keyword) entry += `{${keyword}} `
               entry += url
-              if (title && title !== url) entry += ` | "${title}"`
+              if (title && title !== url) entry += ` | "${safeFreeText(title)}"`
 
               if (visitDate) {
                 const date = this.convertFirefoxTimestamp(visitDate)
@@ -490,7 +491,7 @@ export class BrowserHistoryScanner extends BaseScanner {
                 }
               }
 
-              results.push(entry)
+              results.push(redactSecrets(entry))
             }
           }
         }
@@ -526,9 +527,9 @@ export class BrowserHistoryScanner extends BaseScanner {
               let entry = `[Firefox/Bookmarks] `
               if (keyword) entry += `{${keyword}} `
               entry += url
-              if (title) entry += ` | "${title}"`
+              if (title) entry += ` | "${safeFreeText(title)}"`
 
-              results.push(entry)
+              results.push(redactSecrets(entry))
             }
           }
         }
@@ -590,9 +591,9 @@ export class BrowserHistoryScanner extends BaseScanner {
 
               let entry = `[Firefox/FormHistory] `
               if (keyword) entry += `{${keyword}} `
-              entry += `[${fieldName}] "${value}"`
+              entry += `[${fieldName}] "${safeFreeText(value)}"`
 
-              results.push(entry)
+              results.push(redactSecrets(entry))
             }
           }
         }

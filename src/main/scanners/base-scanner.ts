@@ -1,3 +1,4 @@
+import { redactSecrets } from '../utils/redact'
 import type { Dirent } from 'fs'
 import { readdir, realpath } from 'fs/promises'
 import { join } from 'path'
@@ -163,15 +164,18 @@ export abstract class BaseScanner {
 
   protected createSuccessResult(findings: string[], startTime: Date): ScanResult {
     const endTime = new Date()
+    // Every finding ends up in an uploaded report: never let a password,
+    // e-mail or token copied off the PC (a window title, a command line) through.
+    const clean = findings.map(redactSecrets)
     return {
       scannerName: this.name,
       success: true,
-      findings,
+      findings: clean,
       startTime,
       endTime,
       duration: endTime.getTime() - startTime.getTime(),
-      count: findings.length,
-      hasFindings: findings.length > 0
+      count: clean.length,
+      hasFindings: clean.length > 0
     }
   }
 

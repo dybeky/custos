@@ -83,6 +83,28 @@ export function usnColumns(header: string): UsnColumns {
   return { name: idx('file name', 1), reason: idx('reason', 3), time: idx('time stamp', 4), fileId: idx('file id', 6) }
 }
 
+/**
+ * Column positions read off one data row, by the shape of the values. Needed
+ * because the layout changes between Windows builds — newer fsutil adds
+ * "Reason #" / "File attributes #" columns next to the text ones — and the
+ * header is localized, so neither names nor a fixed order can be trusted:
+ *  - reason: the first 0x-prefixed 32-bit hex field after the name;
+ *  - time: the first field that parses as a timestamp;
+ *  - file id: the first 64/128-bit hex field (16 or 32 digits).
+ * Null when the row does not look like a record.
+ */
+export function usnColumnsFromRecord(fields: string[], order: DateOrder): UsnColumns | null {
+  const find = (test: (f: string) => boolean) => {
+    for (let i = 2; i < fields.length; i++) if (test(fields[i])) return i
+    return -1
+  }
+  const reason = find((f) => /^0x[0-9a-f]{8}$/i.test(f))
+  const time = find((f) => parseUsnTimestamp(f, order) !== null)
+  const fileId = find((f) => /^(0x)?([0-9a-f]{16}|[0-9a-f]{32})$/i.test(f))
+  if (reason === -1 || time === -1 || fileId === -1 || !fields[1]) return null
+  return { name: 1, reason, time, fileId }
+}
+
 export interface UsnRecord { name: string; reason: number; at: number | null; fileId: string }
 
 export function parseUsnRecord(line: string, cols: UsnColumns, order: DateOrder): UsnRecord | null {
