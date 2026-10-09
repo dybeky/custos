@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { UsnAggregator, dateOrderFromPattern, lineReader, parseUsnRecord, parseUsnTimestamp, splitCsv, usnColumns } from './usn-journal'
+import { UsnAggregator, dateOrderFromPattern, lineReader, parseUsnRecord, parseUsnTimestamp, splitCsv, usnColumns, usnColumnsFromRecord } from './usn-journal'
 
 const HEADER = 'Usn,File name,File name length,Reason,Time stamp,File attributes,File ID,Parent file ID,Source info,Security ID,Major version,Minor version,Record length'
 const row = (name: string, reason: string, time: string, id: string) =>
@@ -87,5 +87,31 @@ describe('lineReader', () => {
     r.push(cp866)
     r.end()
     expect(got).toEqual(['читы'])
+  })
+})
+
+describe('usnColumnsFromRecord', () => {
+  // Real rows from German Windows 11: newer fsutil adds "Reason #" and
+  // "File attributes #" next to the text columns, so the fixed order is off.
+  const DE_HEADER = 'USN,Dateiname,Dateinamenlänge,Ursachen-ID,Ursache,Zeitstempel,Dateiattribut-ID,Dateiattribute,Datei-ID,Übergeordnete Datei-ID,Quellinfo-ID,Quellinfo,Sicherheits-ID,Hauptversion,Nebenversion,Datensatzlänge'
+  const de = (name: string, id: string) =>
+    `2415919104,"${name}",40,0x00000100,"Datei erstellen","09.10.2026 16:22:54",0x00000020,"Archiv",${id},0000000000000000000400000004a48a,0x00000000,"*NONE*",0,3,0,120`
+
+  it('finds reason, time and file id by their shape', () => {
+    expect(usnColumnsFromRecord(splitCsv(de('a.exe', '0000000000000000000400000004ad6a')), 'DMY'))
+      .toEqual({ name: 1, reason: 3, time: 5, fileId: 8 })
+    expect(usnColumnsFromRecord(splitCsv(row('a.exe', '0x00000100', '9/27/2026 12:00:00 PM', '00000000000000000005000000000001')), 'MDY'))
+      .toEqual({ name: 1, reason: 3, time: 4, fileId: 6 })
+    expect(usnColumnsFromRecord(['x', 'y'], 'MDY')).toBeNull()
+  })
+
+  it('keeps different files apart (attributes are not a file id)', () => {
+    const cols = usnColumnsFromRecord(splitCsv(de('x', '1'.padStart(32, '0'))), 'DMY')!
+    expect(usnColumns(DE_HEADER).fileId).not.toBe(cols.fileId)
+    const agg = new UsnAggregator((n) => n.includes('aimbot'))
+    agg.add(parseUsnRecord(de('aimbot.dll', '1'.padStart(32, '0')), cols, 'DMY')!)
+    agg.add(parseUsnRecord(de('index.json', '2'.padStart(32, '0')), cols, 'DMY')!)
+    const out = agg.findings('C:', () => 'T')
+    expect(out).toEqual(['[USN C:] aimbot.dll — created | T'])
   })
 })

@@ -14,7 +14,15 @@ describe('decodeOutput', () => {
     expect(await decodeOutput(cp866, oemDecoderFor('866'))).toBe('C:\\Users\\Иван')
   })
 
-  it('falls back to latin1 for code pages without a decoder', () => {
-    expect(oemDecoderFor('437').encoding).toBe('windows-1252')
+  it("reads a German console's CP850 output (umlauts)", async () => {
+    // "C:\Users\Jürgen\Größe" as fsutil writes it on German Windows.
+    const cp850 = Buffer.from([...Buffer.from('C:\\Users\\J'), 0x81, ...Buffer.from('rgen\\Gr'), 0x94, 0xe1, 0x65])
+    expect(await decodeOutput(cp850, oemDecoderFor('850'))).toBe('C:\\Users\\Jürgen\\Größe')
+    expect(oemDecoderFor('852').decode(Uint8Array.from([0x88, 0x9d]))).toBe('łŁ')
+    expect(oemDecoderFor('437').decode(Uint8Array.from([0x9c, 0xe1]))).toBe('£ß')
+  })
+
+  it('falls back to latin1 for unknown code pages', () => {
+    expect((oemDecoderFor('999') as TextDecoder).encoding).toBe('windows-1252')
   })
 })

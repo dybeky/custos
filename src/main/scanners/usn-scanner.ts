@@ -3,7 +3,7 @@ import { BaseScanner, ScannerEventEmitter } from './base-scanner'
 import { ScanResult } from '../../shared/types'
 import { execFileAsync, outputDecoder } from '../utils/async-exec'
 import { formatTimestamp } from '../utils/format'
-import { UsnAggregator, dateOrderFromPattern, lineReader, parseUsnRecord, splitCsv, usnColumns } from './usn-journal'
+import { UsnAggregator, dateOrderFromPattern, lineReader, parseUsnRecord, splitCsv, usnColumns, usnColumnsFromRecord } from './usn-journal'
 import { parseRegValues } from './anti-forensics'
 
 /** Stop reading after this long and report what was found — the journal can be huge. */
@@ -44,6 +44,7 @@ export class UsnJournalScanner extends BaseScanner {
       const cancelPoll = setInterval(() => { if (this.cancelled) stop('cancel') }, 250)
 
       let cols: ReturnType<typeof usnColumns> | null = null
+      let layoutChecked = false
       const lines = lineReader(decode, (line) => {
         if (firstLines.length < 2000) firstLines += line + '\n'
         if (!cols) {
@@ -51,6 +52,14 @@ export class UsnJournalScanner extends BaseScanner {
           // anything before it is a banner or an error message.
           if (splitCsv(line).length >= 5) cols = usnColumns(line)
           return
+        }
+        // The header is only a guess (its columns differ between Windows
+        // builds); the first record shows the real layout.
+        if (!layoutChecked) {
+          const detected = usnColumnsFromRecord(splitCsv(line), order)
+          if (!detected) return
+          cols = detected
+          layoutChecked = true
         }
         const r = parseUsnRecord(line, cols, order)
         if (!r) return

@@ -149,14 +149,41 @@ function execFileWithInput(
 }
 
 const utf8Strict = new TextDecoder('utf-8', { fatal: true })
-let oemDecoder: Promise<TextDecoder> | null = null
+
+/** Anything that turns bytes into text (a TextDecoder or a code page table). */
+export interface OutputDecoder {
+  decode(bytes: Uint8Array): string
+}
+
+let oemDecoder: Promise<OutputDecoder> | null = null
+
+/**
+ * Upper halves (0x80–0xFF) of the DOS code pages WHATWG TextDecoder lacks,
+ * taken from Windows' own tables: 437 (US), 850 (Western Europe — German,
+ * French, Spanish…) and 852 (Central Europe — Polish, Czech…).
+ */
+const OEM_TABLES: Record<string, string> = {
+  '437': 'ÇüéâäàåçêëèïîìÄÅÉæÆôöòûùÿÖÜ¢£¥₧ƒáíóúñÑªº¿⌐¬½¼¡«»░▒▓│┤╡╢╖╕╣║╗╝╜╛┐└┴┬├─┼╞╟╚╔╩╦╠═╬╧╨╤╥╙╘╒╓╫╪┘┌█▄▌▐▀αßΓπΣσµτΦΘΩδ∞φε∩≡±≥≤⌠⌡÷≈°∙·√ⁿ²■\u00a0',
+  '850': 'ÇüéâäàåçêëèïîìÄÅÉæÆôöòûùÿÖÜø£Ø×ƒáíóúñÑªº¿®¬½¼¡«»░▒▓│┤ÁÂÀ©╣║╗╝¢¥┐└┴┬├─┼ãÃ╚╔╩╦╠═╬¤ðÐÊËÈıÍÎÏ┘┌█▄¦Ì▀ÓßÔÒõÕµþÞÚÛÙýÝ¯´\u00ad±‗¾¶§÷¸°¨·¹³²■\u00a0',
+  '852': 'ÇüéâäůćçłëŐőîŹÄĆÉĹĺôöĽľŚśÖÜŤťŁ×čáíóúĄąŽžĘę¬źČş«»░▒▓│┤ÁÂĚŞ╣║╗╝Żż┐└┴┬├─┼Ăă╚╔╩╦╠═╬¤đĐĎËďŇÍÎě┘┌█▄ŢŮ▀ÓßÔŃńňŠšŔÚŕŰýÝţ´\u00ad˝˛ˇ˘§÷¸°¨˙űŘř■\u00a0'
+}
+
+function tableDecoder(upper: string): OutputDecoder {
+  return {
+    decode(bytes) {
+      let out = ''
+      for (const b of bytes) out += b < 0x80 ? String.fromCharCode(b) : upper[b - 0x80]
+      return out
+    }
+  }
+}
 
 /**
  * Decoder for the console's OEM code page. Windows tools (reg.exe, tasklist,
- * wevtutil) write in it when their output is piped — CP866 on Russian Windows —
- * so a path like C:\Users\Иван\… is not UTF-8.
+ * wevtutil, fsutil) write in it when their output is piped — CP866 on Russian
+ * Windows, CP850 on German — so a path like C:\Users\Иван\… is not UTF-8.
  */
-function oem(): Promise<TextDecoder> {
+function oem(): Promise<OutputDecoder> {
   oemDecoder ??= execFilePromise(
     'reg', ['query', 'HKLM\\SYSTEM\\CurrentControlSet\\Control\\Nls\\CodePage', '/v', 'OEMCP'],
     { windowsHide: true, timeout: 5000 }
@@ -165,8 +192,9 @@ function oem(): Promise<TextDecoder> {
   return oemDecoder
 }
 
-/** TextDecoder for an OEM code page number; latin1 when the page has no WHATWG decoder. */
-export function oemDecoderFor(codePage: string): TextDecoder {
+/** Decoder for an OEM code page number; latin1 when the page is not known. */
+export function oemDecoderFor(codePage: string): OutputDecoder {
+  if (OEM_TABLES[codePage]) return tableDecoder(OEM_TABLES[codePage])
   const label = codePage === '866' ? 'ibm866' : codePage === '65001' ? 'utf-8' : 'latin1'
   try {
     return new TextDecoder(label)
@@ -176,7 +204,7 @@ export function oemDecoderFor(codePage: string): TextDecoder {
 }
 
 /** UTF-8 when the bytes are valid UTF-8 (all ASCII output included), else the OEM code page. */
-export async function decodeOutput(bytes: Buffer, decoder?: TextDecoder): Promise<string> {
+export async function decodeOutput(bytes: Buffer, decoder?: OutputDecoder): Promise<string> {
   if (bytes.length === 0) return ''
   try {
     return utf8Strict.decode(bytes)
