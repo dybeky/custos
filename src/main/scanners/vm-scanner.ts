@@ -116,11 +116,33 @@ const WMI_VM_INDICATORS: Record<string, string[]> = {
   Xen: ['Xen', 'HVM domU']
 }
 
-interface VMFinding {
+export interface VMFinding {
   type: string
   vmName: string
   detail: string
   critical: boolean // true = running inside VM, false = VM software on host
+}
+
+/**
+ * "Running inside a VM" needs two independent KINDS of evidence for the same
+ * VM, at least one of them not a network adapter. A real PC that merely HOSTS
+ * virtual machines — WSL2 / Docker / Windows Sandbox (Hyper-V "vEthernet"
+ * adapters, MAC 00:15:5D), VMware Workstation (VMnet1/VMnet8, 00:50:56),
+ * VirtualBox host-only (0A:00:27) — has several such adapters and nothing
+ * else, and must not be reported as a VM.
+ */
+export function formatVmEvidence(findings: VMFinding[]): string[] {
+  const byVm = new Map<string, VMFinding[]>()
+  for (const f of findings) byVm.set(f.vmName, [...(byVm.get(f.vmName) ?? []), f])
+  const out: string[] = []
+  for (const [vmName, list] of byVm) {
+    const kinds = new Set(list.map((f) => f.type))
+    const beyondNetwork = [...kinds].some((k) => k !== 'Network')
+    if (kinds.size < 2 || !beyondNetwork) continue
+    out.push(`[VM DETECTED] ${vmName} - ${list.length} indicators found:`)
+    for (const f of list) out.push(`  • ${f.type}: ${f.detail}`)
+  }
+  return out
 }
 
 export class VMScanner extends BaseScanner {
@@ -176,26 +198,7 @@ export class VMScanner extends BaseScanner {
       return this.createSuccessResult([], startTime)
     }
 
-    // Group by VM type and count evidence
-    const vmEvidence = new Map<string, { count: number; details: string[] }>()
-    for (const finding of criticalFindings) {
-      const existing = vmEvidence.get(finding.vmName) || { count: 0, details: [] }
-      existing.count++
-      existing.details.push(`${finding.type}: ${finding.detail}`)
-      vmEvidence.set(finding.vmName, existing)
-    }
-
-    // Only report VMs with strong evidence (2+ indicators)
-    const formattedFindings: string[] = []
-    for (const [vmName, evidence] of vmEvidence) {
-      if (evidence.count >= 2) {
-        formattedFindings.push(`[VM DETECTED] ${vmName} - ${evidence.count} indicators found:`)
-        for (const detail of evidence.details) {
-          formattedFindings.push(`  • ${detail}`)
-        }
-      }
-    }
-
+    const formattedFindings = formatVmEvidence(criticalFindings)
     return this.createSuccessResult(formattedFindings, startTime)
   }
 
