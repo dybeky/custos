@@ -12,6 +12,7 @@ export function Scan() {
   const { t } = useTranslation()
   const {
     status,
+    error,
     progress,
     results,
     scanners,
@@ -91,11 +92,15 @@ export function Scan() {
                 ? t('scan.scanning')
                 : status === 'completed'
                 ? t('scan.scanComplete')
+                : status === 'error'
+                ? t('scan.scanFailed')
                 : t('scan.readyToScan')}
               <InfoTip title={t('scan.title')} text={t('help.scanPage')} />
             </h2>
             {status === 'scanning' && progress ? (
               <ScanPathLine scanner={progress.scannerName} path={progress.currentPath} />
+            ) : status === 'error' ? (
+              <p className="text-alert text-sm mb-6 break-words">{error ?? t('scan.scanFailed')}</p>
             ) : (
               <p className="text-ink-dim mb-6">
                 {status === 'completed'

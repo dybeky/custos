@@ -73,6 +73,7 @@
     "scanning": "Scanning...",
     "scanningSubtitle": "Please wait, checking your system...",
     "scanComplete": "Scan Complete",
+    "scanFailed": "Scan failed",
     "cancelScan": "CANCEL SCAN",
     "scanDescription": "Scan AppData, Registry, Processes, Prefetch, Steam and more",
     "scannersReady": "scanners ready",
@@ -233,6 +234,8 @@
     "highThreats": "high",
     "suspicious": "suspicious",
     "noThreatsFound": "No live threats detected",
+    "scanIncomplete": "Scan incomplete \u2014 see the notes below",
+    "scanFailed": "The live scan could not run",
     "noLiveThreats": "No live threats detected",
     "noLiveThreatsDesc": "The process memory appears clean"
   },

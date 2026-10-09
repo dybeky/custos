@@ -2,6 +2,7 @@ import { create } from 'zustand'
 import { ScanResult, ScanProgress, ScannerInfo, ScanReport } from '../../shared/types'
 import type { GameId } from '../../shared/games'
 import { evidenceFindings } from '../utils/report-view'
+import { ipcErrorMessage } from '../utils/ipc-error'
 import { diffReports, findPrevious, scanPlayerLabel, type HistorySummary, type ReportDiff } from '../../shared/history'
 
 export type ScanStatus = 'idle' | 'scanning' | 'completed' | 'error'
@@ -271,7 +272,7 @@ export const useScanStore = create<ScanState>((set, get) => ({
     } catch (error) {
       // Ignore a rejection that lands after the user already cancelled.
       if (get().status !== 'scanning') return
-      get().setError(error instanceof Error ? error.message : 'Unknown error')
+      get().setError(ipcErrorMessage(error))
     }
   },
 
