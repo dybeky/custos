@@ -10,7 +10,7 @@ vi.mock('electron', () => ({
   }
 }))
 
-import { AppConfigSchema, KeywordSettingsSchema, KnownHashesSchema } from './config-service'
+import { AppConfigSchema, KeywordSettingsSchema, KnownHashesSchema, resolveWindowsPaths } from './config-service'
 
 // ─── A valid, minimal AppConfig object that satisfies AppConfigSchema ─────────
 const VALID_CONFIG = {
@@ -190,5 +190,26 @@ describe('KnownHashesSchema (Zod validation)', () => {
 
   it('rejects null input', () => {
     expect(KnownHashesSchema.safeParse(null).success).toBe(false)
+  })
+})
+
+describe('resolveWindowsPaths', () => {
+  it('follows Windows to whatever drive it is installed on', () => {
+    const env = { SYSTEMROOT: 'D:\\Windows', ProgramFiles: 'D:\\Program Files' } as unknown as NodeJS.ProcessEnv
+    expect(resolveWindowsPaths({
+      prefetchPath: '%SystemRoot%\\Prefetch',
+      windowsPath: '%SystemRoot%',
+      programFiles: '%ProgramFiles%',
+      programFilesX86: '%ProgramFiles(x86)%'
+    }, env)).toEqual({
+      prefetchPath: 'D:\\Windows\\Prefetch',
+      windowsPath: 'D:\\Windows',
+      programFiles: 'D:\\Program Files',
+      programFilesX86: 'C:\\Program Files (x86)' // not set: the usual default
+    })
+  })
+
+  it('leaves literal paths alone', () => {
+    expect(resolveWindowsPaths({ windowsPath: 'C:\\Windows' }, {} as NodeJS.ProcessEnv)).toEqual({ windowsPath: 'C:\\Windows' })
   })
 })

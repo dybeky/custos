@@ -121,6 +121,28 @@ export function flattenKeywords(k: z.input<typeof KeywordSettingsSchema>): Keywo
   return { patterns: uniq(patterns), exactMatch: uniq(exactMatch), ambiguous: uniq(k.ambiguous ?? []) }
 }
 
+const WINDOWS_DEFAULTS: Record<string, string> = {
+  SystemRoot: 'C:\\Windows',
+  'ProgramFiles(x86)': 'C:\\Program Files (x86)',
+  ProgramFiles: 'C:\\Program Files'
+}
+
+/**
+ * Expand %SystemRoot% / %ProgramFiles% … in the configured Windows paths, so
+ * an install on another drive (D:\\Windows) is scanned where it really is.
+ * Environment names are case-insensitive on Windows.
+ */
+export function resolveWindowsPaths<T extends Record<string, string>>(paths: T, env: NodeJS.ProcessEnv = process.env): T {
+  const lookup = (name: string): string => {
+    const key = Object.keys(env).find((k) => k.toLowerCase() === name.toLowerCase())
+    const fallback = Object.entries(WINDOWS_DEFAULTS).find(([k]) => k.toLowerCase() === name.toLowerCase())?.[1]
+    return (key && env[key]) || fallback || `%${name}%`
+  }
+  const out = {} as Record<string, string>
+  for (const [k, v] of Object.entries(paths)) out[k] = v.replace(/%([^%]+)%/g, (_, name: string) => lookup(name))
+  return out as T
+}
+
 // Export schemas for testing
 export { AppConfigSchema, KeywordSettingsSchema, KnownHashesSchema }
 
@@ -181,7 +203,7 @@ class ConfigService {
       // Validate with Zod
       const result = AppConfigSchema.safeParse(parsed)
       if (result.success) {
-        this.config = result.data
+        this.config = { ...result.data, paths: { ...result.data.paths, windows: resolveWindowsPaths(result.data.paths.windows) } }
         return this.config
       } else {
         logger.error('Config validation failed:', result.error.format())
