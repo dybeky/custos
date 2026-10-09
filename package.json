@@ -3,8 +3,8 @@
   "version": "3.0.0",
   "description": "Anti-cheat scanner for Unturned servers",
   "main": "./out/main/index.js",
-  "author": "Paulus Platov",
-  "license": "MIT",
+  "author": "dybeky (Paulus Platov) <dybekych@gmail.com>",
+  "license": "SEE LICENSE IN LICENSE",
   "scripts": {
     "dev": "electron-vite dev",
     "build": "electron-vite build",

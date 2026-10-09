@@ -1,5 +1,6 @@
 import { motion, useReducedMotion } from 'framer-motion'
 import { CustosMark } from '../ui/CustosMark'
+import { CREDITS } from '../../../shared/credits'
 
 const WORD = 'custos'
 
@@ -96,6 +97,15 @@ export function LaunchSplash() {
           transition={{ duration: 0.5, delay: 0.95 }}
         >
           anti-cheat
+        </motion.p>
+
+        <motion.p
+          className="absolute -bottom-16 text-[11px] text-ink-dim/70 whitespace-nowrap"
+          initial={{ opacity: 0, y: 6 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 1.1 }}
+        >
+          by <span className="font-semibold text-ink">{CREDITS.author}</span>
         </motion.p>
       </div>
     </motion.div>

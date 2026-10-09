@@ -1,5 +1,6 @@
 appId: com.custos.app
 productName: Custos
+copyright: Copyright © 2026 dybeky (Paulus Platov). All rights reserved.
 directories:
   output: release
   buildResources: resources

@@ -4,7 +4,13 @@
     "subtitle": "Configure custos preferences",
     "appearance": "Appearance",
     "paletteDesc": "Custos uses a single black-and-white palette with warm coffee accents throughout the interface.",
-    "about": "About",
+    "about": {
+      "title": "About",
+      "madeBy": "Made by",
+      "officialBuilds": "Official builds",
+      "license": "License",
+      "notice": "Official builds come only from the dybeky/custos releases page. Modified or re-uploaded copies are not allowed and may not be safe."
+    },
     "version": "Version:",
     "developer": "Developer:",
     "viewOnGitHub": "VIEW ON GITHUB",

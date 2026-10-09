@@ -20,7 +20,7 @@ export function CustosMark({ className = 'w-6 h-6', draw = false, delay = 0 }: {
   return (
     <svg className={className} viewBox="0 0 24 24" fill="none" aria-hidden="true">
       <defs>
-        <linearGradient id={gradient} x1="0" y1="0" x2="24" y2="24">
+        <linearGradient id={gradient} x1="0" y1="0" x2="24" y2="24" gradientUnits="userSpaceOnUse">
           <stop offset="0%" stopColor="var(--ink)" />
           <stop offset="55%" stopColor="var(--scan)" />
           <stop offset="100%" stopColor="var(--scan-2)" />
