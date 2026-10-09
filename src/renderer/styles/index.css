@@ -113,7 +113,7 @@
    COLOR THEMES
    Every color in the app derives from these channel variables ("R G B"),
    so Tailwind utilities keep alpha support (bg-scan/10) and a theme only
-   swaps channels. Espresso (coffee-noir) is the default; the others are
+   swaps channels. Noir (black, white, lime) is the default; the others are
    selected with <html data-theme="…">.
    ============================================ */
 
@@ -135,7 +135,14 @@
   --glow:62,207,142;
 }
 
-:root, :root[data-theme="violet"] {
+/* Noir — the default: true black and white, one acid-lime accent. */
+:root, :root[data-theme="noir"] {
+  --bg-rgb:6 6 6; --panel-rgb:15 15 15; --panel-2-rgb:24 24 24; --ink-rgb:245 245 245; --ink-dim-rgb:150 150 150;
+  --scan-rgb:200 255 46; --scan-2-rgb:226 255 150; --scan-dim-rgb:110 110 110; --alert-rgb:255 84 84; --amber-rgb:255 184 48; --ok-rgb:94 234 212; --on-accent-rgb:10 14 0;
+  --glow:200,255,46;
+}
+
+:root[data-theme="violet"] {
   --bg-rgb:11 10 16; --panel-rgb:21 19 29; --panel-2-rgb:30 26 41; --ink-rgb:241 238 250; --ink-dim-rgb:164 157 182;
   --scan-rgb:167 139 250; --scan-2-rgb:201 184 255; --scan-dim-rgb:111 102 137; --alert-rgb:242 95 122; --amber-rgb:240 180 94; --ok-rgb:127 212 168; --on-accent-rgb:18 11 36;
   --glow:167,139,250;

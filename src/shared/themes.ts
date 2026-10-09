@@ -1,8 +1,8 @@
 /** Color themes. Channels live in renderer/styles/index.css ([data-theme]). */
-export const COLOR_THEMES = ['espresso', 'graphite', 'emerald', 'violet'] as const
+export const COLOR_THEMES = ['noir', 'violet', 'graphite', 'emerald', 'espresso'] as const
 export type ColorTheme = (typeof COLOR_THEMES)[number]
 
-export const DEFAULT_THEME: ColorTheme = 'violet'
+export const DEFAULT_THEME: ColorTheme = 'noir'
 
 export function isColorTheme(v: unknown): v is ColorTheme {
   return typeof v === 'string' && (COLOR_THEMES as readonly string[]).includes(v)
@@ -13,6 +13,7 @@ export function isColorTheme(v: unknown): v is ColorTheme {
  * (so launch never flashes another theme's color) and the picker preview.
  */
 export const THEME_SWATCHES: Record<ColorTheme, { bg: string; panel: string; accent: string; alert: string }> = {
+  noir: { bg: '#060606', panel: '#0f0f0f', accent: '#c8ff2e', alert: '#ff5454' },
   espresso: { bg: '#0a0908', panel: '#141110', accent: '#c89a6a', alert: '#e0604c' },
   graphite: { bg: '#0a0c10', panel: '#12161d', accent: '#5b9dff', alert: '#f0605a' },
   emerald: { bg: '#070b09', panel: '#0f1612', accent: '#3ecf8e', alert: '#ef5f55' },

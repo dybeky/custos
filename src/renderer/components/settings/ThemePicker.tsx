@@ -3,7 +3,7 @@ import { COLOR_THEMES, THEME_SWATCHES } from '../../../shared/themes'
 import { useSettingsStore } from '../../stores/settings-store'
 
 /**
- * Four theme tiles, each a miniature of the app in that theme (background,
+ * Theme tiles, each a miniature of the app in that theme (background,
  * panel, accent button, alert chip). Selecting one recolors the app at once.
  */
 export function ThemePicker() {
@@ -11,7 +11,7 @@ export function ThemePicker() {
   const { colorTheme, setColorTheme } = useSettingsStore()
 
   return (
-    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3" role="radiogroup" aria-label={t('settings.theme.title')}>
+    <div className="grid grid-cols-2 lg:grid-cols-5 gap-3" role="radiogroup" aria-label={t('settings.theme.title')}>
       {COLOR_THEMES.map((id) => {
         const sw = THEME_SWATCHES[id]
         const active = colorTheme === id
