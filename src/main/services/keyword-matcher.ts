@@ -15,6 +15,21 @@ const CHEAT_CONTEXT = new RegExp(
     ')(?![a-z])'
 )
 
+/**
+ * The part of `text` that may give a keyword at `index` its cheat context. For
+ * a Windows path: the folder or file name holding the keyword plus the file
+ * name. URLs and titles are read whole.
+ */
+function contextAround(text: string, index: number, length: number): string {
+  if (!text.includes('\\')) return text
+  const parts = text.split(/[\\/]/).filter(Boolean)
+  const start = Math.max(text.lastIndexOf('\\', index), text.lastIndexOf('/', index)) + 1
+  const nextSep = text.slice(index + length).search(/[\\/]/)
+  const own = text.slice(start, nextSep === -1 ? text.length : index + length + nextSep)
+  const last = parts[parts.length - 1] ?? ''
+  return own === last ? own : `${own} ${last}`
+}
+
 export class KeywordMatcher {
   private patterns: string[]
   private patternsLower: string[]
@@ -77,11 +92,14 @@ export class KeywordMatcher {
    * file is named exactly that ("Midnight.exe", "titanium2.dll") or the text
    * also says what it is ("Midnight CS2 cheat loader"). A song title or a
    * page about ancient Rome is not a lead.
+   *
+   * In a path the context must sit in the keyword's own folder/file name or
+   * in the file name: a folder named after the game being checked ("…\\Unturned\\Maps\\Midnight\\…") says nothing about the item.
    */
-  private qualifies(keywordLower: string, textLower: string, baseName: string): boolean {
+  private qualifies(keywordLower: string, textLower: string, baseName: string, index: number): boolean {
     if (!this.ambiguous.has(keywordLower)) return true
     if (new RegExp(`^${keywordLower.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\d*$`).test(baseName)) return true
-    return CHEAT_CONTEXT.test(textLower)
+    return CHEAT_CONTEXT.test(contextAround(textLower, index, keywordLower.length))
   }
 
   findKeyword(text: string): string | null {
@@ -97,7 +115,7 @@ export class KeywordMatcher {
     if (this.compiledPattern) {
       for (const match of textLower.matchAll(this.compiledPattern)) {
         const matchedLower = match[1]
-        if (!this.qualifies(matchedLower, textLower, baseName)) continue
+        if (!this.qualifies(matchedLower, textLower, baseName, match.index ?? 0)) continue
         // Use O(1) lookup with patternIndexMap instead of O(n) loop
         const escapedMatch = matchedLower.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
         const index = this.patternIndexMap.get(escapedMatch)

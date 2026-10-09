@@ -211,6 +211,13 @@ export function setupIpcHandlers(mainWindow: BrowserWindow): void {
           timeoutMs: SCANNER_TIMEOUT_MS
         })
 
+        // A cancelled scan is partial: never analyze, save or report it — a
+        // half-finished check in history (and on the site) would read as clean.
+        if (signal.aborted) {
+          logger.info('Scan cancelled', { finishedScanners: results.length })
+          return results
+        }
+
         const totalFindings = results.reduce((sum, r) => sum + r.findings.length, 0)
         logger.info('Scan completed', {
           totalScanners: results.length,

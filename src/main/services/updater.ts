@@ -135,10 +135,13 @@ export async function downloadVerified(
   if (!res.ok || !res.body) throw new Error(`Download failed (HTTP ${res.status})`)
   const hash = createHash('sha256')
   const out = createWriteStream(dest)
+  let writeError: Error | null = null
   const closed = new Promise<void>((resolve, reject) => {
-    out.once('close', () => resolve())
-    out.once('error', reject)
+    out.once('close', () => (writeError ? reject(writeError) : resolve()))
+    out.once('error', (err) => { writeError = err })
   })
+  // Don't leave `closed` unobserved if the download itself throws first.
+  closed.catch(() => {})
   let received = 0
   let head = ''
   try {
@@ -150,7 +153,9 @@ export async function downloadVerified(
       if (received > asset.size) throw new Error('Download is larger than the release says')
       if (head.length < 2) head += Buffer.from(value.subarray(0, 2 - head.length)).toString('latin1')
       hash.update(value)
-      if (!out.write(value)) await new Promise<void>((r) => out.once('drain', () => r()))
+      // A full disk errors the stream instead of draining it: stop either way.
+      if (!out.write(value)) await new Promise<void>((r) => { out.once('drain', () => r()); out.once('error', () => r()) })
+      if (writeError) throw writeError
       onProgress({ received, total: asset.size })
     }
   } finally {

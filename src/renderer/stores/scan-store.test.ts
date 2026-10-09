@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest'
+import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { useScanStore, subscribeToScanEvents } from './scan-store'
 import type { ScanReport, ScanResult, ScanProgress } from '../../shared/types'
 
@@ -226,5 +226,22 @@ describe('history actions', () => {
     useScanStore.setState({ history: summaries })
     await useScanStore.getState().deleteHistory('scan-old')
     expect(useScanStore.getState().history).toEqual([])
+  })
+})
+
+describe('case edits survive switching checks', () => {
+  it('saves notes typed just before a new scan to the check they were typed into', async () => {
+    const setHistoryCase = vi.fn(async () => [])
+    ;(window as any).electronAPI = {
+      ...(window as any).electronAPI,
+      listHistory: vi.fn(async () => []),
+      getHistory: vi.fn(async () => null),
+      setHistoryCase,
+      startScan: vi.fn(async () => [])
+    }
+    useScanStore.setState({ status: 'completed', report: { id: 'scan-a', meta: { scannedAt: '2026-01-01T00:00:00.000Z' }, findings: [] } as any })
+    useScanStore.getState().setCaseInfo({ notes: 'admitted it' })
+    await useScanStore.getState().startScan()
+    expect(setHistoryCase).toHaveBeenCalledWith('scan-a', '', 'admitted it')
   })
 })
