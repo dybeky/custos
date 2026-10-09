@@ -241,12 +241,12 @@ export function Manual() {
               </div>
 
               {/* Items */}
-              <div className={cat.grid ? 'grid grid-cols-1 sm:grid-cols-2 gap-2' : 'space-y-2'}>
+              <div className={cat.grid ? 'grid grid-cols-[repeat(auto-fill,minmax(180px,1fr))] gap-2' : 'space-y-2'}>
                 {cat.items.map((item) => (
                   <button
                     key={item.label}
                     onClick={() => run(item.action ?? cat.action, item.target)}
-                    // Full name + target: grid labels truncate ("ShowJumpVi…").
+                    // Full name + target on hover.
                     title={item.target && item.action !== 'steam' ? `${item.label}\n${item.target}` : item.label}
                     className="group relative w-full flex items-center gap-3 pl-3.5 pr-2.5 py-2.5 rounded-xl bg-panel-2 hover:bg-panel-2 border border-[color:var(--line)] hover:border-[color:var(--line-strong)] transition-all duration-200 text-left overflow-hidden"
                   >
@@ -264,7 +264,7 @@ export function Manual() {
                     </span>
                     {/* Text */}
                     <span className="flex-1 min-w-0">
-                      <span className="block text-sm text-ink truncate">
+                      <span className={`block text-sm text-ink ${cat.grid ? 'leading-snug break-words' : 'truncate'}`}>
                         {item.labelKey ? t(item.labelKey) : item.label}
                       </span>
                       {cat.showHint && item.hint && (
