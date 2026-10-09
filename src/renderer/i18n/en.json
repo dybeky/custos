@@ -657,7 +657,7 @@
     "title": "Check history",
     "subtitle": "Checks from this session. Custos keeps nothing on this PC after it closes — every check is saved to the site automatically, under the player. Re-checks of the same player are compared automatically.",
     "search": "Search by player…",
-    "empty": "No saved checks yet — run a check and it will appear here.",
+    "empty": "No checks in this session yet. This list is cleared when Custos closes 2014 earlier checks are on the site, under the player.",
     "noMatches": "No checks match this player.",
     "noPlayer": "No player recorded",
     "leads_one": "{{count}} lead",
