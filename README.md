@@ -9,7 +9,7 @@
 [![GitHub release](https://img.shields.io/github/v/release/dybeky/custos?style=for-the-badge&color=C8A47E&labelColor=0E0C0A)](https://github.com/dybeky/custos/releases)
 [![CI](https://img.shields.io/github/actions/workflow/status/dybeky/custos/ci.yml?style=for-the-badge&color=D9BC9A&labelColor=0E0C0A&label=CI)](https://github.com/dybeky/custos/actions/workflows/ci.yml)
 [![Platform](https://img.shields.io/badge/platform-Windows%20x64%20%7C%20ARM64-B0A696?style=for-the-badge&labelColor=0E0C0A)](https://github.com/dybeky/custos/releases)
-[![License: MIT](https://img.shields.io/badge/license-MIT-A89F93?style=for-the-badge&labelColor=0E0C0A)](LICENSE)
+[![License: All rights reserved](https://img.shields.io/badge/license-all%20rights%20reserved-A89F93?style=for-the-badge&labelColor=0E0C0A)](LICENSE)
 
 <br/>
 
@@ -347,6 +347,8 @@ Custos is English‑only. Scanners still read artifacts from Windows in any disp
 
 ## Build from source
 
+> **License:** Custos is source-available, not open source — © 2026 dybeky (Paulus Platov), all rights reserved. You may read the code and build it for your own use; modifying it, redistributing builds or removing the authorship notice is not allowed. Official builds come only from [Releases](https://github.com/dybeky/custos/releases). See [LICENSE](LICENSE).
+
 <details>
 <summary><b>For developers and contributors</b></summary>
 
@@ -393,6 +395,6 @@ On non‑Windows hosts you can skip it — Live Scan reports "native unavailable
 
 Requires Administrator rights to read protected Windows artifacts. Intended solely for legitimate moderation of game servers — use it only on machines where you have the player's informed consent, or where your server rules explicitly authorise forensic review.
 
-<sub>Made for game server admins · [MIT License](LICENSE)</sub>
+<sub>Made by **dybeky** · © 2026 dybeky (Paulus Platov) · All rights reserved — see [LICENSE](LICENSE)</sub>
 
 </div>

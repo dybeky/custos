@@ -1,21 +1,69 @@
-MIT License
+Custos License — All Rights Reserved
 
-Copyright (c) 2026 Paulus Platov
+Copyright (c) 2026 dybeky (Paulus Platov). All rights reserved.
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
+Custos ("the Software") — its source code, compiled builds, signatures,
+artwork, name and logo — is the property of dybeky (Paulus Platov)
+("the Author"). The source code is published for transparency only. It is
+NOT open source, and publishing it grants no rights beyond those below.
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+1. What you MAY do
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+   a. Read the source code, for example to review what the Software does
+      on a computer it scans.
+   b. Download an official build from the Author's releases page,
+      https://github.com/dybeky/custos/releases, and run it to check
+      computers you are allowed to check.
+
+2. What you MAY NOT do, without the Author's prior written permission
+
+   a. Modify, adapt, translate or create derivative works of the Software
+      or any part of it.
+   b. Build, compile or package the Software from source for anyone other
+      than yourself, or distribute, publish, sell, rent, sublicense or
+      otherwise make available the Software, a modified version, or any
+      build of it — including mirroring or re-uploading official builds.
+   c. Remove, hide or alter any copyright, authorship ("Made by dybeky")
+      or license notice, in the source code or in the running program.
+   d. Present the Software, or any part of it, as your own work, or use the
+      name "Custos" or its logo for another product.
+   e. Use the code, signatures or detection logic in another program,
+      including another anti-cheat, scanner or cheat.
+   f. Circumvent the Software's integrity checks, update verification or
+      signature verification.
+
+3. GitHub
+
+   As long as the repository is public on GitHub, GitHub's Terms of Service
+   let GitHub users view it and fork it on GitHub. A fork gives no rights
+   beyond this license: it may not be modified, built or distributed except
+   as allowed above.
+
+4. Contributions
+
+   By submitting a pull request, issue or other contribution, you grant the
+   Author a perpetual, worldwide, royalty-free right to use, change and
+   distribute it as part of the Software under any license.
+
+5. Termination
+
+   Any breach of this license ends your permissions under it immediately.
+   On termination you must delete every copy of the Software you hold that
+   was not obtained from the official releases page.
+
+6. No warranty
+
+   THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
+   OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+   MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN
+   NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+   LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+   FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR ITS USE.
+
+7. Earlier versions
+
+   Versions released before this license (up to and including 3.0.0) were
+   published under the MIT License, and those exact copies remain under it.
+   Every later version is covered only by this license.
+
+For permission requests: dybekych@gmail.com
