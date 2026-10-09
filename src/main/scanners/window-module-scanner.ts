@@ -92,6 +92,25 @@ export interface ModuleEntry {
 // the trailing column padding out of the captured name.
 const TASKLIST_ROW_RE = /^(.+?)\s+(\d+)\s+(.+)$/
 
+/**
+ * Parse `tasklist /m /fo csv /nh`: one line per process,
+ * `"Image","PID","mod1,mod2,…"`. Unlike the table format, CSV never wraps a
+ * long module list onto continuation lines and has no localized header.
+ * "N/A" (modules not readable) yields nothing.
+ */
+export function parseTasklistModulesCsv(stdout: string): ModuleEntry[] {
+  const entries: ModuleEntry[] = []
+  for (const rawLine of stdout.split('\n')) {
+    const m = /^"((?:[^"]|"")*)","\d+","((?:[^"]|"")*)"\s*$/.exec(rawLine.replace(/\r$/, '').trim())
+    if (!m) continue
+    const processName = m[1].replace(/""/g, '"')
+    for (const moduleName of m[2].replace(/""/g, '"').split(',').map(x => x.trim())) {
+      if (moduleName && moduleName !== 'N/A') entries.push({ processName, moduleName })
+    }
+  }
+  return entries
+}
+
 export function parseTasklistModules(stdout: string): ModuleEntry[] {
   const lines = stdout.split('\n')
   const entries: ModuleEntry[] = []
@@ -164,10 +183,12 @@ export class WindowModuleScanner extends BaseScanner {
     this.emitProgress(events, 1, 3, 'Enumerating loaded modules...')
 
     try {
-      const { stdout } = await execFileAsync('tasklist', ['/m'])
+      // CSV: the table format wraps long module lists onto extra lines.
+      const csv = await execFileAsync('tasklist', ['/m', '/fo', 'csv', '/nh'], { timeoutMs: 30000 })
+      let entries = parseTasklistModulesCsv(csv.stdout)
+      if (entries.length === 0) entries = parseTasklistModules((await execFileAsync('tasklist', ['/m'], { timeoutMs: 30000 })).stdout)
 
       if (!this.cancelled) {
-        const entries = parseTasklistModules(stdout)
         for (const entry of entries) {
           if (this.cancelled) break
           if (!this.keywordMatcher.containsKeyword(entry.moduleName)) continue

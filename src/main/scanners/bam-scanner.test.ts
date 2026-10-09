@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { BamScanner } from './bam-scanner'
+import { BamScanner, dedupeByPath } from './bam-scanner'
 import { KeywordMatcher } from '../services/keyword-matcher'
 
 // Minimal ScanSettings for constructing BamScanner
@@ -76,5 +76,19 @@ describe('BamScanner.parseFiletime', () => {
     const date = scanner.parseFiletime(hexWithSpaces)
     expect(date).not.toBeNull()
     expect(date!.getUTCFullYear()).toBe(2020)
+  })
+})
+
+describe('dedupeByPath', () => {
+  it('keeps one finding per executable across BAM, DAM and control sets', () => {
+    expect(dedupeByPath([
+      '[BAM] C:\\Users\\p\\Desktop\\aimbot.exe | 01/02/2026, 10:00',
+      '[DAM] C:\\Users\\p\\Desktop\\aimbot.exe | 01/02/2026, 10:00',
+      '[BAM/ControlSet001] C:\\Users\\P\\Desktop\\AIMBOT.exe | 01/02/2026, 10:00',
+      '[BAM] C:\\Users\\p\\Desktop\\other.exe'
+    ])).toEqual([
+      '[BAM] C:\\Users\\p\\Desktop\\aimbot.exe | 01/02/2026, 10:00',
+      '[BAM] C:\\Users\\p\\Desktop\\other.exe'
+    ])
   })
 })

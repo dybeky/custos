@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { parseWindowJson, parseTasklistModules } from './window-module-scanner'
+import { parseWindowJson, parseTasklistModules, parseTasklistModulesCsv } from './window-module-scanner'
 
 // ---------------------------------------------------------------------------
 // parseWindowJson
@@ -149,5 +149,26 @@ my game.exe                  4242 ntdll.dll, cheat_hook.dll
     const mine = entries.filter(e => e.processName === 'my game.exe')
     expect(mine.map(e => e.moduleName)).toContain('cheat_hook.dll')
     expect(mine.map(e => e.moduleName)).toContain('ntdll.dll')
+  })
+})
+
+describe('parseTasklistModulesCsv', () => {
+  it('reads every module of a process, however long the list', () => {
+    const many = Array.from({ length: 60 }, (_, i) => `mod${i}.dll`).join(',')
+    const out = [
+      '"System","4","N/A"',
+      `"svchost.exe","844","ntdll.dll,KERNEL32.DLL,${many}"`,
+      '"Unturned.exe","4242","ntdll.dll,UnityPlayer.dll,cheat_hook.dll"',
+      ''
+    ].join('\r\n')
+    const entries = parseTasklistModulesCsv(out)
+    expect(entries.filter(e => e.processName === 'svchost.exe')).toHaveLength(62)
+    expect(entries).toContainEqual({ processName: 'Unturned.exe', moduleName: 'cheat_hook.dll' })
+    // Unreadable modules ("N/A") are not entries.
+    expect(entries.some(e => e.processName === 'System')).toBe(false)
+  })
+
+  it('ignores lines that are not CSV rows', () => {
+    expect(parseTasklistModulesCsv('INFO: No tasks are running which match the specified criteria.')).toEqual([])
   })
 })
