@@ -8,6 +8,7 @@ import { BaseScanner, ScannerEventEmitter } from './base-scanner'
 import { ScanResult } from '../../shared/types'
 import { logger } from '../services/logger'
 import { formatTimestamp } from '../utils/format'
+import { applyWal } from './sqlite-wal'
 
 interface BrowserProfile {
   browser: string
@@ -83,6 +84,28 @@ export class BrowserHistoryScanner extends BaseScanner {
     }
 
     throw lastError || new Error('Failed to copy file after retries')
+  }
+
+  /**
+   * Copy a browser database (and its write-ahead log, where the newest
+   * history lives while the browser runs) and return the merged image.
+   */
+  private async loadDatabase(src: string, tempPath: string): Promise<Buffer | null> {
+    await this.copyWithRetry(src, tempPath)
+    const walTemp = `${tempPath}-wal`
+    let wal: Buffer | null = null
+    try {
+      if (existsSync(`${src}-wal`)) {
+        await this.copyWithRetry(`${src}-wal`, walTemp)
+        wal = await readFileCapped(walTemp)
+      }
+    } catch {
+      // no WAL, or locked — the database file alone is still read
+    } finally {
+      await this.safeDelete(walTemp)
+    }
+    const db = await readFileCapped(tempPath)
+    return db ? applyWal(db, wal) : null
   }
 
   /**
@@ -286,10 +309,8 @@ export class BrowserHistoryScanner extends BaseScanner {
     try {
       // Copy database to temp with retry (browser may have it locked)
       tempPath = join(tmpdir(), `custos_${browserName}_${config.name}_${randomUUID()}.db`)
-      await this.copyWithRetry(dbPath, tempPath)
-
       const SQL = await getSql()
-      const fileBuffer = await readFileCapped(tempPath)
+      const fileBuffer = await this.loadDatabase(dbPath, tempPath)
       if (!fileBuffer) {
         logger.debug(`Skipping ${browserName}/${config.name}: database too large or unreadable`)
         return results
@@ -327,9 +348,9 @@ export class BrowserHistoryScanner extends BaseScanner {
               if (title && title !== url) entry += ` | "${title}"`
 
               // Add timestamp if available
-              if (config.timeColumn !== undefined && row[config.timeColumn]) {
-                const time = row[config.timeColumn]
-                if (typeof time !== 'number' || isNaN(time)) continue
+              // A missing or odd visit time only drops the time, never the entry.
+              const time = config.timeColumn !== undefined ? row[config.timeColumn] : null
+              if (typeof time === 'number' && !isNaN(time) && time > 0) {
                 const date = this.convertChromeTimestamp(time)
                 if (date.getTime() > 0) {
                   entry += ` | ${this.formatDate(date)}`
@@ -419,10 +440,8 @@ export class BrowserHistoryScanner extends BaseScanner {
 
     try {
       tempPath = join(tmpdir(), `custos_firefox_places_${randomUUID()}.db`)
-      await this.copyWithRetry(placesPath, tempPath)
-
       const SQL = await getSql()
-      const fileBuffer = await readFileCapped(tempPath)
+      const fileBuffer = await this.loadDatabase(placesPath, tempPath)
       if (!fileBuffer) {
         logger.debug(`Skipping Firefox places at ${profilePath}: database too large or unreadable`)
         return results
@@ -540,10 +559,8 @@ export class BrowserHistoryScanner extends BaseScanner {
 
     try {
       tempPath = join(tmpdir(), `custos_firefox_form_${randomUUID()}.db`)
-      await this.copyWithRetry(formHistoryPath, tempPath)
-
       const SQL = await getSql()
-      const fileBuffer = await readFileCapped(tempPath)
+      const fileBuffer = await this.loadDatabase(formHistoryPath, tempPath)
       if (!fileBuffer) {
         logger.debug(`Skipping Firefox form history at ${profilePath}: database too large or unreadable`)
         return results

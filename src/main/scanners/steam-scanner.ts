@@ -7,6 +7,7 @@ import { ScanResult } from '../../shared/types'
 import { AppConfig } from '../services/config-service'
 import { VdfParser } from '../services/vdf-parser'
 import { getAvailableDrives } from '../utils/drive-utils'
+import { findSteamRoot } from '../utils/steam-locator'
 
 export class SteamScanner extends BaseScanner {
   readonly name = 'Steam Scanner'
@@ -46,8 +47,11 @@ export class SteamScanner extends BaseScanner {
     // Merge with configured additional drives, removing duplicates
     const drives = [...new Set([...systemDrives, ...steam.additionalDrives])]
 
-    // Find Steam installation
+    // Find Steam installation: where Steam itself says it lives (registry)
+    // first — it can be on any drive and in any folder — then the usual spots.
     const steamPaths: string[] = []
+    const registered = await findSteamRoot().catch(() => null)
+    if (registered) steamPaths.push(registered)
 
     for (const drive of drives) {
       steamPaths.push(join(drive, 'Program Files (x86)', 'Steam'))

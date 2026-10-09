@@ -51,12 +51,22 @@ export class RecycleBinScanner extends BaseScanner {
           } catch {
             continue
           }
-          if (!entry || !this.keywordMatcher.containsKeyword(entry.originalPath)) continue
-          const restorable = present.has(`$R${name.slice(2)}`.toUpperCase())
-          findings.push(
-            `[Recycle Bin] ${entry.originalPath} | deleted ${formatTimestamp(new Date(entry.deletedAt))}` +
-              (restorable ? ' | still restorable' : '')
-          )
+          if (!entry) continue
+          const rName = `$R${name.slice(2)}`
+          const restorable = present.has(rName.toUpperCase())
+          const deleted = ` | deleted ${formatTimestamp(new Date(entry.deletedAt))}`
+          if (this.keywordMatcher.containsKeyword(entry.originalPath)) {
+            findings.push(`[Recycle Bin] ${entry.originalPath}${deleted}` + (restorable ? ' | still restorable' : ''))
+            continue
+          }
+          // A deleted folder with a plain name can still hold a cheat: its
+          // contents sit, restorable, inside $R<id>.
+          if (!restorable) continue
+          const rPath = join(dir, names.find((n) => n.toUpperCase() === rName.toUpperCase()) ?? rName)
+          for (const inner of await this.scanFolder(rPath, [], 4)) {
+            const rel = inner.slice(rPath.length).replace(/^[\\/]+/, '')
+            findings.push(`[Recycle Bin] ${entry.originalPath}\\${rel}${deleted} | still restorable`)
+          }
         }
       }
     }

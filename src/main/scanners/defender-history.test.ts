@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { dedupeDetections, defenderRelevance, parseDefenderEvents, parseDefenderPaths } from './defender-history'
+import { dedupeDetections, defenderRelevance, parseDefenderEvents, parseDefenderPaths, unescapeXml } from './defender-history'
 
 const ev = (id: number, threat: string, path: string, time: string, action = 'Quarantine') =>
   `<Event xmlns='http://schemas.microsoft.com/win/2004/08/events/event'><System><EventID>${id}</EventID>` +
@@ -56,5 +56,13 @@ describe('Defender history', () => {
     expect(out).toHaveLength(1)
     expect(out[0].action).toBe('Remove')
     expect(out[0].detectedAt).toBe(Date.parse('2026-09-27T10:31:00Z'))
+  })
+})
+
+describe('Defender XML text', () => {
+  it('unescapes paths and names', () => {
+    const xml = "<Event><Data Name='Threat Name'>HackTool:Win32/GameHack</Data><Data Name='Path'>file:_C:\\Games &amp; Mods\\it&apos;s\\aim.exe</Data><Data Name='Detection Time'>2026-09-01T10:00:00.000Z</Data></Event>"
+    expect(parseDefenderEvents(xml)[0].paths).toEqual(["C:\\Games & Mods\\it's\\aim.exe"])
+    expect(unescapeXml('&lt;a&gt; &#x41;&#66; &bogus;')).toBe('<a> AB &bogus;')
   })
 })
