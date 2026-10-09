@@ -6,6 +6,7 @@ import { InfoTip } from '../components/ui/InfoTip'
 import type { LiveFinding, LiveScanStatus } from '../../shared/types'
 import { useGameStore } from '../stores/game-store'
 import { detectorName, detectorHelp } from '../utils/feature-i18n'
+import { ipcErrorMessage } from '../utils/ipc-error'
 
 type ScanPhase = 'idle' | 'scanning' | 'done'
 
@@ -26,6 +27,8 @@ export function LiveScan() {
   const [phase, setPhase] = useState<ScanPhase>('idle')
   const [findings, setFindings] = useState<LiveFinding[]>([])
   const [progress, setProgress] = useState<LiveProgress | null>(null)
+  // Why the scan could not run at all (IPC rejected it) — never "clean".
+  const [scanError, setScanError] = useState<string | null>(null)
 
   // hold unsubscribe fns in a ref so cleanup is always current
   const unsubRef = useRef<Array<() => void>>([])
@@ -83,6 +86,7 @@ export function LiveScan() {
 
     setFindings([])
     setProgress(null)
+    setScanError(null)
     setPhase('scanning')
 
     const unsubProgress = window.electronAPI.onLiveScanProgress(p => {
@@ -109,8 +113,10 @@ export function LiveScan() {
 
     try {
       await window.electronAPI.startLiveScan(selectedGame ?? undefined)
-    } catch {
+    } catch (error) {
+      setScanError(ipcErrorMessage(error))
       setPhase('done')
+      setProgress(null)
       clearSubs()
     }
   }
@@ -278,6 +284,11 @@ export function LiveScan() {
 
   const highCount = findings.filter(f => f.confidence === 'high').length
   const suspiciousCount = findings.filter(f => f.confidence === 'suspicious').length
+  // The scan never reached the game's memory (not running, no handle, a
+  // detector crashed, IPC refused): saying "no threats" would read as clean.
+  const incomplete =
+    scanError !== null ||
+    findings.some(f => f.detectorId === 'orchestrator' || f.i18nKey === 'detectorError')
 
   return (
     <div className="flex-1 p-6 overflow-y-auto">
@@ -290,8 +301,8 @@ export function LiveScan() {
             <div className={`w-24 h-24 mx-auto mb-5 rounded-full flex items-center justify-center ${
               phase === 'done' && highCount > 0
                 ? 'bg-alert/10'
-                : phase === 'done'
-                ? 'bg-scan/10'
+                : phase === 'done' && (suspiciousCount > 0 || incomplete)
+                ? 'bg-amber/10'
                 : 'bg-scan/10'
             }`}>
               {phase === 'scanning' ? (
@@ -301,8 +312,8 @@ export function LiveScan() {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17H4a2 2 0 01-2-2V5a2 2 0 012-2h16a2 2 0 012 2v10a2 2 0 01-2 2h-1" />
                   </svg>
                 </div>
-              ) : phase === 'done' && highCount > 0 ? (
-                <svg className="w-12 h-12 text-alert" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              ) : phase === 'done' && (highCount > 0 || suspiciousCount > 0 || incomplete) ? (
+                <svg className={`w-12 h-12 ${highCount > 0 ? 'text-alert' : 'text-amber'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                 </svg>
               ) : (
@@ -327,8 +338,10 @@ export function LiveScan() {
               {phase === 'scanning' && progress
                 ? `${detectorName(t, progress.detectorId, progress.detectorName)} — ${Math.round(progress.percentage)}%`
                 : phase === 'done'
-                ? highCount > 0
+                ? highCount > 0 || suspiciousCount > 0
                   ? `${highCount} ${t('liveScan.highThreats')}, ${suspiciousCount} ${t('liveScan.suspicious')}`
+                  : incomplete
+                  ? t('liveScan.scanIncomplete')
                   : t('liveScan.noThreatsFound')
                 : t('liveScan.subtitle')}
             </p>
@@ -369,7 +382,14 @@ export function LiveScan() {
         {/* Findings list */}
         {(findings.length > 0 || phase === 'done') && (
           <div>
+            {scanError !== null && (
+              <div className="rounded-2xl bg-panel border border-amber/30 p-4 mb-3">
+                <p className="text-sm font-medium text-amber font-display">{t('liveScan.scanFailed')}</p>
+                <p className="text-xs text-ink-dim mt-1 break-all">{scanError}</p>
+              </div>
+            )}
             {findings.length === 0 ? (
+              scanError !== null ? null : (
               <div className="rounded-2xl bg-panel border border-[color:var(--line)] p-8 text-center">
                 <div className="w-14 h-14 rounded-full bg-scan/10 flex items-center justify-center mx-auto mb-4">
                   <svg className="w-7 h-7 text-scan" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -379,6 +399,7 @@ export function LiveScan() {
                 <p className="text-sm font-medium text-scan font-display">{t('liveScan.noLiveThreats')}</p>
                 <p className="text-xs text-ink-dim mt-1">{t('liveScan.noLiveThreatsDesc')}</p>
               </div>
+              )
             ) : (
               <div className="space-y-3">
                 {findings.map((f, i) => renderFinding(f, i))}
