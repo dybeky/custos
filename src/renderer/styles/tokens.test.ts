@@ -10,7 +10,7 @@ const CHANNELS = ['bg', 'panel', 'panel-2', 'ink', 'ink-dim', 'scan', 'scan-2', 
 
 /** The CSS block for a theme selector, e.g. :root[data-theme="violet"] { … }. */
 function themeBlock(id: string): string {
-  const sel = id === 'violet' ? ':root, :root[data-theme="violet"]' : `:root[data-theme="${id}"]`
+  const sel = id === 'noir' ? ':root, :root[data-theme="noir"]' : `:root[data-theme="${id}"]`
   const start = css.indexOf(`${sel} {`)
   expect(start, `block for ${id}`).toBeGreaterThan(-1)
   return css.slice(start, css.indexOf('}', start))
@@ -32,10 +32,10 @@ describe('color themes', () => {
     expect(THEME_SWATCHES[id].accent).toBe(hex(channel('scan')))
   })
 
-  it('uses Violet (the 97437.dev site palette) as the default :root palette', () => {
-    const block = themeBlock('violet')
-    expect(block).toContain('--bg-rgb:11 10 16;')
-    expect(block).toContain('--scan-rgb:167 139 250;')
+  it('uses Noir (black, white, lime) as the default :root palette', () => {
+    const block = themeBlock('noir')
+    expect(block).toContain('--bg-rgb:6 6 6;')
+    expect(block).toContain('--scan-rgb:200 255 46;')
   })
 
   it('tailwind resolves every core token through theme variables', () => {

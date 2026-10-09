@@ -1,4 +1,5 @@
 import { useEffect } from 'react'
+import { useLocation } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useAppHealthStore } from '../../stores/app-health-store'
 import { useGameStore } from '../../stores/game-store'
@@ -10,10 +11,24 @@ import { alpha } from '../../utils/color'
  * `updateVersion`: a newer release the user dismissed with "Later" — shown as
  * a quiet pill that reopens the update dialog. Updating is never forced.
  */
+const PAGE_TITLES: Record<string, string> = {
+  '/': 'nav.dashboard',
+  '/scan': 'nav.scan',
+  '/live': 'nav.liveScan',
+  '/results': 'nav.results',
+  '/history': 'nav.history',
+  '/manual': 'nav.manual',
+  '/utilities': 'nav.utilities',
+  '/settings': 'nav.settings',
+  '/profile': 'nav.profile'
+}
+
 export function Header({ updateVersion, onUpdateClick }: { updateVersion?: string | null; onUpdateClick?: () => void } = {}) {
   const { t } = useTranslation()
   const { status, osInfo, isLoaded, initialize } = useAppHealthStore()
   const { selectedGame } = useGameStore()
+  const { pathname } = useLocation()
+  const pageKey = PAGE_TITLES[pathname]
 
   useEffect(() => {
     initialize()
@@ -38,13 +53,15 @@ export function Header({ updateVersion, onUpdateClick }: { updateVersion?: strin
   return (
     <header className="h-10 flex items-center justify-between px-4 bg-panel/70 backdrop-blur-xl border-b border-[color:var(--line)] select-none"
       style={{ WebkitAppRegion: 'drag' } as React.CSSProperties}>
-      {/* Brand wordmark */}
-      <div className="flex items-center">
-        <span className="text-sm font-bold tracking-wide font-display text-scan text-glow">
-          custos
-        </span>
+      {/* Current page (the brand lives in the menu) */}
+      <div className="flex items-center gap-2 pl-1">
+        {pageKey && (
+          <span key={pageKey} className="text-[13px] font-semibold text-ink font-display animate-fade-in">
+            {t(pageKey)}
+          </span>
+        )}
         {selectedGame && (
-          <span className="ml-2 px-2 py-0.5 rounded-md text-[10px] font-bold tracking-wide uppercase text-ink-dim bg-panel-2 font-display">
+          <span className="px-2 py-0.5 rounded-md text-[10px] font-bold tracking-wide uppercase text-ink-dim bg-panel-2 font-display">
             {GAMES[selectedGame].name}
           </span>
         )}

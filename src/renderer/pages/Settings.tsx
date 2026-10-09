@@ -7,6 +7,7 @@ import { RoleName } from '../components/ui/RoleName'
 import { LoginModal } from '../components/auth/LoginModal'
 import { roleInfo } from '../utils/roles'
 import { ThemePicker } from '../components/settings/ThemePicker'
+import { SoundToggle } from '../components/settings/SoundToggle'
 import { SignatureStatusCard } from '../components/settings/SignatureStatusCard'
 
 export function Settings() {
@@ -39,6 +40,7 @@ export function Settings() {
           </CardHeader>
           <CardContent>
             <ThemePicker />
+            <SoundToggle />
           </CardContent>
         </Card>
 

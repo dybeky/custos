@@ -13,6 +13,8 @@
     "accountAuthed": "Signed in to 97437.dev",
     "theme": {
       "title": "Color theme",
+      "noir": "Noir",
+      "noirDesc": "Pure black and white with an acid-lime accent — the default.",
       "espresso": "Espresso",
       "espressoDesc": "Warm coffee-noir with a caramel accent.",
       "graphite": "Graphite",
@@ -20,7 +22,7 @@
       "emerald": "Emerald",
       "emeraldDesc": "Deep green-black with a mint accent.",
       "violet": "Violet",
-      "violetDesc": "Ink-violet with a soft lavender accent — the default, matching 97437.dev."
+      "violetDesc": "Ink-violet with a soft lavender accent, matching 97437.dev."
     },
     "signatures": {
       "title": "Detection signatures",
@@ -31,6 +33,10 @@
       "check": "Check now",
       "checking": "Checking…",
       "error": "Last check failed ({{error}})."
+    },
+    "sound": {
+      "title": "Menu sounds",
+      "desc": "A soft click when you switch pages."
     }
   },
   "dashboard": {
@@ -161,7 +167,17 @@
     "utilities": "Utilities",
     "settings": "Settings",
     "profile": "Profile",
-    "history": "History"
+    "history": "History",
+    "menu": "Main menu",
+    "groupMain": "Check",
+    "groupReview": "Review",
+    "groupTools": "Tools",
+    "groupAccount": "Account",
+    "collapse": "Collapse",
+    "expand": "Expand menu",
+    "scanning": "Scanning…",
+    "ready": "Ready to scan",
+    "lastScanDone": "Last scan complete"
   },
   "gamePicker": {
     "title": "Choose your game",
@@ -234,7 +250,7 @@
     "highThreats": "high",
     "suspicious": "suspicious",
     "noThreatsFound": "No live threats detected",
-    "scanIncomplete": "Scan incomplete \u2014 see the notes below",
+    "scanIncomplete": "Scan incomplete — see the notes below",
     "scanFailed": "The live scan could not run",
     "noLiveThreats": "No live threats detected",
     "noLiveThreatsDesc": "The process memory appears clean"

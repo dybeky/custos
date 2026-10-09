@@ -24,18 +24,18 @@ import { migrateSettings } from '../ipc-handlers'
 
 describe('migrateSettings (drops legacy keys)', () => {
   it('strips the legacy theme and language keys', () => {
-    expect(migrateSettings({ language: 'ru', theme: 'tropical' })).toEqual({ colorTheme: 'violet' })
+    expect(migrateSettings({ language: 'ru', theme: 'tropical' })).toEqual({ colorTheme: 'noir' })
   })
   it('defaults for junk input', () => {
-    expect(migrateSettings({ theme: 'aurora' })).toEqual({ colorTheme: 'violet' })
-    expect(migrateSettings(null)).toEqual({ colorTheme: 'violet' })
+    expect(migrateSettings({ theme: 'aurora' })).toEqual({ colorTheme: 'noir' })
+    expect(migrateSettings(null)).toEqual({ colorTheme: 'noir' })
   })
   it('drops the retired interface mode, whatever it was', () => {
     expect(migrateSettings({ uiMode: 'modern', colorTheme: 'violet' })).toEqual({ colorTheme: 'violet' })
-    expect(migrateSettings({ uiMode: 'classic' })).toEqual({ colorTheme: 'violet' })
+    expect(migrateSettings({ uiMode: 'classic' })).toEqual({ colorTheme: 'noir' })
   })
-  it('keeps a valid color theme and falls back to espresso for junk or retired themes', () => {
+  it('keeps a valid color theme and falls back to the default for junk or retired themes', () => {
     expect(migrateSettings({ colorTheme: 'emerald' })).toEqual({ colorTheme: 'emerald' })
-    expect(migrateSettings({ colorTheme: 'aurora' })).toEqual({ colorTheme: 'violet' })
+    expect(migrateSettings({ colorTheme: 'aurora' })).toEqual({ colorTheme: 'noir' })
   })
 })

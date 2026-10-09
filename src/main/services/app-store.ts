@@ -1,5 +1,6 @@
 import Store from 'electron-store'
 import type { UserSettings, PublicUser, TriageSettings } from '../../shared/types'
+import { DEFAULT_THEME } from '../../shared/themes'
 
 // CachedUser / AuthRecord are defined once here (single source of truth).
 export type CachedUser = PublicUser
@@ -25,7 +26,7 @@ export const appStore = new Store<AppStoreSchema>({
   clearInvalidConfig: true,
   defaults: {
     settings: {
-      colorTheme: 'violet'
+      colorTheme: DEFAULT_THEME
     },
     auth: {},
     triage: { whitelistedSignatures: [] }
