@@ -1,4 +1,5 @@
-import { app, BrowserWindow, dialog, shell } from 'electron'
+import { app, BrowserWindow, clipboard, dialog } from 'electron'
+import { readFileSync } from 'fs'
 import { logger } from '../services/logger'
 import { safeOpenExternal } from '../utils/safe-open'
 import {
@@ -34,13 +35,25 @@ export function applyGpuFallback(argv: readonly string[] = process.argv): void {
   }
 }
 
+/** Put the end of the log on the clipboard (enough to report the problem). */
+function copyLog(logPath: string): void {
+  try {
+    const text = readFileSync(logPath, 'utf8')
+    clipboard.writeText(text.length > 200_000 ? text.slice(-200_000) : text)
+  } catch {
+    // log unreadable — nothing to copy
+  }
+}
+
 /** Show a diagnosis. Resolves with the action the user picked. */
 function present(d: Diagnosis, primary: 'reload' | 'restart' | 'close', win?: BrowserWindow | null): 'primary' | 'fix' | 'log' | 'dismiss' {
   const logPath = logger.getLogPath()
   const buttons: Array<{ label: string; action: 'primary' | 'fix' | 'log' }> = []
   if (d.fix) buttons.push({ label: d.fix.label, action: 'fix' })
   buttons.push({ label: primary === 'reload' ? 'Reload' : primary === 'restart' ? 'Restart Custos' : 'Close', action: 'primary' })
-  if (logPath) buttons.push({ label: 'Show log file', action: 'log' })
+  // The log lives in the session folder, which is wiped when Custos exits —
+  // a file shown in Explorer would vanish a moment later, so it is copied.
+  if (logPath) buttons.push({ label: 'Copy log', action: 'log' })
 
   // Before 'ready' only the simple error box is available.
   if (!app.isReady()) {
@@ -61,7 +74,7 @@ function present(d: Diagnosis, primary: 'reload' | 'restart' | 'close', win?: Br
   const index = win && !win.isDestroyed() ? dialog.showMessageBoxSync(win, options) : dialog.showMessageBoxSync(options)
   const action = buttons[index]?.action ?? 'dismiss'
   if (action === 'fix' && d.fix) safeOpenExternal(d.fix.url)
-  if (action === 'log' && logPath) shell.showItemInFolder(logPath)
+  if (action === 'log' && logPath) copyLog(logPath)
   return action
 }
 
