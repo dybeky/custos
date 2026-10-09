@@ -30,6 +30,9 @@ jobs:
             exit 1
           fi
       - run: npm ci
+      # Electron 42 downloads its binary on first import; parallel test workers
+      # racing to do that occasionally failed CI. Fetch it once, up front.
+      - run: node node_modules/electron/install.js
       - run: npm run typecheck
       - run: npm run lint
       - run: npm run test
