@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { isHookedPrologue, exportsValidInTarget, isHookCheckSupported } from './hook-detector'
+import { isHookedPrologue, exportsValidInTarget, isHookCheckSupported, isGameHook } from './hook-detector'
 
 describe('exportsValidInTarget', () => {
   const exps = [
@@ -53,5 +53,23 @@ describe('isHookCheckSupported', () => {
     expect(isHookCheckSupported('x64')).toBe(true)
     expect(isHookCheckSupported('arm64')).toBe(false)
     expect(isHookCheckSupported('ia32')).toBe(false)
+  })
+})
+
+describe('isGameHook', () => {
+  const jmp = Buffer.from([0xe9, 1, 2, 3, 4, 0x90, 0x90, 0x90])
+  const stock = Buffer.from([0x4c, 0x8b, 0xd1, 0xb8, 0x26, 0, 0, 0])
+
+  it('reports a trampoline that only the game has', () => {
+    expect(isGameHook(jmp, stock)).toBe(true)
+  })
+
+  it('ignores code identical in Custos (forwarder stub or system-wide patch)', () => {
+    expect(isGameHook(jmp, Buffer.from(jmp))).toBe(false)
+  })
+
+  it('ignores stock code, and falls back to the pattern without our own bytes', () => {
+    expect(isGameHook(stock, jmp)).toBe(false)
+    expect(isGameHook(jmp, null)).toBe(true)
   })
 })
