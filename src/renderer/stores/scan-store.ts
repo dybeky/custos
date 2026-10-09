@@ -74,6 +74,7 @@ const computeDerivedValues = (results: ScanResult[]) => ({
 })
 
 let caseSyncTimer: ReturnType<typeof setTimeout> | null = null
+let pendingCase: { id: string; player: string; notes: string } | null = null
 
 /** History IPC exists (false in unit tests that stub only part of the bridge). */
 function hasHistoryApi(): boolean {
@@ -81,23 +82,35 @@ function hasHistoryApi(): boolean {
   return typeof api?.listHistory === 'function' && typeof api?.setHistoryCase === 'function'
 }
 
+/** Save a pending case edit now (it belongs to the check it was typed into). */
+async function flushCaseSync(get: () => ScanState, set: (p: Partial<ScanState>) => void): Promise<void> {
+  if (caseSyncTimer) clearTimeout(caseSyncTimer)
+  caseSyncTimer = null
+  const pending = pendingCase
+  pendingCase = null
+  if (!pending || !hasHistoryApi()) return
+  try {
+    const history = await window.electronAPI.setHistoryCase(pending.id, pending.player, pending.notes)
+    set({ history })
+  } catch {
+    // the check may not be saved yet — the next edit retries
+  }
+  if (get().report?.id === pending.id) void get().refreshPrevious()
+}
+
 /**
  * Save player/notes into the displayed check's history entry (debounced), then
  * look again for that player's previous check — the player is what links them.
+ * The edit is tied to the check it was made on: switching to another check
+ * (a new scan, a saved one) saves it right away instead of dropping it.
  */
 function scheduleCaseSync(get: () => ScanState, set: (p: Partial<ScanState>) => void): void {
+  const { report, caseInfo } = get()
+  if (!report) return
+  if (pendingCase && pendingCase.id !== report.id) void flushCaseSync(get, set)
+  pendingCase = { id: report.id, player: caseInfo.player, notes: caseInfo.notes }
   if (caseSyncTimer) clearTimeout(caseSyncTimer)
-  caseSyncTimer = setTimeout(async () => {
-    caseSyncTimer = null
-    const { report, caseInfo } = get()
-    if (!report || !hasHistoryApi()) return
-    try {
-      set({ history: await window.electronAPI.setHistoryCase(report.id, caseInfo.player, caseInfo.notes) })
-    } catch {
-      // the check may not be saved yet — the next edit retries
-    }
-    void get().refreshPrevious()
-  }, 600)
+  caseSyncTimer = setTimeout(() => void flushCaseSync(get, set), 600)
 }
 
 /**
@@ -172,6 +185,7 @@ export const useScanStore = create<ScanState>((set, get) => ({
 
   openHistory: async (id) => {
     if (get().status === 'scanning') return false
+    void flushCaseSync(get, set)
     const entry = await window.electronAPI.getHistory(id).catch(() => null)
     if (!entry) return false
     set({
@@ -244,6 +258,8 @@ export const useScanStore = create<ScanState>((set, get) => ({
 
   startScan: async (gameId) => {
     if (get().status === 'scanning') return
+    // Takes the pending edit synchronously, so the reset below cannot lose it.
+    void flushCaseSync(get, set)
     get().reset()
     set({ status: 'scanning' })
     try {

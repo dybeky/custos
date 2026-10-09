@@ -315,6 +315,17 @@ describe('ambiguous (everyday-word) keywords', () => {
     expect(m.findKeyword('midnight cheat for unturned')).toBe('midnight')
   })
 
+  it('does not take context from unrelated folders in a path', () => {
+    // The game being checked names its own folder; that says nothing about a map.
+    expect(m.findKeyword('D:\\SteamLibrary\\steamapps\\common\\Unturned\\Maps\\Midnight_Sky\\Map.dat')).toBeNull()
+    expect(m.findKeyword('C:\\Games\\CS2\\titanium_skin\\readme.txt')).toBeNull()
+    // Context in the same name, or in the file name, still counts.
+    expect(m.findKeyword('C:\\Users\\p\\Desktop\\midnight_cs2\\run.exe')).toBe('midnight')
+    expect(m.findKeyword('C:\\Users\\p\\Desktop\\Midnight\\loader.exe')).toBe('midnight')
+    // URLs and titles are read whole, as before.
+    expect(m.findKeyword('https://midnight.example/cs2/')).toBe('midnight')
+  })
+
   it('does not let context words match inside longer words', () => {
     expect(m.findKeyword('Midnight at the hackathon')).toBeNull()
     expect(m.findKeyword('Midnight espresso bar')).toBeNull()

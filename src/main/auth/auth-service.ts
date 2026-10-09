@@ -25,6 +25,12 @@ export interface AuthServiceDeps {
   onChange: (state: AuthState) => void
 }
 
+/** A transport failure reads as 'network' (retried, explained in the UI); site error codes pass through. */
+function networkError(message: string | undefined): string {
+  if (!message) return 'failed'
+  return /fetch failed|network|ENOTFOUND|ECONN|timeout|aborted/i.test(message) ? 'network' : message
+}
+
 export class AuthService {
   private status: AuthState['status'] = 'anon'
   private user: PublicUser | null = null
@@ -270,7 +276,7 @@ export class AuthService {
         this.emit()
         return { ok: false, error: 'update_required' }
       }
-      return { ok: false, error: (e as Error).message || 'failed' }
+      return { ok: false, error: networkError((e as Error).message) }
     }
   }
 
@@ -301,8 +307,7 @@ export class AuthService {
         this.emit()
         return { ok: false, error: 'update_required' }
       }
-      const msg = (e as Error).message
-      return { ok: false, error: /fetch failed|network|ENOTFOUND|ECONN|timeout/i.test(msg) ? 'network' : msg || 'failed' }
+      return { ok: false, error: networkError((e as Error).message) }
     }
   }
 
