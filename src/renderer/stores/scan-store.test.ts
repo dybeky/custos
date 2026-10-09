@@ -245,3 +245,20 @@ describe('case edits survive switching checks', () => {
     expect(setHistoryCase).toHaveBeenCalledWith('scan-a', '', 'admitted it')
   })
 })
+
+describe('deleting a saved check', () => {
+  it('clears the view when the deleted check is the one on screen', async () => {
+    ;(window as any).electronAPI = { ...(window as any).electronAPI, deleteHistory: vi.fn(async () => []) }
+    useScanStore.setState({ status: 'completed', viewingHistory: true, report: { id: 'scan-x' } as any })
+    await useScanStore.getState().deleteHistory('scan-x')
+    expect(useScanStore.getState().report).toBeNull()
+    expect(useScanStore.getState().status).toBe('idle')
+  })
+
+  it('keeps the view when another check is deleted', async () => {
+    ;(window as any).electronAPI = { ...(window as any).electronAPI, deleteHistory: vi.fn(async () => []) }
+    useScanStore.setState({ status: 'completed', report: { id: 'scan-y' } as any, previous: null })
+    await useScanStore.getState().deleteHistory('scan-other')
+    expect(useScanStore.getState().report?.id).toBe('scan-y')
+  })
+})

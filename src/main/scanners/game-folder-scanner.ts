@@ -4,6 +4,7 @@ import { BaseScanner, ScannerEventEmitter } from './base-scanner'
 import { ScanResult } from '../../shared/types'
 import { AppConfig } from '../services/config-service'
 import { getAvailableDrives } from '../utils/drive-utils'
+import { findSteamRoot } from '../utils/steam-locator'
 
 export class GameFolderScanner extends BaseScanner {
   readonly name = 'Game Folder Scanner'
@@ -32,8 +33,10 @@ export class GameFolderScanner extends BaseScanner {
     // Merge with configured additional drives, removing duplicates
     const drives = [...new Set([...systemDrives, ...steam.additionalDrives])]
 
-    // Common Steam installation paths
+    // Steam's registered folder (any drive/folder) first, then common paths
+    const registered = await findSteamRoot().catch(() => null)
     const steamInstallPaths = [
+      ...(registered ? [registered] : []),
       join(process.env.PROGRAMFILES || 'C:\\Program Files', 'Steam'),
       join(process.env['PROGRAMFILES(X86)'] || 'C:\\Program Files (x86)', 'Steam'),
       ...drives.map(d => join(d, 'Steam')),

@@ -27,10 +27,24 @@ export const CHEAT_FAMILY =
 /** Families that are never cheats even though Defender files them as HackTool. */
 export const NOT_A_CHEAT = /\b(autokms|kmspico|kmsauto|kms|keygen|crack|patcher|activator|winactivator)\b/i
 
+/** XML text → plain text (wevtutil escapes &, <, >, quotes in paths and names). */
+export function unescapeXml(s: string): string {
+  return s.replace(/&(#x[0-9a-f]+|#\d+|amp|lt|gt|quot|apos);/gi, (m, e: string) => {
+    const k = e.toLowerCase()
+    if (k === 'amp') return '&'
+    if (k === 'lt') return '<'
+    if (k === 'gt') return '>'
+    if (k === 'quot') return '"'
+    if (k === 'apos') return "'"
+    const code = k.startsWith('#x') ? parseInt(k.slice(2), 16) : parseInt(k.slice(1), 10)
+    return Number.isFinite(code) && code > 0 && code <= 0x10ffff ? String.fromCodePoint(code) : m
+  })
+}
+
 function field(eventXml: string, name: string): string | null {
   const re = new RegExp(`<Data Name=['"]${name}['"]>([^<]*)</Data>`, 'i')
   const m = re.exec(eventXml)
-  return m ? m[1].trim() : null
+  return m ? unescapeXml(m[1]).trim() : null
 }
 
 /** "file:_C:\\a.exe;containerfile:_C:\\b.zip" → ["C:\\a.exe", "C:\\b.zip"]. */

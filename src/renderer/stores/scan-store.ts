@@ -209,8 +209,12 @@ export const useScanStore = create<ScanState>((set, get) => ({
     try {
       set({ history: await window.electronAPI.deleteHistory(id) })
     } catch {
-      // keep the current list
+      return // keep the current list
     }
+    // The deleted check was on screen: it is gone, so is its view (edits to it
+    // would have nowhere to be saved). A comparison built on it is stale too.
+    if (get().report?.id === id && get().status !== 'scanning') get().reset()
+    else if (get().previous?.summary.id === id) void get().refreshPrevious()
   },
 
   setStatus: (status) => set({ status }),
