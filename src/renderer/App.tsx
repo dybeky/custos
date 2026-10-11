@@ -4,7 +4,6 @@ import { Header } from './components/layout/Header'
 import { Sidebar } from './components/layout/Sidebar'
 import { AnimatedBackground } from './components/layout/AnimatedBackground'
 import { LaunchSplash, SPLASH_MIN_MS } from './components/layout/LaunchSplash'
-import { RgbBorder } from './components/layout/RgbBorder'
 import { AnimatePresence } from 'framer-motion'
 import { Dashboard } from './pages/Dashboard'
 import { Scan } from './pages/Scan'
@@ -79,7 +78,6 @@ export function App() {
 
   return (
     <ErrorBoundary>
-      <RgbBorder />
       <AnimatePresence>{(isLoading || !introDone) && <LaunchSplash key="splash" />}</AnimatePresence>
       {!isLoading && (
         <HashRouter>

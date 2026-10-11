@@ -43,10 +43,6 @@
     "sound": {
       "title": "Menu sounds",
       "desc": "A soft click when you switch pages."
-    },
-    "rgbBorder": {
-      "title": "RGB border",
-      "desc": "A colour light that runs around the edge of the window."
     }
   },
   "dashboard": {
