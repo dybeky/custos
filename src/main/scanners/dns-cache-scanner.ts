@@ -29,10 +29,20 @@ export class DnsCacheScanner extends BaseScanner {
         })
       }
 
-      const output = await asyncExec('ipconfig /displaydns', {
-        timeout: 15000,
-        maxBuffer: 10 * 1024 * 1024
-      })
+      // ipconfig exits non-zero when it cannot read the cache (e.g. without
+      // administrator rights on Windows 11). Its message has no records in it,
+      // so reading on would report a clean cache that was never read.
+      let output: string
+      try {
+        output = await asyncExec('ipconfig /displaydns', {
+          timeout: 15000,
+          maxBuffer: 10 * 1024 * 1024,
+          throwOnError: true
+        })
+      } catch {
+        if (this.cancelled) return this.createErrorResult('Scan cancelled', startTime)
+        return this.createErrorResult('Could not read the DNS cache (administrator rights required)', startTime)
+      }
 
       if (this.cancelled) {
         return this.createErrorResult('Scan cancelled', startTime)

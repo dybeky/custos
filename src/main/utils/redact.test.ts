@@ -27,6 +27,18 @@ describe('redactSecrets', () => {
     expect(redactSecrets('passing through: yes')).toBe('passing through: yes')
   })
 
+  it('never erases the evidence: file names and paths stay as they are', () => {
+    const files = [
+      'C:\\Users\\Ivan\\Downloads\\aimbot@v2.0.exe',
+      '[USN C:] loader@cheat.rar — created',
+      '[Autorun HKCU] Token = C:\\Tools\\undead.exe',
+      '[Recent Documents] User = D:\\cheats\\undead.zip'
+    ]
+    for (const s of files) expect(redactSecrets(s)).toBe(s)
+    // A real address next to a file is still hidden.
+    expect(redactSecrets('mail ivan@mail.ru about loader@v2.exe')).toBe('mail [email] about loader@v2.exe')
+  })
+
   it('caps free text', () => {
     expect(safeFreeText('a'.repeat(1000))).toHaveLength(MAX_FREE_TEXT + 1)
   })
