@@ -8,6 +8,7 @@ import { LoginModal } from '../components/auth/LoginModal'
 import { roleInfo } from '../utils/roles'
 import { ThemePicker } from '../components/settings/ThemePicker'
 import { SoundToggle } from '../components/settings/SoundToggle'
+import { RgbBorderToggle } from '../components/settings/RgbBorderToggle'
 import { AboutCard } from '../components/settings/AboutCard'
 import { SignatureStatusCard } from '../components/settings/SignatureStatusCard'
 
@@ -42,6 +43,7 @@ export function Settings() {
           <CardContent>
             <ThemePicker />
             <SoundToggle />
+            <RgbBorderToggle />
           </CardContent>
         </Card>
 
