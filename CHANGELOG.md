@@ -5,6 +5,32 @@ shows it in the update dialog and under "What's new". Keep the `### New`,
 `### Fixes` and `### Improvements` headings — the app groups entries by them.
 Keep each entry to one line of about 100 characters so the dialog stays tidy.
 
+## 3.1.0
+
+### New
+- New look: the Noir theme (now the default), a redesigned side menu and a launch intro
+- Menu click sound, with an on/off switch in Settings
+- Every check is sent to the site, signed in or not, and later edits update the same check
+- The player is detected from the Steam account on the PC and filled in for you
+- Passwords, e-mail addresses and tokens found on the PC are hidden before a report leaves it
+- Settings → About: version, official builds and license
+
+### Fixes
+- UserAssist and recent-document history in the registry are now really read
+- USN journal and other Windows tools read correctly on Russian, German and other languages
+- A PC with WSL2, Docker or VMware installed is no longer reported as a virtual machine
+- Live Scan and the DNS check never show "clean" when the check could not run
+- Cancelling a scan and starting again no longer fails with "already in progress"
+- Windows installed on a drive other than C: is now scanned properly
+- Fewer false alarms from Live Scan, folder names and Custos's own temp files
+- Browser history still being written, deleted folders and Steam on any drive are found
+
+### Improvements
+- A failed scan shows its reason instead of returning to "Ready to scan"
+- Crash dialog copies the log, so it can be sent before the file is cleaned up
+- Live Scan no longer freezes the window while it reads the game's command line
+- Manual check tiles keep full names in small windows
+
 ## 3.0.0
 
 ### New
