@@ -480,16 +480,22 @@ body {
    A colour wheel spins behind a mask that only lets the window's edge show
    through, so the colours run around the frame. Only `transform` animates
    (compositor work, no repaint of the window). */
+/* Inset 1px: Windows 11 paints its own 1px window border over the outermost
+   pixel. Rounded like Windows 11 window corners, so the line bends around
+   them instead of being cut off. The ring is the border box minus the
+   padding box, both rounded. */
 .rgb-border {
   position: fixed;
-  inset: 0;
+  inset: 1px;
   z-index: 200;
   pointer-events: none;
-  overflow: hidden;
-  padding: 1px;
-  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  /* No overflow clip: it would cut the colours at the padding box, inside
+     the ring. The mask already limits painting to the ring. */
+  border: 1px solid transparent;
+  border-radius: 7px;
+  -webkit-mask: linear-gradient(#000 0 0) padding-box, linear-gradient(#000 0 0) border-box;
   -webkit-mask-composite: xor;
-  mask-composite: exclude;
+  mask: linear-gradient(#000 0 0) padding-box exclude, linear-gradient(#000 0 0) border-box;
 }
 .rgb-border > span {
   position: absolute;
