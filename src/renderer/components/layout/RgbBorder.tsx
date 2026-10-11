@@ -6,9 +6,8 @@ export function RgbBorder() {
   const on = useSyncExternalStore(subscribeRgbBorder, isRgbBorderEnabled)
   if (!on) return null
   return (
-    <>
-      <div className="rgb-border rgb-border-glow" aria-hidden="true"><span /></div>
-      <div className="rgb-border" aria-hidden="true"><span /></div>
-    </>
+    <div className="rgb-border" aria-hidden="true">
+      <span />
+    </div>
   )
 }

@@ -486,15 +486,10 @@ body {
   z-index: 200;
   pointer-events: none;
   overflow: hidden;
-  padding: 2px;
+  padding: 1px;
   -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
   -webkit-mask-composite: xor;
   mask-composite: exclude;
-}
-.rgb-border.rgb-border-glow {
-  padding: 7px;
-  opacity: 0.45;
-  filter: blur(6px);
 }
 .rgb-border > span {
   position: absolute;
