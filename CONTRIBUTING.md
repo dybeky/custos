@@ -2,9 +2,19 @@
 
 ## Branch model
 
-- All development work happens on the `dev` branch.
-- Open a pull request from `dev` into `main` when a feature or fix is ready for release.
-- Do not commit directly to `main`.
+- `dev`: all development and testing happens here.
+- `stable`: what players run. It only ever holds released versions.
+- Do not commit directly to `stable`.
+
+To release: bump `version` in package.json and add its section to CHANGELOG.md on
+`dev`, wait for CI to pass, fast-forward `stable` to that commit, then tag it:
+
+```bash
+git push origin dev:stable
+git tag -a 3.2.0 -m "Custos 3.2.0" && git push origin 3.2.0
+```
+
+The release workflow refuses a tag whose commit is not on `stable`.
 
 ## How to run
 

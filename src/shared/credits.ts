@@ -9,7 +9,7 @@ export const CREDITS = {
   year: 2026,
   repoUrl: 'https://github.com/dybeky/custos',
   releasesUrl: 'https://github.com/dybeky/custos/releases',
-  licenseUrl: 'https://github.com/dybeky/custos/blob/main/LICENSE'
+  licenseUrl: 'https://github.com/dybeky/custos/blob/stable/LICENSE'
 } as const
 
 export const COPYRIGHT = `© ${CREDITS.year} ${CREDITS.author} (${CREDITS.legalName}). All rights reserved.`
