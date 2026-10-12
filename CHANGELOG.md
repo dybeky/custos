@@ -5,7 +5,10 @@ shows it in the update dialog and under "What's new". Keep the `### New`,
 `### Fixes` and `### Improvements` headings — the app groups entries by them.
 Keep each entry to one line of about 100 characters so the dialog stays tidy.
 
-## Unreleased
+## 3.1.1
+
+### New
+- Checks sent to the site no longer contain the player's Windows account name
 
 ### Fixes
 - Windows tools always run from System32: a fake tasklist.exe next to Custos can't fake a scan
@@ -17,8 +20,13 @@ Keep each entry to one line of about 100 characters so the dialog stays tidy.
 - Browser history is read in place: no copies of it are written to %TEMP%
 - A stalled update download gives up after a minute instead of hanging
 - Windows 11 25H2 is named correctly
+- DNS check reads every cached record on any Windows language, and keeps failed lookups
+- Slow checks keep what they found instead of losing it all at the time limit
+- A PC with VMware Workstation installed is no longer reported as a virtual machine
+- Exact-name cheats (e.g. spoofer.exe) are found in Amcache, and more findings correlate
 
 ### Improvements
+- The USN journal is read from its newest end first
 - A crafted browser log on the checked PC can no longer make Custos run out of memory
 
 ## 3.1.0
