@@ -21,7 +21,6 @@ const sys32 = (rel: string): string => `${SYSTEM_ROOT}\\System32\\${rel}`
 // VM Guest drivers (only present INSIDE VM)
 const VM_GUEST_DRIVERS: Record<string, string[]> = {
   VMware: [
-    sys32('drivers\\vmci.sys'),
     sys32('drivers\\vmmouse.sys'),
     sys32('drivers\\vmhgfs.sys'),
     sys32('drivers\\vmusbmouse.sys'),
@@ -167,8 +166,15 @@ export class VMScanner extends BaseScanner {
       { name: 'Environment', fn: () => this.checkEnvironment() }
     ]
 
+    let timedOut = false
     for (let i = 0; i < checkMethods.length; i++) {
       if (this.cancelled) break
+      // Each check runs PowerShell / sc / tasklist; past the scanner timeout
+      // everything found so far would be dropped.
+      if (this.outOfTime()) {
+        timedOut = true
+        break
+      }
 
       const method = checkMethods[i]
 
@@ -193,13 +199,14 @@ export class VMScanner extends BaseScanner {
     // Only report if we have CRITICAL findings (actually running in VM)
     const criticalFindings = allFindings.filter(f => f.critical)
 
+    const partial = timedOut ? 'Stopped at the time limit; not every check ran' : undefined
     if (criticalFindings.length === 0) {
       // No VM detected
-      return this.createSuccessResult([], startTime)
+      return this.createSuccessResult([], startTime, partial)
     }
 
     const formattedFindings = formatVmEvidence(criticalFindings)
-    return this.createSuccessResult(formattedFindings, startTime)
+    return this.createSuccessResult(formattedFindings, startTime, partial)
   }
 
   private async checkWMI(): Promise<VMFinding[]> {

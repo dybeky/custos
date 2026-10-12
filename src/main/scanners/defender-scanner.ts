@@ -18,12 +18,18 @@ export class DefenderScanner extends BaseScanner {
   protected async doScan(events: ScannerEventEmitter | undefined, startTime: Date): Promise<ScanResult> {
     this.reset()
     this.emitProgress(events, 0, 1, 'Reading Windows Defender detection history...')
-    const { stdout } = await execFileAsync(
+    const { stdout, stderr } = await execFileAsync(
       'wevtutil',
       ['qe', LOG, '/q:*[System[(EventID=1116 or EventID=1117)]]', '/c:500', '/rd:true', '/f:xml'],
       { timeoutMs: 15000 }
     )
     if (this.cancelled) return this.createErrorResult('Scan cancelled', startTime)
+    // No events prints nothing and no error. An error with no output (log
+    // disabled, access denied, wevtutil blocked) means the history was never
+    // read — that is not a clean history.
+    if (!stdout.trim() && stderr.trim()) {
+      return this.createErrorResult(`Could not read the Defender history: ${stderr.trim().split(/\r?\n/)[0]}`, startTime)
+    }
 
     const contains = (s: string) => this.keywordMatcher.containsKeyword(s)
     const findings: string[] = []
