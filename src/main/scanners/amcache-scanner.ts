@@ -2,9 +2,6 @@ import { ScannerEventEmitter } from './base-scanner'
 import { ScanResult } from '../../shared/types'
 import { RegistryQueryScanner } from './registry-query-scanner'
 
-// Overall scan timeout (45 seconds max)
-const SCAN_TIMEOUT_MS = 45000
-
 export class AmcacheScanner extends RegistryQueryScanner {
   readonly name = 'Amcache Scanner'
   readonly description = 'Scanning Amcache for program execution history'
@@ -12,9 +9,10 @@ export class AmcacheScanner extends RegistryQueryScanner {
   protected async doScan(events: ScannerEventEmitter | undefined, startTime: Date): Promise<ScanResult> {
     this.reset()
 
-    // Track overall scan time to prevent excessive duration
-    const scanStartMs = Date.now()
-    const isTimedOut = () => Date.now() - scanStartMs > SCAN_TIMEOUT_MS
+    // Stop within the scan's time budget: past the scanner timeout every
+    // finding is dropped. (The old 45 s limit outlived the 30 s timeout.)
+    const isTimedOut = () => this.outOfTime()
+    const PARTIAL = 'Stopped at the time limit; not every registry location was read'
 
     const results: string[] = []
 
@@ -38,7 +36,7 @@ export class AmcacheScanner extends RegistryQueryScanner {
     if (this.cancelled || isTimedOut()) {
       return this.cancelled
         ? this.createErrorResult('Scan cancelled', startTime)
-        : this.createSuccessResult(results, startTime) // Return partial results on timeout
+        : this.createSuccessResult(results, startTime, PARTIAL) // Return partial results on timeout
     }
 
     if (events?.onProgress) {
@@ -52,12 +50,10 @@ export class AmcacheScanner extends RegistryQueryScanner {
     }
 
     // Method 2: Query AppCompatFlags
-    if (!isTimedOut()) {
-      const appCompatResults = await this.scanAppCompatFlags()
-      results.push(...appCompatResults)
-    }
+    if (isTimedOut()) return this.createSuccessResult(results, startTime, PARTIAL)
+    results.push(...(await this.scanAppCompatFlags()))
 
-    return this.createSuccessResult(results, startTime)
+    return this.createSuccessResult(results, startTime, isTimedOut() ? PARTIAL : undefined)
   }
 
   private async scanInventoryApplicationFile(): Promise<string[]> {
@@ -128,7 +124,9 @@ export class AmcacheScanner extends RegistryQueryScanner {
           const trimmed = line.trim()
           if (!trimmed) continue
 
-          if (this.keywordMatcher.containsKeyword(trimmed)) {
+          // Value name (a program path), type and data are matched one by one:
+          // on the whole line an exact-name keyword (spoofer.exe) is never found.
+          if (trimmed.split(/\s{4,}/).some((part) => this.keywordMatcher.containsKeyword(part))) {
             pathResults.push(`[Amcache/AppCompat] ${trimmed}`)
           }
         }

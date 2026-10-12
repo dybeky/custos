@@ -137,6 +137,20 @@ describe('DnsCacheScanner.parseDnsOutput', () => {
     expect(entry!.ttl).toBe(100)
   })
 
+  it('keeps lookups that failed, which have no record lines', () => {
+    const out = `
+    cheat-loader.net
+    ----------------------------------------
+    Name does not exist.
+
+    example.com
+    ----------------------------------------
+    Record Name . . . . . : example.com
+    Record Type . . . . . : 1
+`
+    expect(scanner.parseDnsOutput(out).map(e => e.recordName).sort()).toEqual(['cheat-loader.net', 'example.com'])
+  })
+
   it('reads every record in a locale it has no labels for', () => {
     // Czech Windows: none of the labels are known, so each record's name comes
     // from the first ". . . :" line of its block — for every block, not only the first.

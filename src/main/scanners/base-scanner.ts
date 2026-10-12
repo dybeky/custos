@@ -19,6 +19,9 @@ export abstract class BaseScanner {
   protected scanSettings: ScanSettings
   protected excludedDirs: Set<string>
   protected cancelled = false
+  /** How long one scan may take before it should stop and report what it has (see setTimeBudget). */
+  private timeBudgetMs = Infinity
+  private budgetEndsAt = Infinity
 
   abstract readonly name: string
   abstract readonly description: string
@@ -35,12 +38,31 @@ export abstract class BaseScanner {
 
   async scan(events?: ScannerEventEmitter): Promise<ScanResult> {
     const startTime = new Date()
+    this.budgetEndsAt = startTime.getTime() + this.timeBudgetMs
     try {
       return await this.doScan(events, startTime)
     } catch (error) {
       if (this.cancelled) return this.createErrorResult('Scan cancelled', startTime)
       return this.createErrorResult(error instanceof Error ? error.message : String(error), startTime)
     }
+  }
+
+  /**
+   * The orchestrator stops a scanner that runs past its timeout and drops
+   * everything it found. Scanners with long steps check timeLeftMs() and
+   * return their findings — marked partial — before that happens.
+   */
+  setTimeBudget(ms: number): void {
+    this.timeBudgetMs = ms
+  }
+
+  /** Milliseconds left in this scan's time budget (Infinity when there is none). */
+  protected timeLeftMs(): number {
+    return this.budgetEndsAt - Date.now()
+  }
+
+  protected outOfTime(): boolean {
+    return this.timeLeftMs() <= 0
   }
 
   cancel(): void {

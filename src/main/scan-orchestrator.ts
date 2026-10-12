@@ -36,6 +36,9 @@ async function runScannerWithTimeout(
 ): Promise<ScanResult> {
   const startTime = Date.now()
   logger.debug(`Scanner starting: ${scanner.name}`)
+  // Leave the scanner time to wrap up and hand in a partial result: a
+  // timeout below discards everything it found.
+  scanner.setTimeBudget(Math.max(0, Math.min(timeoutMs * 0.75, timeoutMs - 5000)))
 
   return new Promise((resolve) => {
     const timeout = setTimeout(() => {
