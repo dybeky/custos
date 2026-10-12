@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest'
-import { classifyFindings, correlate, computeVerdict, analyze, reportContentHash } from './risk-engine'
+import { createHash } from 'crypto'
+import { classifyFindings, correlate, computeVerdict, analyze, reportContentHash, reportForUpload } from './risk-engine'
 import type { AnalyzeContext } from './risk-engine'
 import type { ScanResult } from '../../shared/types'
 import { formatFileHashFinding } from './finding-tags'
@@ -319,6 +320,19 @@ describe('analyze', () => {
     expect(reportContentHash(report)).toBe(report.contentHash)
     const tampered = { ...report, verdict: { ...report.verdict, band: 'clean' as const } }
     expect(reportContentHash(tampered)).not.toBe(report.contentHash)
+  })
+
+  it('uploads a copy without the Windows account name, re-hashed', () => {
+    const report = analyze([result('AppData Scanner', ['C:\\Users\\Ivan\\AppData\\Roaming\\undead.exe'])], baseCtx)
+    const saved = JSON.stringify(report)
+    const upload = reportForUpload(report)
+    expect(JSON.stringify(upload)).not.toContain('Ivan')
+    expect(JSON.stringify(upload)).toContain('C:\\\\Users\\\\<user>\\\\AppData\\\\Roaming\\\\undead.exe')
+    expect(upload.verdict).toEqual(report.verdict)
+    // The site re-hashes the JSON it receives: it must match.
+    const { contentHash: _h, ...body } = JSON.parse(JSON.stringify(upload)) as typeof upload
+    expect(createHash('sha256').update(JSON.stringify(body)).digest('hex')).toBe(upload.contentHash)
+    expect(JSON.stringify(report)).toBe(saved)
   })
 
   it('is deterministic — identical input yields identical output', () => {

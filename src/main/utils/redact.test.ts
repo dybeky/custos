@@ -1,5 +1,24 @@
 import { describe, it, expect } from 'vitest'
-import { redactSecrets, safeFreeText, MAX_FREE_TEXT } from './redact'
+import { redactSecrets, safeFreeText, MAX_FREE_TEXT, hideProfileNames, hideProfileNamesDeep } from './redact'
+
+describe('hideProfileNames', () => {
+  it('replaces the Windows account name and keeps the rest of the path', () => {
+    expect(hideProfileNames('C:\\Users\\Иван Петров\\Downloads\\aimbot.exe')).toBe('C:\\Users\\<user>\\Downloads\\aimbot.exe')
+    expect(hideProfileNames('[USN D:] d:\\users\\ivan')).toBe('[USN D:] d:\\users\\<user>')
+    expect(hideProfileNames('a C:\\Users\\a\\x.dll and C:\\Users\\b\\y.dll')).toBe('a C:\\Users\\<user>\\x.dll and C:\\Users\\<user>\\y.dll')
+  })
+
+  it('leaves shared profiles and other paths alone', () => {
+    for (const s of ['C:\\Users\\Public\\cheat.exe', 'C:\\Users\\Default\\NTUSER.DAT', 'C:\\Program Files\\Steam', 'C:\\Users'])
+      expect(hideProfileNames(s)).toBe(s)
+  })
+
+  it('walks a whole report without touching non-strings', () => {
+    const report = { a: ['C:\\Users\\ivan\\x.exe'], b: { c: 3, d: null, e: true }, f: 'C:\\Users\\ivan' }
+    expect(hideProfileNamesDeep(report)).toEqual({ a: ['C:\\Users\\<user>\\x.exe'], b: { c: 3, d: null, e: true }, f: 'C:\\Users\\<user>' })
+    expect(report.f).toBe('C:\\Users\\ivan')
+  })
+})
 
 describe('redactSecrets', () => {
   it('hides logins, passwords and e-mails in a page title', () => {

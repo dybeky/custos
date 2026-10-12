@@ -42,6 +42,30 @@ export function redactSecrets(text: string): string {
     .replace(EMAIL, (m) => (FILE_EXT.test(m) ? m : '[email]'))
 }
 
+// C:\Users\<name>\… — the Windows account name of whoever was checked. Shared
+// profiles (Public, Default, All Users) are not personal and stay as they are.
+const PROFILE_DIR = /([A-Za-z]:\\+Users\\+)(?!(?:Public|Default|Default User|All Users)(?:\\|$))([^\\/:*?"<>|\r\n]+)/gi
+
+/**
+ * A report copy that leaves this PC (the site upload) carries no Windows
+ * account name: the path keeps everything that makes it evidence, only the
+ * profile folder becomes <user>. Not applied to findings at scan time, since the
+ * app reveals those paths in Explorer.
+ */
+export function hideProfileNames(text: string): string {
+  return text.replace(PROFILE_DIR, '$1<user>')
+}
+
+/** hideProfileNames over every string in a JSON-like value (a new copy). */
+export function hideProfileNamesDeep<T>(value: T): T {
+  if (typeof value === 'string') return hideProfileNames(value) as T
+  if (Array.isArray(value)) return value.map(hideProfileNamesDeep) as T
+  if (value && typeof value === 'object' && Object.getPrototypeOf(value) === Object.prototype) {
+    return Object.fromEntries(Object.entries(value).map(([k, v]) => [k, hideProfileNamesDeep(v)])) as T
+  }
+  return value
+}
+
 /** A page title / form value, redacted and capped so a report never carries a document. */
 export function safeFreeText(text: string): string {
   const clean = redactSecrets(text)
