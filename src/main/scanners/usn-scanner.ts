@@ -69,7 +69,7 @@ export class UsnJournalScanner extends BaseScanner {
         truncated = why === 'deadline'
         try { proc.kill() } catch { /* already gone */ }
       }
-      const deadline = setTimeout(() => stop('deadline'), READ_BUDGET_MS)
+      const deadline = setTimeout(() => stop('deadline'), Math.max(0, Math.min(READ_BUDGET_MS, this.timeLeftMs())))
       const cancelPoll = setInterval(() => { if (this.cancelled) stop('cancel') }, 250)
 
       let cols: ReturnType<typeof usnColumns> | null = null

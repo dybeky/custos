@@ -184,9 +184,14 @@ export class WindowModuleScanner extends BaseScanner {
 
     try {
       // CSV: the table format wraps long module lists onto extra lines.
-      const csv = await execFileAsync('tasklist', ['/m', '/fo', 'csv', '/nh'], { timeoutMs: 30000 })
+      // Within the scan's time budget: a scanner that runs into its timeout
+      // loses the window-title findings above as well.
+      const budget = (): number => Math.max(1000, Math.min(30000, this.timeLeftMs()))
+      const csv = await execFileAsync('tasklist', ['/m', '/fo', 'csv', '/nh'], { timeoutMs: budget() })
       let entries = parseTasklistModulesCsv(csv.stdout)
-      if (entries.length === 0) entries = parseTasklistModules((await execFileAsync('tasklist', ['/m'], { timeoutMs: 30000 })).stdout)
+      if (entries.length === 0 && !this.outOfTime()) {
+        entries = parseTasklistModules((await execFileAsync('tasklist', ['/m'], { timeoutMs: budget() })).stdout)
+      }
 
       if (!this.cancelled) {
         for (const entry of entries) {

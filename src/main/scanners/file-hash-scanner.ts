@@ -68,8 +68,15 @@ export class FileHashScanner extends BaseScanner {
     const findings: string[] = []
     const total = filePaths.length
 
+    let timedOut = false
     for (let i = 0; i < filePaths.length; i++) {
       if (this.cancelled) break
+      // Hashing a full Downloads folder can outlast the scanner timeout, which
+      // would drop every finding: stop in time and report what was hashed.
+      if (this.outOfTime()) {
+        timedOut = true
+        break
+      }
 
       const filePath = filePaths[i]
 
@@ -99,7 +106,8 @@ export class FileHashScanner extends BaseScanner {
     }
 
     this.emitProgress(events, total, total, '')
-    return this.createSuccessResult(findings, startTime)
+    return this.createSuccessResult(findings, startTime,
+      timedOut ? 'Stopped at the time limit; not every file was hashed' : undefined)
   }
 
   /**

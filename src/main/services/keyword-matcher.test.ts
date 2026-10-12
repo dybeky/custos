@@ -355,6 +355,13 @@ describe('findKeywordInFinding', () => {
     expect(m.findKeywordInFinding('[USN C:] midnight.exe → update.dll — created, renamed | 12/10/2026, 10:00')).toBe('midnight')
   })
 
+  it('reads shortcuts, registry lines, modules and process paths', () => {
+    expect(m.findKeywordInFinding('C:\\Users\\a\\Recent\\tool.lnk -> C:\\Tools\\spoofer.exe')).toBe('spoofer')
+    expect(m.findKeywordInFinding('[Amcache/AppCompat] C:\\Games\\Midnight.exe    REG_SZ    ~ RUNASADMIN')).toBe('midnight')
+    expect(m.findKeywordInFinding('module: spoofer.dll (in game.exe)')).toBe('spoofer')
+    expect(m.findKeywordInFinding('[Process] loader.exe (PID: 42)\n    Path: C:\\Tools\\spoofer.exe')).toBe('spoofer')
+  })
+
   it('matches what findKeyword matches, and nothing more', () => {
     expect(m.findKeywordInFinding('[DNS Cache] aimbot.com (A)')).toBe('aimbot')
     expect(m.findKeywordInFinding('[Chrome/History] https://example.com/midnight-song | "Midnight"')).toBeNull()

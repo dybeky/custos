@@ -127,6 +127,11 @@ export class DnsCacheScanner extends BaseScanner {
     // A record's name is the first ". . . :" line of its block; blocks are
     // separated by blank lines and the "-----" rule under each domain header.
     let blockStart = true
+    // The name each block was looked up as (the line above its "-----" rule).
+    // A failed lookup ("Name does not exist") has no record lines, only this —
+    // and a lookup of a cheat site that failed or was blocked is still a lead.
+    const headers: string[] = []
+    let previousLine = ''
 
     const pushCurrent = (): void => {
       if (currentName) entries.push({ recordName: currentName.trim(), recordType: currentType, ttl: currentTtl })
@@ -135,9 +140,12 @@ export class DnsCacheScanner extends BaseScanner {
     for (const line of lines) {
       const trimmed = line.trim()
       if (!trimmed || /^-{5,}$/.test(trimmed)) {
+        if (trimmed && /^[a-z0-9][\w.-]*\.[a-z]{2,}\.?$/i.test(previousLine)) headers.push(previousLine.replace(/\.$/, ''))
         blockStart = true
+        previousLine = ''
         continue
       }
+      previousLine = trimmed
       const atBlockStart = blockStart
       if (/(?:\s*\.)+\s*:/.test(trimmed)) blockStart = false
 
@@ -190,6 +198,13 @@ export class DnsCacheScanner extends BaseScanner {
     }
 
     pushCurrent()
+
+    const named = new Set(entries.map((e) => e.recordName.toLowerCase()))
+    for (const header of headers) {
+      if (named.has(header.toLowerCase())) continue
+      named.add(header.toLowerCase())
+      entries.push({ recordName: header, recordType: '', ttl: 0 })
+    }
 
     return entries
   }

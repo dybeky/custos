@@ -128,21 +128,31 @@ export class KeywordMatcher {
 
   /**
    * findKeyword for a finding line as scanners write it — "[BAM] C:\\…\\x.exe |
-   * 12/10/2026, 10:00", "[USN C:] a.exe → b.dll — created". The decorations
-   * (source tag, " | time", rename arrows) hide the file name from the exact-name
-   * and everyday-word checks, so each part is also tried on its own: the
-   * finding gets the keyword the scanner flagged it for.
+   * 12/10/2026, 10:00", "[USN C:] a.exe → b.dll — created", "x.lnk -> target",
+   * "module: x.dll (in game.exe)". The decorations hide the file name from the
+   * exact-name and everyday-word checks, so each part, and then each file name
+   * in it, is also tried on its own: the finding gets the keyword the scanner
+   * flagged it for.
    */
   findKeywordInFinding(text: string): string | null {
     const whole = this.findKeyword(text)
     if (whole) return whole
-    for (const part of text.split(/\s+(?:\||→|—)\s+/)) {
-      // Leading "[source]" / "{keyword}" tags, and a prefetch file's ".pf"
-      // (SPOOFER.EXE-1A2B3C4D.pf names spoofer.exe).
-      const core = part.replace(/^(?:\[[^\]]*\]\s*|\{[^}]*\}\s*)+/, '').replace(/\.pf$/i, '').trim()
-      if (!core || core === text) continue
-      const keyword = this.findKeyword(core)
+    const parts = text
+      .split(/\r?\n|\s+(?:\||→|—|->|=)\s+|\s{4,}/)
+      // Leading "[source]" / "{keyword}" / "Path:" labels, and a prefetch file's
+      // ".pf" (SPOOFER.EXE-1A2B3C4D.pf names spoofer.exe).
+      .map((p) => p.replace(/^(?:\[[^\]]*\]\s*|\{[^}]*\}\s*|[a-z]+:\s+)+/i, '').replace(/\.pf$/i, '').trim())
+      .filter((p) => p && p !== text)
+    for (const part of parts) {
+      const keyword = this.findKeyword(part)
       if (keyword) return keyword
+    }
+    for (const part of parts) {
+      for (const token of part.split(/[\s"'()]+/)) {
+        if (!/\.[a-z0-9]{2,4}$/i.test(token) || token === part) continue
+        const keyword = this.findKeyword(token)
+        if (keyword) return keyword
+      }
     }
     return null
   }

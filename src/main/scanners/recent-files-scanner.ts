@@ -8,8 +8,6 @@ import { execFileAsync } from '../utils/async-exec'
 
 // Small batch size to prevent PowerShell hangs
 const BATCH_SIZE = 15
-// Overall scan timeout (30 seconds max)
-const SCAN_TIMEOUT_MS = 30000
 
 /** stdin for the shortcut resolver: each path as base64 of UTF-16LE, one per line. */
 export function encodeLnkPaths(paths: string[]): string {
@@ -88,9 +86,10 @@ $results | ConvertTo-Json -Compress
   protected async doScan(events: ScannerEventEmitter | undefined, startTime: Date): Promise<ScanResult> {
     this.reset()
 
-    // Track overall scan time to prevent excessive duration
-    const scanStartMs = Date.now()
-    const isTimedOut = () => Date.now() - scanStartMs > SCAN_TIMEOUT_MS
+    // Stop within the scan's time budget: past the scanner timeout every
+    // finding is dropped. (The old 30 s limit equalled that timeout.)
+    let timedOut = false
+    const isTimedOut = () => (timedOut ||= this.outOfTime())
 
     const recentFolder = join(
       homedir(),
@@ -218,6 +217,7 @@ $results | ConvertTo-Json -Compress
       }
     }
 
-    return this.createSuccessResult(results, startTime)
+    return this.createSuccessResult(results, startTime,
+      timedOut ? 'Stopped at the time limit; not every recent shortcut was checked' : undefined)
   }
 }

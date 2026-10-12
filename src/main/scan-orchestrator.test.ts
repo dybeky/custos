@@ -24,6 +24,7 @@ describe('runScan after a cancel', () => {
     const gate = new Promise<void>((r) => { release = r })
     const scanner = {
       name: 'Prefetch Scanner',
+      setTimeBudget: () => {},
       scan: async () => {
         await gate
         return { scannerName: 'Prefetch Scanner', success: true, findings: ['x'], startTime: new Date(), endTime: new Date(), duration: 1, count: 1, hasFindings: true }
@@ -47,5 +48,27 @@ describe('runScan after a cancel', () => {
     // Only the "starting" progress from before the cancel; no late result.
     expect(channels.length).toBe(beforeCancel)
     expect(channels).not.toContain('scan:result')
+  })
+})
+
+describe('runScan time budget', () => {
+  it('gives each scanner a budget that ends before its timeout', async () => {
+    const { runScan } = await import('./scan-orchestrator')
+    let budget = -1
+    const scanner = {
+      name: 'Prefetch Scanner',
+      setTimeBudget: (ms: number) => { budget = ms },
+      scan: async () => ({ scannerName: 'Prefetch Scanner', success: true, findings: [], startTime: new Date(), endTime: new Date(), duration: 1, count: 0, hasFindings: false })
+    }
+    const results = await runScan({
+      factory: { getScanner: () => scanner } as never,
+      requestedIds: ['prefetch'],
+      supportedIds: new Set(['prefetch']) as never,
+      emit: () => {},
+      signal: new AbortController().signal,
+      timeoutMs: 30000
+    })
+    expect(results).toHaveLength(1)
+    expect(budget).toBe(22500)
   })
 })
