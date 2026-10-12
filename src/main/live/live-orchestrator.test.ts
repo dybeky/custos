@@ -12,6 +12,7 @@ vi.mock('./process-locator', () => ({
   findGameProcess: () => ({ pid: 1234, name: 'Unturned.exe' })
 }))
 vi.mock('./signatures', () => ({ loadSignatures: () => ({}) }))
+vi.mock('../utils/resource-dir', () => ({ resourceDir: () => '' }))
 
 // Each detector is a stub recording that it ran; the first one can trip the
 // abort signal to simulate a user cancelling mid-scan.

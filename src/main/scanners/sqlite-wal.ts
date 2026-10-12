@@ -56,6 +56,12 @@ export function applyWal(db: Buffer, wal: Buffer | null): Buffer {
     }
   }
   if (committed.size === 0) return db
+  // A commit can only size the database up to its existing pages or the
+  // highest page the log itself carries. A larger claim is a crafted log
+  // (it lives on the checked PC) trying to make Custos allocate gigabytes.
+  let highestPage = 0
+  for (const page of committed.keys()) if (page > highestPage) highestPage = page
+  if (dbPages > Math.max(Math.ceil(db.length / pageSize), highestPage)) return db
 
   const out = Buffer.alloc(dbPages * pageSize)
   db.copy(out, 0, 0, Math.min(db.length, out.length))

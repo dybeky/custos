@@ -9,6 +9,7 @@ import { getLatestReleaseResult, getReleaseForVersion, REPO, type GithubAsset, t
 import { humanizeCommits } from './changelog'
 import { logger } from './logger'
 import { UPDATE_FILE_PREFIX } from '../utils/session-names'
+import { cmdPath, systemCwd } from '../utils/system-paths'
 import type { UpdateInfo, UpdateProgress } from '../../shared/types'
 
 /** Section headings a hand-written release uses, mapped to changelog types. */
@@ -55,6 +56,9 @@ function notesFromRelease(rel: GithubRelease): UpdateInfo['notes'] {
 
 /** Largest exe we are willing to download (the current build is ~80 MB). */
 const MAX_UPDATE_BYTES = 400 * 1024 * 1024
+
+/** Give up on a download that delivers nothing for this long. */
+const DOWNLOAD_STALL_MS = 60_000
 
 /**
  * The release asset this build can replace itself with: `custos-<arch>.exe`,
@@ -129,9 +133,36 @@ export async function downloadVerified(
   asset: GithubAsset,
   dest: string,
   onProgress: (p: UpdateProgress) => void,
-  fetchImpl: typeof fetch = fetch
+  fetchImpl: typeof fetch = fetch,
+  stallMs = DOWNLOAD_STALL_MS
 ): Promise<void> {
-  const res = await fetchImpl(asset.url, { headers: { 'User-Agent': 'custos-app' }, redirect: 'follow' })
+  // A connection that stops delivering data would otherwise hang the update
+  // (and its "in progress" lock) forever: abort once nothing arrives for a while.
+  const controller = new AbortController()
+  let stall: ReturnType<typeof setTimeout> | undefined
+  const armStall = (): void => {
+    clearTimeout(stall)
+    stall = setTimeout(() => controller.abort(new Error('Download stalled')), stallMs)
+  }
+  armStall()
+  try {
+    await downloadTo(asset, dest, onProgress, fetchImpl, controller.signal, armStall)
+  } catch (err) {
+    throw controller.signal.aborted ? new Error('Download stalled — check the connection and try again') : err
+  } finally {
+    clearTimeout(stall)
+  }
+}
+
+async function downloadTo(
+  asset: GithubAsset,
+  dest: string,
+  onProgress: (p: UpdateProgress) => void,
+  fetchImpl: typeof fetch,
+  signal: AbortSignal,
+  onData: () => void
+): Promise<void> {
+  const res = await fetchImpl(asset.url, { headers: { 'User-Agent': 'custos-app' }, redirect: 'follow', signal })
   if (!res.ok || !res.body) throw new Error(`Download failed (HTTP ${res.status})`)
   const hash = createHash('sha256')
   const out = createWriteStream(dest)
@@ -149,6 +180,7 @@ export async function downloadVerified(
     for (;;) {
       const { done, value } = await reader.read()
       if (done) break
+      onData()
       received += value.byteLength
       if (received > asset.size) throw new Error('Download is larger than the release says')
       if (head.length < 2) head += Buffer.from(value.subarray(0, 2 - head.length)).toString('latin1')
@@ -183,7 +215,8 @@ export function swapScript(src: string, dest: string): string {
 }
 
 function scheduleSwap(src: string, dest: string): void {
-  spawn(process.env.ComSpec || 'cmd.exe', ['/d', '/c', swapScript(src, dest)], {
+  spawn(cmdPath(), ['/d', '/c', swapScript(src, dest)], {
+    cwd: systemCwd(),
     detached: true,
     stdio: 'ignore',
     windowsHide: true,

@@ -127,6 +127,23 @@ describe('downloadVerified', () => {
       await expect(downloadVerified(a, file, () => {}, serve(exe, 404))).rejects.toThrow(/HTTP 404/)
     })
   })
+
+  it('gives up on a download that stops delivering data instead of hanging', async () => {
+    await withTmp(async (file) => {
+      // Sends the first bytes, then goes silent; honours the abort signal like real fetch.
+      const stalling = (async (_url: string, init?: RequestInit) => {
+        const body = new ReadableStream<Uint8Array>({
+          start(c) {
+            c.enqueue(new Uint8Array(exe.subarray(0, 10)))
+            init?.signal?.addEventListener('abort', () => c.error(init.signal!.reason))
+          }
+        })
+        return new Response(body, { status: 200 })
+      }) as unknown as typeof fetch
+      const a = asset('custos-x64.exe', { size: exe.length, sha256: sha })
+      await expect(downloadVerified(a, file, () => {}, stalling, 50)).rejects.toThrow(/stalled/)
+    })
+  })
 })
 
 describe('swapScript', () => {

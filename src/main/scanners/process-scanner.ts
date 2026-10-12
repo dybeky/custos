@@ -17,6 +17,10 @@ export class ProcessScanner extends BaseScanner {
     this.reset()
 
     const processes = await this.getProcessList()
+    if (this.cancelled) return this.createErrorResult('Scan cancelled', startTime)
+    // A running Windows always has processes: an empty list means neither
+    // PowerShell nor tasklist could be read, which must not read as "clean".
+    if (processes.length === 0) return this.createErrorResult('Could not read the process list', startTime)
     const results: string[] = []
     const seenPids = new Set<number>()
 

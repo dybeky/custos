@@ -5,6 +5,7 @@ import { execFileAsync, outputDecoder } from '../utils/async-exec'
 import { formatTimestamp } from '../utils/format'
 import { UsnAggregator, dateOrderFromPattern, lineReader, parseUsnRecord, splitCsv, usnColumns, usnColumnsFromRecord, usnStartFromQuery, type DateOrder } from './usn-journal'
 import { parseRegValues } from './anti-forensics'
+import { resolveSystemTool, systemCwd } from '../utils/system-paths'
 
 /** Stop reading after this long and report what was found — the journal can be huge. */
 const READ_BUDGET_MS = 22_000
@@ -64,7 +65,11 @@ export class UsnJournalScanner extends BaseScanner {
       let records = 0
       let firstLines = ''
       let truncated = false
-      const proc = spawn('fsutil', ['usn', 'readjournal', drive, ...(startUsn ? [`startusn=${startUsn}`] : []), 'csv'], { windowsHide: true })
+      const proc = spawn(
+        resolveSystemTool('fsutil'),
+        ['usn', 'readjournal', drive, ...(startUsn ? [`startusn=${startUsn}`] : []), 'csv'],
+        { windowsHide: true, cwd: systemCwd() }
+      )
       const stop = (why: 'deadline' | 'cancel') => {
         truncated = why === 'deadline'
         try { proc.kill() } catch { /* already gone */ }

@@ -53,6 +53,9 @@ export class ScheduledTasksScanner extends BaseScanner {
       }
 
       const tasks = this.parseCsvOutput(output)
+      // Windows always has scheduled tasks of its own: none at all means
+      // schtasks could not be read, which must not read as a clean result.
+      if (tasks.length === 0) return this.createErrorResult('Could not read the scheduled task list', startTime)
 
       if (events?.onProgress) {
         events.onProgress({

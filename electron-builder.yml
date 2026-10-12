@@ -45,6 +45,5 @@ portable:
   artifactName: custos-${arch}.exe
   requestExecutionLevel: admin
 
-extraResources:
-  - from: resources
-    to: resources
+# resources/ is read from inside app.asar (see src/main/utils/resource-dir.ts),
+# where the integrity check above covers it — no loose, editable copy is shipped.

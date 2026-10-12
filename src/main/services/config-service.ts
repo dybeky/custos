@@ -3,6 +3,7 @@ import { join } from 'path'
 import { app } from 'electron'
 import { z } from 'zod'
 import { logger } from './logger'
+import { resourceDir } from '../utils/resource-dir'
 
 // Zod schemas for validation
 const AppTimeoutsSchema = z.object({
@@ -169,9 +170,17 @@ export type AuthConfig = z.infer<typeof AuthConfigSchema>
 
 const DEFAULT_AUTH_CONFIG: AuthConfig = { enabled: true, webBaseUrl: 'https://97437.dev' }
 
-/** Apply WEB_BASE_URL / DESKTOP_AUTH_ENABLED env overrides on top of a file block. */
-export function resolveAuthConfig(fileBlock: AuthConfig): AuthConfig {
-  const webBaseUrl = process.env.WEB_BASE_URL || fileBlock.webBaseUrl
+/**
+ * Apply WEB_BASE_URL / DESKTOP_AUTH_ENABLED env overrides on top of a file
+ * block — in development only. A released build runs on the checked player's
+ * PC, whose environment the player controls: honouring them there would let
+ * the player send the check (and the checker's sign-in) to a server of their
+ * own, or switch uploading off.
+ */
+export function resolveAuthConfig(fileBlock: AuthConfig, allowEnvOverrides = !app.isPackaged): AuthConfig {
+  if (!allowEnvOverrides) return { ...fileBlock }
+  const envBase = process.env.WEB_BASE_URL
+  const webBaseUrl = envBase && AuthConfigSchema.shape.webBaseUrl.safeParse(envBase).success ? envBase : fileBlock.webBaseUrl
   const enabled = process.env.DESKTOP_AUTH_ENABLED === 'false' ? false : fileBlock.enabled
   return { enabled, webBaseUrl }
 }
@@ -183,13 +192,7 @@ class ConfigService {
   private authConfig: AuthConfig | null = null
 
   private getResourcePath(): string {
-    // In production, configs are in resources folder
-    if (app.isPackaged) {
-      return join(process.resourcesPath, 'resources')
-    }
-
-    // In development, use the project resources/ directory as single source of truth
-    return join(process.cwd(), 'resources')
+    return resourceDir()
   }
 
   loadConfig(): AppConfig {

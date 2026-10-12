@@ -1,8 +1,7 @@
 import { existsSync } from 'fs'
-import { copyFile, unlink, readdir, readFile, stat } from 'fs/promises'
+import { readdir, readFile, stat } from 'fs/promises'
 import { join } from 'path'
-import { homedir, tmpdir } from 'os'
-import { randomUUID } from 'crypto'
+import { homedir } from 'os'
 import initSqlJs from 'sql.js'
 import { BaseScanner, ScannerEventEmitter } from './base-scanner'
 import { ScanResult } from '../../shared/types'
@@ -27,15 +26,6 @@ interface DatabaseConfig {
 
 /** Max history-DB size we will read into memory (256 MB). */
 const MAX_DB_BYTES = 256 * 1024 * 1024
-
-async function readFileCapped(p: string): Promise<Buffer | null> {
-  try {
-    if ((await stat(p)).size > MAX_DB_BYTES) return null
-    return await readFile(p)
-  } catch {
-    return null
-  }
-}
 
 /**
  * Firefox history: one row per page with its latest visit, like Chrome's urls
@@ -74,15 +64,16 @@ export class BrowserHistoryScanner extends BaseScanner {
   private static readonly INITIAL_DELAY_MS = 200
 
   /**
-   * Copy file with exponential backoff retry (for locked browser databases)
+   * Read a file (capped) with exponential backoff while a running browser
+   * briefly holds it locked. Null when it is too large; throws otherwise.
    */
-  private async copyWithRetry(src: string, dst: string): Promise<void> {
+  private async readWithRetry(src: string): Promise<Buffer | null> {
     let lastError: Error | null = null
 
     for (let attempt = 0; attempt < BrowserHistoryScanner.MAX_RETRIES; attempt++) {
       try {
-        await copyFile(src, dst)
-        return
+        if ((await stat(src)).size > MAX_DB_BYTES) return null
+        return await readFile(src)
       } catch (error) {
         lastError = error as Error
         // Only retry on specific errors (EBUSY, EACCES, EPERM)
@@ -90,51 +81,31 @@ export class BrowserHistoryScanner extends BaseScanner {
         if (code !== 'EBUSY' && code !== 'EACCES' && code !== 'EPERM') {
           throw error
         }
-        // Exponential backoff: 100ms, 200ms, 400ms
+        // Exponential backoff: 200ms, 400ms, 800ms
         const delay = BrowserHistoryScanner.INITIAL_DELAY_MS * Math.pow(2, attempt)
         await sleep(delay)
       }
     }
 
-    throw lastError || new Error('Failed to copy file after retries')
+    throw lastError || new Error('Failed to read file after retries')
   }
 
   /**
-   * Copy a browser database (and its write-ahead log, where the newest
-   * history lives while the browser runs) and return the merged image.
+   * Read a browser database (and its write-ahead log, where the newest
+   * history lives while the browser runs) straight into memory and return
+   * the merged image. Nothing is copied to disk: a copy of someone's browsing
+   * history in %TEMP% would outlive a crash, and Custos leaves nothing behind.
    */
-  private async loadDatabase(src: string, tempPath: string): Promise<Buffer | null> {
-    await this.copyWithRetry(src, tempPath)
-    const walTemp = `${tempPath}-wal`
+  private async loadDatabase(src: string): Promise<Buffer | null> {
+    const db = await this.readWithRetry(src)
+    if (!db) return null
     let wal: Buffer | null = null
     try {
-      if (existsSync(`${src}-wal`)) {
-        await this.copyWithRetry(`${src}-wal`, walTemp)
-        wal = await readFileCapped(walTemp)
-      }
+      if (existsSync(`${src}-wal`)) wal = await this.readWithRetry(`${src}-wal`)
     } catch {
       // no WAL, or locked — the database file alone is still read
-    } finally {
-      await this.safeDelete(walTemp)
     }
-    const db = await readFileCapped(tempPath)
-    return db ? applyWal(db, wal) : null
-  }
-
-  /**
-   * Safe file deletion with error suppression
-   */
-  private async safeDelete(path: string): Promise<void> {
-    try {
-      await unlink(path)
-    } catch (error) {
-      // Log but don't throw - temp file cleanup failures aren't critical
-      const code = (error as NodeJS.ErrnoException).code
-      if (code !== 'ENOENT') {
-        // File exists but couldn't be deleted - will be cleaned up by OS later
-        logger.warn(`Failed to delete temp file ${path}: ${code}`)
-      }
-    }
+    return applyWal(db, wal)
   }
 
   // Chromium databases to check (History can be cleared, but these often remain)
@@ -311,13 +282,10 @@ export class BrowserHistoryScanner extends BaseScanner {
       return results
     }
 
-    let tempPath: string | null = null
-
     try {
-      // Copy database to temp with retry (browser may have it locked)
-      tempPath = join(tmpdir(), `custos_${browserName}_${config.name}_${randomUUID()}.db`)
+      // Read with retry (the browser may have it locked for a moment)
       const SQL = await getSql()
-      const fileBuffer = await this.loadDatabase(dbPath, tempPath)
+      const fileBuffer = await this.loadDatabase(dbPath)
       if (!fileBuffer) {
         logger.debug(`Skipping ${browserName}/${config.name}: database too large or unreadable`)
         return results
@@ -377,10 +345,6 @@ export class BrowserHistoryScanner extends BaseScanner {
     } catch (error) {
       // Database locked or corrupted after retries - log for debugging
       logger.debug(`Failed to scan database ${dbPath}:`, (error as Error).message)
-    } finally {
-      if (tempPath) {
-        await this.safeDelete(tempPath)
-      }
     }
 
     return results
@@ -443,12 +407,9 @@ export class BrowserHistoryScanner extends BaseScanner {
       return results
     }
 
-    let tempPath: string | null = null
-
     try {
-      tempPath = join(tmpdir(), `custos_firefox_places_${randomUUID()}.db`)
       const SQL = await getSql()
-      const fileBuffer = await this.loadDatabase(placesPath, tempPath)
+      const fileBuffer = await this.loadDatabase(placesPath)
       if (!fileBuffer) {
         logger.debug(`Skipping Firefox places at ${profilePath}: database too large or unreadable`)
         return results
@@ -538,10 +499,6 @@ export class BrowserHistoryScanner extends BaseScanner {
     } catch (error) {
       // Database locked or corrupted after retries - log for debugging
       logger.debug(`Failed to scan Firefox places at ${profilePath}:`, (error as Error).message)
-    } finally {
-      if (tempPath) {
-        await this.safeDelete(tempPath)
-      }
     }
 
     return results
@@ -555,12 +512,9 @@ export class BrowserHistoryScanner extends BaseScanner {
       return results
     }
 
-    let tempPath: string | null = null
-
     try {
-      tempPath = join(tmpdir(), `custos_firefox_form_${randomUUID()}.db`)
       const SQL = await getSql()
-      const fileBuffer = await this.loadDatabase(formHistoryPath, tempPath)
+      const fileBuffer = await this.loadDatabase(formHistoryPath)
       if (!fileBuffer) {
         logger.debug(`Skipping Firefox form history at ${profilePath}: database too large or unreadable`)
         return results
@@ -602,10 +556,6 @@ export class BrowserHistoryScanner extends BaseScanner {
     } catch (error) {
       // Database locked or corrupted after retries - log for debugging
       logger.debug(`Failed to scan Firefox form history at ${profilePath}:`, (error as Error).message)
-    } finally {
-      if (tempPath) {
-        await this.safeDelete(tempPath)
-      }
     }
 
     return results

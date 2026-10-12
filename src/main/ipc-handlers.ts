@@ -17,6 +17,7 @@ import { checkForUpdate, currentReleaseNotes, installUpdate } from './services/u
 import { appStore } from './services/app-store'
 import { safeOpenExternal, safeOpenPath } from './utils/safe-open'
 import { normalizeRevealPath } from './utils/url-policy'
+import { resolveSystemTool, systemCwd, systemRoot } from './utils/system-paths'
 import { locateSteam } from './utils/steam-locator'
 import { detectSteamPlayer } from './services/player-detect'
 import { HistoryStore } from './services/history-store'
@@ -380,14 +381,14 @@ export function setupIpcHandlers(mainWindow: BrowserWindow): void {
 
     try {
       // Point regedit's "last opened key" at the target, then launch it.
-      await execFileP('reg', [
+      await execFileP(resolveSystemTool('reg'), [
         'add',
         'HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Applets\\Regedit',
         '/v', 'LastKey',
         '/t', 'REG_SZ',
         '/d', expandedKeyPath,
         '/f'
-      ], { timeout: 5000, windowsHide: true })
+      ], { timeout: 5000, windowsHide: true, cwd: systemCwd() })
     } catch (error) {
       const msg = error instanceof Error ? error.message : String(error)
       logger.debug('Failed to write regedit LastKey', { error: msg })
@@ -396,7 +397,8 @@ export function setupIpcHandlers(mainWindow: BrowserWindow): void {
 
     // regedit stays open until the user closes it, so only spawn errors are
     // observable — report those, otherwise assume the launch succeeded.
-    execFile('regedit.exe', (launchError) => {
+    // regedit.exe lives in %SystemRoot%, not System32.
+    execFile(join(systemRoot(), 'regedit.exe'), { cwd: systemCwd() }, (launchError) => {
       if (launchError) {
         logger.debug('Failed to launch regedit', { error: launchError.message })
       }
