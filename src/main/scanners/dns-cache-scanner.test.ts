@@ -137,6 +137,37 @@ describe('DnsCacheScanner.parseDnsOutput', () => {
     expect(entry!.ttl).toBe(100)
   })
 
+  it('reads every record in a locale it has no labels for', () => {
+    // Czech Windows: none of the labels are known, so each record's name comes
+    // from the first ". . . :" line of its block — for every block, not only the first.
+    const czech = `
+    Konfigurace protokolu IP systému Windows
+
+    a.example.com
+    ----------------------------------------
+    Název záznamu . . . . . : a.example.com
+    Typ záznamu . . . . . . : 1
+    Hodnota TTL . . . . . . : 300
+    Oddíl . . . . . . . . . : Odpověď
+    Záznam A (hostitel) . . : 93.184.216.34
+
+    cheat-loader.net
+    ----------------------------------------
+    Název záznamu . . . . . : cheat-loader.net
+    Typ záznamu . . . . . . : 1
+    Záznam A (hostitel) . . : 10.0.0.1
+
+    Název záznamu . . . . . : cdn.example.org
+    Typ záznamu . . . . . . : 5
+    Záznam CNAME  . . . . . : origin.example.org
+`
+    expect(scanner.parseDnsOutput(czech).map(e => e.recordName)).toEqual([
+      'a.example.com',
+      'cheat-loader.net',
+      'cdn.example.org'
+    ])
+  })
+
   it('returns an empty array for empty input', () => {
     expect(scanner.parseDnsOutput('')).toEqual([])
   })

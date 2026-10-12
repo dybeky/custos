@@ -29,9 +29,9 @@ export class DnsCacheScanner extends BaseScanner {
         })
       }
 
-      // ipconfig exits non-zero when it cannot read the cache (e.g. without
-      // administrator rights on Windows 11). Its message has no records in it,
-      // so reading on would report a clean cache that was never read.
+      // ipconfig exits non-zero when it cannot read the cache (no administrator
+      // rights on some Windows 11 builds, DNS Client service stopped). Its message
+      // has no records in it, so reading on would report a clean cache that was never read.
       let output: string
       try {
         output = await asyncExec('ipconfig /displaydns', {
@@ -41,7 +41,7 @@ export class DnsCacheScanner extends BaseScanner {
         })
       } catch {
         if (this.cancelled) return this.createErrorResult('Scan cancelled', startTime)
-        return this.createErrorResult('Could not read the DNS cache (administrator rights required)', startTime)
+        return this.createErrorResult('Could not read the DNS cache (ipconfig failed; try running as administrator)', startTime)
       }
 
       if (this.cancelled) {
@@ -124,20 +124,29 @@ export class DnsCacheScanner extends BaseScanner {
     let currentName = ''
     let currentType = ''
     let currentTtl = 0
+    // A record's name is the first ". . . :" line of its block; blocks are
+    // separated by blank lines and the "-----" rule under each domain header.
+    let blockStart = true
+
+    const pushCurrent = (): void => {
+      if (currentName) entries.push({ recordName: currentName.trim(), recordType: currentType, ttl: currentTtl })
+    }
 
     for (const line of lines) {
       const trimmed = line.trim()
-      if (!trimmed) continue
+      if (!trimmed || /^-{5,}$/.test(trimmed)) {
+        blockStart = true
+        continue
+      }
+      const atBlockStart = blockStart
+      if (/(?:\s*\.)+\s*:/.test(trimmed)) blockStart = false
 
       // Record Name — multilingual support (EN, RU, DE, FR, ES, PT, IT, PL, TR, ZH, JA, KO)
       const nameMatch = trimmed.match(
         /^(?:Record Name|Имя записи|Eintragsname|Nom de l'enregistrement|Nombre del registro|Nome do Registro|Nome record|Nazwa rekordu|Kayıt Adı|记录名称|レコード名|레코드 이름)(?:\s*\.)+\s*:\s*(.+)/i
       )
       if (nameMatch && nameMatch[1]) {
-        // Save previous entry if exists
-        if (currentName) {
-          entries.push({ recordName: currentName.trim(), recordType: currentType, ttl: currentTtl })
-        }
+        pushCurrent()
         currentName = nameMatch[1].trim()
         currentType = ''
         currentTtl = 0
@@ -166,11 +175,12 @@ export class DnsCacheScanner extends BaseScanner {
         continue
       }
 
-      // Fallback: match any line with ". . . :" pattern containing a domain-like value
-      // This catches unsupported locales by detecting the ipconfig output format
-      if (!currentName) {
+      // Fallback for locales without known labels (Czech, Ukrainian, …): the
+      // first ". . . :" line of a block with a domain-like value is its name.
+      if (atBlockStart) {
         const fallbackMatch = trimmed.match(/^[^.]+(?:\s*\.)+\s*:\s*([a-zA-Z0-9][\w.-]+\.[a-zA-Z]{2,})$/i)
         if (fallbackMatch && fallbackMatch[1]) {
+          pushCurrent()
           currentName = fallbackMatch[1].trim()
           currentType = ''
           currentTtl = 0
@@ -179,10 +189,7 @@ export class DnsCacheScanner extends BaseScanner {
       }
     }
 
-    // Push last entry
-    if (currentName) {
-      entries.push({ recordName: currentName.trim(), recordType: currentType, ttl: currentTtl })
-    }
+    pushCurrent()
 
     return entries
   }
