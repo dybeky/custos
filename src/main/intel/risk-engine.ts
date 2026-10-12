@@ -8,6 +8,7 @@ import { scannerIdFromDisplayName } from '../../shared/scanners-meta'
 import { SCANNER_POLICY, DEFAULT_POLICY, RISK_ENGINE_VERSION } from './scanner-policy'
 import { isKnownHashFinding, hashTokenOf } from './finding-tags'
 import { extractObservedAt } from './observed-at'
+import { hideProfileNamesDeep } from '../utils/redact'
 
 function findingId(scannerId: string, value: string): string {
   return createHash('sha1').update(`${scannerId}\n${value}`).digest('hex').slice(0, 16)
@@ -334,4 +335,15 @@ export function analyze(results: ScanResult[], ctx: AnalyzeContext): ScanReport 
 export function reportContentHash(report: ScanReport): string {
   const { contentHash: _omit, ...body } = report
   return createHash('sha256').update(JSON.stringify(body)).digest('hex')
+}
+
+/**
+ * The copy of a report sent to the site: Windows account names hidden from
+ * every path (see hideProfileNames), re-hashed so the site can still tell it
+ * was not edited after leaving the app. The saved report is left untouched.
+ */
+export function reportForUpload(report: ScanReport): ScanReport {
+  const copy = hideProfileNamesDeep(report)
+  if (copy.contentHash) copy.contentHash = reportContentHash(copy)
+  return copy
 }

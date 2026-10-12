@@ -6,7 +6,7 @@ import { logger } from './services/logger'
 import { execFile } from 'child_process'
 import { promisify } from 'util'
 import { getScannerFactory, ScannerName } from './scanners'
-import { analyze, type AnalyzeContext } from './intel/risk-engine'
+import { analyze, reportForUpload, type AnalyzeContext } from './intel/risk-engine'
 import { osMetaFromOsInfo, makeScanId } from './intel/report-context'
 import { getOsInfo, getTimeoutMultiplier } from './utils/os-utils'
 import { getScannerCapabilities, getSupportedScannerIds, getAllCapabilities } from './services/capability-service'
@@ -517,7 +517,7 @@ export function setupAuthHandlers(_mainWindow: BrowserWindow, authService: AuthS
       checker: parsed.data.checker.trim().slice(0, 60)
     }
     const id = entry.report.id
-    const result = await authService.uploadCheck(entry.report, kase, syncKeyFor(id), uploadedVia.get(id))
+    const result = await authService.uploadCheck(reportForUpload(entry.report), kase, syncKeyFor(id), uploadedVia.get(id))
     if (result.ok && result.via) uploadedVia.set(id, result.via)
     return result
   })
