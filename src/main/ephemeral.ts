@@ -5,6 +5,7 @@ import { tmpdir } from 'os'
 import { dirname, join } from 'path'
 import { randomBytes } from 'crypto'
 import { LOCK_DIR_NAME, SESSION_PREFIX, isLauncherDirName, isLegacyLogName, isSessionDirName, isUpdateFileName } from './utils/session-names'
+import { cmdPath, systemCwd } from './utils/system-paths'
 
 /**
  * Custos runs on the checked player's PC and must leave nothing behind.
@@ -89,7 +90,8 @@ function wipeAfterExit(sessionDir: string, lockDir: string): void {
   const l = `"${lockDir}"`
   const script = `for /l %i in (1,1,15) do (rmdir /s /q ${q} 2>nul & rmdir /s /q ${l} 2>nul & if not exist ${q} exit /b 0 & ping -n 2 127.0.0.1 >nul)`
   try {
-    spawn(process.env.ComSpec || 'cmd.exe', ['/d', '/c', script], {
+    spawn(cmdPath(), ['/d', '/c', script], {
+      cwd: systemCwd(),
       detached: true,
       stdio: 'ignore',
       windowsHide: true,

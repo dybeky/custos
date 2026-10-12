@@ -83,16 +83,15 @@ const DEFAULT_SIGNATURES: Signatures = {
 let _cached: Signatures | undefined
 
 /**
- * Load signatures from `resources/signatures.json`.
+ * Load signatures from `<resourcesPath>/signatures.json` (see resourceDir()).
  * All names in allowlist / denylist are lowercased on load.
  * Falls back to DEFAULT_SIGNATURES on any error.
  */
-export function loadSignatures(resourcesPath?: string): Signatures {
+export function loadSignatures(resourcesPath: string): Signatures {
   if (_cached) return _cached
 
   try {
-    const dir = resourcesPath ?? join(__dirname, '..', '..', '..', 'resources')
-    const raw = readFileSync(join(dir, 'signatures.json'), 'utf-8')
+    const raw = readFileSync(join(resourcesPath, 'signatures.json'), 'utf-8')
     const parsed = SignaturesSchema.parse(JSON.parse(raw))
 
     _cached = {

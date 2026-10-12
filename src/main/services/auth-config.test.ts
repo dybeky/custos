@@ -33,4 +33,14 @@ describe('resolveAuthConfig (env overrides)', () => {
     process.env.DESKTOP_AUTH_ENABLED = 'false'
     expect(resolveAuthConfig({ enabled: true, webBaseUrl: 'https://97437.dev' }).enabled).toBe(false)
   })
+  it('ignores a WEB_BASE_URL that is not a URL', () => {
+    process.env.WEB_BASE_URL = 'not a url'
+    expect(resolveAuthConfig({ enabled: true, webBaseUrl: 'https://97437.dev' }).webBaseUrl).toBe('https://97437.dev')
+  })
+  it('a packaged build ignores both env overrides (the checked player controls them)', () => {
+    process.env.WEB_BASE_URL = 'https://evil.example'
+    process.env.DESKTOP_AUTH_ENABLED = 'false'
+    expect(resolveAuthConfig({ enabled: true, webBaseUrl: 'https://97437.dev' }, false))
+      .toEqual({ enabled: true, webBaseUrl: 'https://97437.dev' })
+  })
 })

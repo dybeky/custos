@@ -8,6 +8,7 @@ import type { AuthState, AuthProvider, PublicUser, DeviceProgress, SiteUploadRes
 
 const PENDING_TIMEOUT_MS = 90_000
 const DEVICE_MAX_DURATION_MS = 5 * 60_000
+const MAX_POLL_INTERVAL_MS = 60_000
 
 interface PendingAuth {
   state: string
@@ -357,7 +358,10 @@ export class AuthService {
   }
 
   private async pollDevice(deviceCode: string, intervalSec: number, startedAt: number, myEpoch: number): Promise<void> {
-    let intervalMs = Math.max(1, intervalSec) * 1000
+    // Clamp the server's interval: setTimeout fires at once for anything past
+    // ~24.8 days, which would turn a huge value into a busy poll loop.
+    const clampMs = (ms: number): number => Math.min(Math.max(1000, ms), MAX_POLL_INTERVAL_MS)
+    let intervalMs = clampMs(intervalSec * 1000)
     // Bounded loop (§4.4): honor interval, back off on slow_down, cap duration.
     while (Date.now() - startedAt < DEVICE_MAX_DURATION_MS) {
       // Stop before sleeping if this flow was cancelled (§4.9).
@@ -378,7 +382,7 @@ export class AuthService {
       // no emit, no completeAuth, no silent re-login.
       if (myEpoch !== this.deviceEpoch) return
       if (res.kind === 'token') { this.completeAuth(res.token, res.user); return }
-      if (res.kind === 'slow_down') { intervalMs += 5000; continue }
+      if (res.kind === 'slow_down') { intervalMs = clampMs(intervalMs + 5000); continue }
       if (res.kind === 'pending') { this.device = { status: 'polling', userCode: this.device?.userCode, verificationUri: this.device?.verificationUri }; this.emit(); continue }
       if (res.kind === 'denied') { this.device = { status: 'denied' }; this.status = this.user ? 'authed' : 'anon'; this.emit(); return }
       if (res.kind === 'update_required') { this.markUpdateRequired(res.minVersion); this.device = { status: 'error' }; this.status = this.user ? 'authed' : 'anon'; this.emit(); return }

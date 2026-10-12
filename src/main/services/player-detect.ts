@@ -4,6 +4,7 @@ import { execFile } from 'child_process'
 import { promisify } from 'util'
 import type { ScanPlayer } from '../../shared/types'
 import { findSteamRoot } from '../utils/steam-locator'
+import { resolveSystemTool, systemCwd } from '../utils/system-paths'
 import { VdfParser, type SteamAccount } from './vdf-parser'
 import { logger } from './logger'
 
@@ -51,8 +52,9 @@ export function pickPlayer(accounts: SteamAccount[], activeAccountId: number | n
 async function readActiveUser(): Promise<number | null> {
   if (process.platform !== 'win32') return null
   try {
-    const { stdout } = await execFileP('reg', ['query', 'HKCU\\Software\\Valve\\Steam\\ActiveProcess', '/v', 'ActiveUser'], {
+    const { stdout } = await execFileP(resolveSystemTool('reg'), ['query', 'HKCU\\Software\\Valve\\Steam\\ActiveProcess', '/v', 'ActiveUser'], {
       windowsHide: true,
+      cwd: systemCwd(),
       timeout: 5000
     })
     return parseActiveUser(stdout)

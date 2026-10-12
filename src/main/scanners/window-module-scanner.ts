@@ -149,6 +149,10 @@ export class WindowModuleScanner extends BaseScanner {
 
     const findings: string[] = []
     const seen = new Set<string>()
+    // Whether each source was actually read: with both unread, "no findings"
+    // would be a clean result for a check that never happened.
+    let windowsRead = false
+    let modulesRead = false
 
     // --- Phase 1: Window titles via PowerShell ---
     this.emitProgress(events, 0, 3, 'Enumerating window titles...')
@@ -163,6 +167,7 @@ export class WindowModuleScanner extends BaseScanner {
 
       if (!this.cancelled) {
         const entries = parseWindowJson(output)
+        windowsRead = entries.length > 0
         for (const entry of entries) {
           if (this.cancelled) break
           if (!this.keywordMatcher.containsKeyword(entry.mainWindowTitle)) continue
@@ -192,6 +197,7 @@ export class WindowModuleScanner extends BaseScanner {
       if (entries.length === 0 && !this.outOfTime()) {
         entries = parseTasklistModules((await execFileAsync('tasklist', ['/m'], { timeoutMs: budget() })).stdout)
       }
+      modulesRead = entries.length > 0
 
       if (!this.cancelled) {
         for (const entry of entries) {
@@ -208,7 +214,11 @@ export class WindowModuleScanner extends BaseScanner {
       // Module enumeration failed — return whatever we have
     }
 
+    if (this.cancelled) return this.createErrorResult('Scan cancelled', startTime)
     this.emitProgress(events, 3, 3, '')
+    if (!windowsRead && !modulesRead) {
+      return this.createErrorResult('Could not read window titles or loaded modules', startTime)
+    }
     return this.createSuccessResult(findings, startTime)
   }
 }

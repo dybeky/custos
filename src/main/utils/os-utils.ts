@@ -86,6 +86,7 @@ export function isWindows11(): boolean {
  */
 export function getWindowsVersionName(build: number): string {
   // Windows 11 versions
+  if (build >= 26200) return '25H2'
   if (build >= 26100) return '24H2'
   if (build >= 22631) return '23H2'
   if (build >= 22621) return '22H2'

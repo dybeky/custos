@@ -5,6 +5,22 @@ shows it in the update dialog and under "What's new". Keep the `### New`,
 `### Fixes` and `### Improvements` headings — the app groups entries by them.
 Keep each entry to one line of about 100 characters so the dialog stays tidy.
 
+## Unreleased
+
+### Fixes
+- Windows tools always run from System32: a fake tasklist.exe next to Custos can't fake a scan
+- A released build ignores WEB_BASE_URL / DESKTOP_AUTH_ENABLED set on the checked PC
+- Detection lists are read from the integrity-checked app archive, not an editable copy in Temp
+- Process, scheduled-task, Defender and window checks fail instead of showing "clean" when unread
+- BAM entries show their real drive letter (C:\…) instead of \Device\HarddiskVolumeN
+- Picking a new profile picture works again (the crop preview was blocked)
+- Browser history is read in place: no copies of it are written to %TEMP%
+- A stalled update download gives up after a minute instead of hanging
+- Windows 11 25H2 is named correctly
+
+### Improvements
+- A crafted browser log on the checked PC can no longer make Custos run out of memory
+
 ## 3.1.0
 
 ### New

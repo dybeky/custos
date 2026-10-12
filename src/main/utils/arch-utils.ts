@@ -1,6 +1,7 @@
 // src/main/utils/arch-utils.ts
 import { execFileSync } from 'child_process'
 import { logger } from '../services/logger'
+import { resolveSystemTool, systemCwd } from './system-paths'
 
 /** Normalized CPU architecture identifiers used across the app. */
 export type CpuArch = 'x64' | 'arm64' | 'ia32' | 'unknown'
@@ -71,14 +72,14 @@ let cachedArchInfo: ArchInfo | null = null
 function queryRegistryArch(): CpuArch {
   try {
     const out = execFileSync(
-      'reg',
+      resolveSystemTool('reg'),
       [
         'query',
         'HKLM\\SYSTEM\\CurrentControlSet\\Control\\Session Manager\\Environment',
         '/v',
         'PROCESSOR_ARCHITECTURE'
       ],
-      { encoding: 'utf8', timeout: 3000, windowsHide: true }
+      { encoding: 'utf8', timeout: 3000, windowsHide: true, cwd: systemCwd() }
     )
     return parseRegArchOutput(out)
   } catch (err) {

@@ -18,6 +18,7 @@ import { IPC_CHANNELS, LiveFinding, LiveContext } from '../../shared/types'
 import { isMemoryNativeAvailable, openGameProcess, close, listModules } from './native/memory'
 import { findGameProcess } from './process-locator'
 import { loadSignatures } from './signatures'
+import { resourceDir } from '../utils/resource-dir'
 import { aobDetector } from './detectors/aob-detector'
 import { hookDetector } from './detectors/hook-detector'
 import { injectedModuleDetector } from './detectors/injected-module-detector'
@@ -134,7 +135,7 @@ export async function runLiveScan(opts: LiveScanOptions): Promise<LiveFinding[]>
     return allFindings
   }
 
-  const signatures = loadSignatures()
+  const signatures = loadSignatures(resourceDir())
   const ctx: LiveContext = {
     pid: game.pid,
     handle: proc.handle,

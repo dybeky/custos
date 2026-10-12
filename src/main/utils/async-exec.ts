@@ -1,6 +1,7 @@
 import { exec, execFile, spawn } from 'child_process'
 import { promisify } from 'util'
 import { logger } from '../services/logger'
+import { cmdPath, resolveSystemTool, systemCwd, withSystemPowershell } from './system-paths'
 
 const execFilePromise = promisify(execFile)
 
@@ -71,13 +72,17 @@ export async function asyncExec(
 
   // Force UTF-8 code page for cmd.exe commands to prevent mojibake on non-English Windows.
   // PowerShell output is decoded from the OEM code page when it is not UTF-8.
+  // Tools resolve from System32, never from the folder Custos was started in
+  // (see system-paths.ts).
   const finalCommand = isPowerShellCommand(command)
-    ? command
+    ? withSystemPowershell(command)
     : `chcp 65001 >nul && ${command}`
 
   return new Promise((resolve, reject) => {
     const proc = exec(finalCommand, {
       windowsHide: true,
+      cwd: systemCwd(),
+      ...(process.platform === 'win32' ? { shell: cmdPath() } : {}),
       // Decoded below: PowerShell writes in the console's OEM code page, which
       // is not UTF-8 on e.g. Russian Windows.
       encoding: 'buffer',
@@ -130,7 +135,7 @@ function execFileWithInput(
   file: string, args: string[], input: string, timeoutMs: number
 ): Promise<{ stdout: string; stderr: string }> {
   return new Promise((resolve) => {
-    const proc = spawn(file, args, { windowsHide: true })
+    const proc = spawn(resolveSystemTool(file), args, { windowsHide: true, cwd: systemCwd() })
     const out: Buffer[] = []
     const err: Buffer[] = []
     const finish = (): void => {
@@ -185,8 +190,8 @@ function tableDecoder(upper: string): OutputDecoder {
  */
 function oem(): Promise<OutputDecoder> {
   oemDecoder ??= execFilePromise(
-    'reg', ['query', 'HKLM\\SYSTEM\\CurrentControlSet\\Control\\Nls\\CodePage', '/v', 'OEMCP'],
-    { windowsHide: true, timeout: 5000 }
+    resolveSystemTool('reg'), ['query', 'HKLM\\SYSTEM\\CurrentControlSet\\Control\\Nls\\CodePage', '/v', 'OEMCP'],
+    { windowsHide: true, timeout: 5000, cwd: systemCwd() }
   ).then(({ stdout }) => oemDecoderFor(/OEMCP\s+REG_SZ\s+(\d+)/.exec(stdout)?.[1] ?? ''))
     .catch(() => oemDecoderFor(''))
   return oemDecoder
@@ -238,8 +243,9 @@ export async function execFileAsync(
     if (opts?.input !== undefined) {
       return await execFileWithInput(file, args, opts.input, opts.timeoutMs ?? 15000)
     }
-    const result = await execFilePromise(file, args, {
+    const result = await execFilePromise(resolveSystemTool(file), args, {
       windowsHide: true,
+      cwd: systemCwd(),
       encoding: 'buffer',
       maxBuffer: 1024 * 1024 * 64, // 64 MB
       timeout: opts?.timeoutMs ?? 15000,
