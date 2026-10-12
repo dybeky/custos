@@ -7,6 +7,8 @@ export interface ScanResult {
   success: boolean
   findings: string[]
   error?: string
+  /** Set when the check ran but read only part of its source (e.g. a time limit). */
+  partial?: string
   startTime: Date
   endTime: Date
   duration: number
@@ -485,6 +487,6 @@ export interface ScanReport {
   verdict: Verdict
   findings: AnalyzedFinding[]
   correlations: Correlation[]
-  scanners: Array<{ id: ScannerName; name: string; success: boolean; error?: string; durationMs: number; count: number }>
+  scanners: Array<{ id: ScannerName; name: string; success: boolean; error?: string; partial?: string; durationMs: number; count: number }>
   contentHash?: string
 }

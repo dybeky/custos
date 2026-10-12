@@ -37,6 +37,18 @@ async function readFileCapped(p: string): Promise<Buffer | null> {
   }
 }
 
+/**
+ * Firefox history: one row per page with its latest visit, like Chrome's urls
+ * table — a row per visit would let a few busy pages use up the limit.
+ */
+export const FIREFOX_HISTORY_QUERY = `
+  SELECT p.url, p.title, MAX(h.visit_date) AS last_visit
+  FROM moz_places p
+  LEFT JOIN moz_historyvisits h ON p.id = h.place_id
+  GROUP BY p.id
+  ORDER BY last_visit DESC LIMIT 10000
+`
+
 let SQL: Awaited<ReturnType<typeof initSqlJs>> | null = null
 
 async function getSql() {
@@ -161,12 +173,6 @@ export class BrowserHistoryScanner extends BaseScanner {
       query: 'SELECT user_text, url FROM network_action_predictor LIMIT 5000',
       urlColumn: 1,
       titleColumn: 0
-    },
-    {
-      name: 'Visited Links',
-      file: 'Visited Links',
-      query: 'SELECT url FROM visited_links LIMIT 10000',
-      urlColumn: 0
     }
   ]
 
@@ -450,14 +456,7 @@ export class BrowserHistoryScanner extends BaseScanner {
       const db = new SQL.Database(fileBuffer)
 
       try {
-        // Query history
-        const historyQuery = `
-          SELECT p.url, p.title, h.visit_date
-          FROM moz_places p
-          LEFT JOIN moz_historyvisits h ON p.id = h.place_id
-          ORDER BY h.visit_date DESC LIMIT 10000
-        `
-        const rows = db.exec(historyQuery)
+        const rows = db.exec(FIREFOX_HISTORY_QUERY)
 
         if (rows.length > 0 && rows[0].values) {
           for (const row of rows[0].values) {

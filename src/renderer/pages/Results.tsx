@@ -8,7 +8,7 @@ import { useScanStore, shownFindingCount } from '../stores/scan-store'
 import { SCANNER_NAME_TO_ID, featureName, featureHelp } from '../utils/feature-i18n'
 import {
   buildFindingLookup, severityKey, severityChipClass, bandChipClass,
-  reasonText, coverageReason, rankedCorrelations, scannerEvidenceCount
+  reasonText, coverageReason, isCoverageReason, rankedCorrelations, scannerEvidenceCount
 } from '../utils/report-view'
 import { ActivityTimeline } from '../components/report/ActivityTimeline'
 import { FindingRow } from '../components/report/FindingRow'
@@ -33,7 +33,7 @@ export function Results() {
   const contextOnly = report !== null && findingCount === 0 && _totalFindings > 0
   const coverage = coverageReason(report)
   const correlations = rankedCorrelations(report)
-  const primaryReason = report?.verdict.reasons.find(r => r.code !== 'incomplete-coverage')
+  const primaryReason = report?.verdict.reasons.find(r => !isCoverageReason(r))
 
   const account = useAuthStore(s => s.user?.username)
   const checker = useScanStore(s => s.checker)

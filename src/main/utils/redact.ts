@@ -42,9 +42,20 @@ export function redactSecrets(text: string): string {
     .replace(EMAIL, (m) => (FILE_EXT.test(m) ? m : '[email]'))
 }
 
-// C:\Users\<name>\… — the Windows account name of whoever was checked. Shared
-// profiles (Public, Default, All Users) are not personal and stay as they are.
-const PROFILE_DIR = /([A-Za-z]:\\+Users\\+)(?!(?:Public|Default|Default User|All Users)(?:\\|$))([^\\/:*?"<>|\r\n]+)/gi
+// C:\Users\<name>\… — the Windows account name of whoever was checked, in any
+// form a finding carries a path: C:\Users\…, C:/Users/… (file:/// links from
+// browser history) and \Device\HarddiskVolumeN\Users\… (BAM, when the volume
+// has no drive letter). Shared profiles (Public, Default, All Users) are not
+// personal and stay as they are. A name with spaces ("Иван Петров") is taken
+// whole only when a path goes on after it; otherwise the name ends at the first
+// space, comma or bracket, so text after a bare profile folder is kept.
+const NAME_CHAR = String.raw`[^\s\\/:*?"<>|\[\]();,=+@]`
+const PROFILE_DIR = new RegExp(
+  String.raw`((?:[A-Za-z]:|\\?Device\\HarddiskVolume\d+)[\\/]+Users[\\/]+)` +
+    String.raw`(?!(?:Public|Default|Default User|All Users)(?:[\\/]|$))` +
+    `(${NAME_CHAR}+(?: ${NAME_CHAR}+)+(?=[\\\\/])|${NAME_CHAR}+)`,
+  'giu'
+)
 
 /**
  * A report copy that leaves this PC (the site upload) carries no Windows

@@ -340,3 +340,24 @@ describe('ambiguous (everyday-word) keywords', () => {
     expect(m.findKeyword('my aimbot.exe')).toBe('aimbot')
   })
 })
+
+describe('findKeywordInFinding', () => {
+  const m = new KeywordMatcher({
+    patterns: ['midnight', 'aimbot'],
+    exactMatch: ['spoofer'],
+    ambiguous: ['midnight']
+  })
+
+  it('finds exact-name and everyday-word keywords behind the source tag and time', () => {
+    expect(m.findKeywordInFinding('[BAM] C:\\Users\\a\\Desktop\\spoofer.exe | 12/10/2026, 10:00')).toBe('spoofer')
+    expect(m.findKeywordInFinding('[BAM] C:\\Games\\Midnight.exe | 12/10/2026, 10:00')).toBe('midnight')
+    expect(m.findKeywordInFinding('C:\\Windows\\Prefetch\\SPOOFER.EXE-1A2B3C4D.pf | last run 12/10/2026, 10:00')).toBe('spoofer')
+    expect(m.findKeywordInFinding('[USN C:] midnight.exe → update.dll — created, renamed | 12/10/2026, 10:00')).toBe('midnight')
+  })
+
+  it('matches what findKeyword matches, and nothing more', () => {
+    expect(m.findKeywordInFinding('[DNS Cache] aimbot.com (A)')).toBe('aimbot')
+    expect(m.findKeywordInFinding('[Chrome/History] https://example.com/midnight-song | "Midnight"')).toBeNull()
+    expect(m.findKeywordInFinding('[BAM] C:\\Games\\notes.exe | 12/10/2026, 10:00')).toBeNull()
+  })
+})

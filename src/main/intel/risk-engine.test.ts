@@ -314,6 +314,15 @@ describe('analyze', () => {
     expect(report.verdict.rationale).not.toMatch(/coverage/)
   })
 
+  it('flags a check that read only part of its source as incomplete coverage', () => {
+    const usn = { ...result('USN Journal Scanner', []), partial: 'time limit' }
+    const report = analyze([result('AppData Scanner', []), usn], baseCtx)
+    const r = report.verdict.reasons.find(x => x.code === 'partial-coverage')
+    expect(r?.params).toEqual({ checks: 'USN Journal Scanner' })
+    expect(report.verdict.band).toBe('clean')
+    expect(report.scanners.find(s => s.name === 'USN Journal Scanner')?.partial).toBe('time limit')
+  })
+
   it('stamps a content hash that detects edits', () => {
     const report = analyze([result('AppData Scanner', ['undead.exe'])], baseCtx)
     expect(report.contentHash).toMatch(/^[0-9a-f]{64}$/)

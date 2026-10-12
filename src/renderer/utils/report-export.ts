@@ -173,7 +173,8 @@ export function buildTextReport(
     const label = scannerLabel(t, s.id, s.name)
     out.push(
       s.success
-        ? `  [OK]   ${label} — ${t('report.findingsCount', { count: s.count })}, ${formatDuration(t, s.durationMs)}`
+        ? `  [OK]   ${label} — ${t('report.findingsCount', { count: s.count })}, ${formatDuration(t, s.durationMs)}` +
+          (s.partial ? ` (${s.partial})` : '')
         : `  [FAIL] ${label} — ${s.error ?? t('report.failed')}`
     )
   }

@@ -40,7 +40,7 @@ export function bandChipClass(band: VerdictBand): string {
 const REASON_KEYS = new Set([
   'no-findings', 'verified-hash', 'strong-corroboration', 'corroboration',
   'community-hash-uncorroborated', 'multiple-leads', 'lone-match',
-  'environment-only', 'incomplete-coverage', 'trace-cleaning', 'trace-cleaning-with-leads', 'defender-cheat'
+  'environment-only', 'incomplete-coverage', 'partial-coverage', 'trace-cleaning', 'trace-cleaning-with-leads', 'defender-cheat'
 ])
 
 /** Localized text for a verdict reason, falling back to the engine's English. */
@@ -55,9 +55,15 @@ export function evidenceFindings(report: ScanReport | null): AnalyzedFinding[] {
   return report.findings.filter(f => f.severity !== 'info' && !f.dismissed && !f.whitelisted)
 }
 
-/** The coverage warning reason, if any scanner failed. */
+/** Verdict reasons that warn about coverage rather than explain the verdict. */
+export function isCoverageReason(reason: ScoreReason): boolean {
+  return reason.code === 'incomplete-coverage' || reason.code === 'partial-coverage'
+}
+
+/** The coverage warning reason, if any scanner failed or read only part of its source. */
 export function coverageReason(report: ScanReport | null): ScoreReason | undefined {
-  return report?.verdict.reasons.find(r => r.code === 'incomplete-coverage')
+  return report?.verdict.reasons.find(r => r.code === 'incomplete-coverage') ??
+    report?.verdict.reasons.find(r => r.code === 'partial-coverage')
 }
 
 /** Correlations ordered strongest first (then by signature for stability). */
