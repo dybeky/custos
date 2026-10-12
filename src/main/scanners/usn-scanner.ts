@@ -3,7 +3,7 @@ import { BaseScanner, ScannerEventEmitter } from './base-scanner'
 import { ScanResult } from '../../shared/types'
 import { execFileAsync, outputDecoder } from '../utils/async-exec'
 import { formatTimestamp } from '../utils/format'
-import { UsnAggregator, dateOrderFromPattern, lineReader, parseUsnRecord, splitCsv, usnColumns, usnColumnsFromRecord } from './usn-journal'
+import { UsnAggregator, dateOrderFromPattern, lineReader, parseUsnRecord, splitCsv, usnColumns, usnColumnsFromRecord, usnStartFromQuery, type DateOrder } from './usn-journal'
 import { parseRegValues } from './anti-forensics'
 
 /** Stop reading after this long and report what was found — the journal can be huge. */
@@ -31,11 +31,40 @@ export class UsnJournalScanner extends BaseScanner {
     // Windows): read bytes and decode per line, or Cyrillic names are garbage.
     const decode = await outputDecoder()
 
-    const outcome = await new Promise<{ records: number; error: string | null; truncated: boolean }>((resolve) => {
+    // Newest records first-hand: start a window before the end of the journal
+    // (fsutil reads oldest → newest and the read is time-boxed). If this
+    // Windows' fsutil refuses startusn, read from the start as before.
+    const { stdout: query } = await execFileAsync('fsutil', ['usn', 'queryjournal', drive], { timeoutMs: 5000 })
+    const startUsn = usnStartFromQuery(query)
+    let outcome = await this.readJournal(drive, startUsn, decode, order, agg)
+    if (startUsn && outcome.records === 0 && !outcome.truncated && !this.cancelled) outcome = await this.readJournal(drive, null, decode, order, agg)
+
+    if (this.cancelled) return this.createErrorResult('Scan cancelled', startTime)
+    if (outcome.records === 0) {
+      return this.createErrorResult(
+        /administrat|privilege|denied|администратор|привилеги|отказано/i.test(outcome.error ?? '')
+          ? 'Requires administrator rights'
+          : `Change journal unavailable${outcome.error ? `: ${outcome.error}` : ''}`,
+        startTime
+      )
+    }
+
+    const findings = agg.findings(drive, (ms) => formatTimestamp(new Date(ms)))
+    this.emitProgress(events, 1, 1, outcome.truncated ? 'Partial read (time budget reached)' : '')
+    // A cut-short read is not a clean journal: the verdict must say so.
+    return this.createSuccessResult(findings, startTime,
+      outcome.truncated ? 'The change journal was only partly read (time limit reached)' : undefined)
+  }
+
+  /** One `fsutil usn readjournal` pass, streamed into `agg`. */
+  private readJournal(
+    drive: string, startUsn: string | null, decode: (bytes: Buffer) => string, order: DateOrder, agg: UsnAggregator
+  ): Promise<{ records: number; error: string | null; truncated: boolean }> {
+    return new Promise<{ records: number; error: string | null; truncated: boolean }>((resolve) => {
       let records = 0
       let firstLines = ''
       let truncated = false
-      const proc = spawn('fsutil', ['usn', 'readjournal', drive, 'csv'], { windowsHide: true })
+      const proc = spawn('fsutil', ['usn', 'readjournal', drive, ...(startUsn ? [`startusn=${startUsn}`] : []), 'csv'], { windowsHide: true })
       const stop = (why: 'deadline' | 'cancel') => {
         truncated = why === 'deadline'
         try { proc.kill() } catch { /* already gone */ }
@@ -80,19 +109,5 @@ export class UsnJournalScanner extends BaseScanner {
       proc.on('error', (e) => { firstLines = e.message; done() })
       proc.stdout.on('close', done)
     })
-
-    if (this.cancelled) return this.createErrorResult('Scan cancelled', startTime)
-    if (outcome.records === 0) {
-      return this.createErrorResult(
-        /administrat|privilege|denied|администратор|привилеги|отказано/i.test(outcome.error ?? '')
-          ? 'Requires administrator rights'
-          : `Change journal unavailable${outcome.error ? `: ${outcome.error}` : ''}`,
-        startTime
-      )
-    }
-
-    const findings = agg.findings(drive, (ms) => formatTimestamp(new Date(ms)))
-    this.emitProgress(events, 1, 1, outcome.truncated ? 'Partial read (time budget reached)' : '')
-    return this.createSuccessResult(findings, startTime)
   }
 }

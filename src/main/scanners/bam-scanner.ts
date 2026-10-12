@@ -5,6 +5,7 @@ import { isBAMAvailable } from '../utils/os-utils'
 import { logger } from '../services/logger'
 import { RegistryQueryScanner } from './registry-query-scanner'
 import { formatTimestamp } from '../utils/format'
+import { harddiskVolumeMap } from '../utils/dos-devices'
 
 /**
  * One finding per executable. CurrentControlSet is normally ControlSet001 (and
@@ -25,75 +26,26 @@ export class BamScanner extends RegistryQueryScanner {
   readonly name = 'BAM/DAM Scanner'
   readonly description = 'Scanning Background Activity Moderator for execution history'
 
-  // Cache for volume-to-drive mapping
-  private driveMapping: Map<number, string> | null = null
+  // Volume-to-drive mapping, loaded once per scan. The promise is cached, not
+  // the map: registry paths are read in parallel, and a caller arriving while
+  // mountvol still runs must wait for it, not get an empty map.
+  private driveMapping: Promise<Map<number, string>> | null = null
 
   reset(): void {
     super.reset()
     this.driveMapping = null
   }
 
-  /**
-   * Get the mapping between HarddiskVolume numbers and drive letters
-   * Uses wmic (faster and more reliable than PowerShell)
-   */
-  private async getDriveMapping(): Promise<Map<number, string>> {
-    if (this.driveMapping) return this.driveMapping
-
-    this.driveMapping = new Map()
-
-    // Primary: mountvol (fast, no deprecation, always available)
-    try {
-      const mountvolOutput = await asyncExec('mountvol', { timeout: 5000 })
-      const lines = mountvolOutput.split('\n')
-      for (let i = 0; i < lines.length; i++) {
-        const driveLine = lines[i].trim()
-        if (/^[A-Z]:\\$/i.test(driveLine) && i > 0) {
-          const volLine = lines[i - 1].trim()
-          const volMatch = volLine.match(/HarddiskVolume(\d+)/)
-          if (volMatch && volMatch[1]) {
-            const volNum = parseInt(volMatch[1], 10)
-            if (!isNaN(volNum)) {
-              this.driveMapping.set(volNum, driveLine.slice(0, 2))
-            }
-          }
-        }
-      }
-    } catch {
-      // mountvol failed - try PowerShell fallback
-    }
-
-    // Secondary: PowerShell Get-CimInstance (replaces deprecated WMIC)
-    if (this.driveMapping.size === 0) {
-      try {
-        const psScript = `Get-CimInstance Win32_Volume | Where-Object { $_.DriveLetter } | Select-Object DeviceID, DriveLetter | ConvertTo-Json -Compress`
-        const encoded = Buffer.from(psScript, 'utf16le').toString('base64')
-        const output = await asyncExec(
-          `powershell -NoProfile -ExecutionPolicy Bypass -EncodedCommand ${encoded}`,
-          { timeout: 5000 }
-        )
-
-        const trimmed = output.trim()
-        if (trimmed) {
-          const data = JSON.parse(trimmed)
-          const items = Array.isArray(data) ? data : [data]
-          for (const item of items) {
-            const deviceId = item.DeviceID as string
-            const driveLetter = item.DriveLetter as string
-            if (driveLetter && deviceId) {
-              const volMatch = deviceId.match(/HarddiskVolume(\d+)/)
-              if (volMatch) {
-                this.driveMapping.set(parseInt(volMatch[1]), driveLetter)
-              }
-            }
-          }
-        }
-      } catch {
-        logger.warn('Both mountvol and PowerShell failed for drive mapping — device paths will not be resolved')
-      }
-    }
-
+  /** HarddiskVolume number → drive letter (see harddiskVolumeMap). */
+  private getDriveMapping(): Promise<Map<number, string>> {
+    this.driveMapping ??= this.loadDriveMapping()
     return this.driveMapping
+  }
+
+  private async loadDriveMapping(): Promise<Map<number, string>> {
+    const mapping = harddiskVolumeMap()
+    if (mapping.size === 0) logger.warn('Drive mapping unavailable — BAM device paths will not be resolved')
+    return mapping
   }
 
   /**

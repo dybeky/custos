@@ -126,6 +126,27 @@ export class KeywordMatcher {
     return null
   }
 
+  /**
+   * findKeyword for a finding line as scanners write it — "[BAM] C:\\…\\x.exe |
+   * 12/10/2026, 10:00", "[USN C:] a.exe → b.dll — created". The decorations
+   * (source tag, " | time", rename arrows) hide the file name from the exact-name
+   * and everyday-word checks, so each part is also tried on its own: the
+   * finding gets the keyword the scanner flagged it for.
+   */
+  findKeywordInFinding(text: string): string | null {
+    const whole = this.findKeyword(text)
+    if (whole) return whole
+    for (const part of text.split(/\s+(?:\||→|—)\s+/)) {
+      // Leading "[source]" / "{keyword}" tags, and a prefetch file's ".pf"
+      // (SPOOFER.EXE-1A2B3C4D.pf names spoofer.exe).
+      const core = part.replace(/^(?:\[[^\]]*\]\s*|\{[^}]*\}\s*)+/, '').replace(/\.pf$/i, '').trim()
+      if (!core || core === text) continue
+      const keyword = this.findKeyword(core)
+      if (keyword) return keyword
+    }
+    return null
+  }
+
   getKeywords(): readonly string[] {
     return this.patterns
   }

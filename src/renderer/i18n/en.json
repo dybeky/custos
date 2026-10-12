@@ -574,6 +574,7 @@
       "lone-match": "An isolated name match — likely a coincidence until something confirms it.",
       "environment-only": "Only information about the system, no cheat evidence.",
       "incomplete-coverage": "{{failed}} of {{total}} checks did not complete — the picture is incomplete. Run Custos as Administrator and scan again.",
+      "partial-coverage": "Only part of the data was read by: {{checks}} — the picture is incomplete.",
       "trace-cleaning": "Signs that traces were removed or Windows components were switched off before the check (cleared logs, wiped Prefetch, a cleaner run, blocked checking tools) — other results may be incomplete.",
       "trace-cleaning-with-leads": "Traces were cleaned or checking tools blocked, AND cheat leads remain — a combination that warrants a close look.",
       "defender-cheat": "Windows Defender itself identified a game cheat or cheat tool on this PC."

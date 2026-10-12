@@ -297,11 +297,24 @@ export function analyze(results: ScanResult[], ctx: AnalyzeContext): ScanReport 
     })
   }
 
+  // A check that ran but read only part of its source is no proof of absence either.
+  const partial = results.filter(r => r.success && r.partial)
+  if (partial.length > 0) {
+    const checks = partial.map(r => r.scannerName).join(', ')
+    verdict.reasons.push({
+      code: 'partial-coverage',
+      direction: 'neutral',
+      text: `Only partly read: ${checks} — coverage is incomplete`,
+      params: { checks }
+    })
+  }
+
   const scanners = results.map(r => ({
     id: (scannerIdFromDisplayName(r.scannerName) ?? (r.scannerName as ScannerName)),
     name: r.scannerName,
     success: r.success,
     error: r.error,
+    ...(r.partial ? { partial: r.partial } : {}),
     durationMs: r.duration,
     count: r.findings.length
   }))

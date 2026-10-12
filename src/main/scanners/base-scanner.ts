@@ -162,7 +162,8 @@ export abstract class BaseScanner {
       percentage: totalItems > 0 ? (currentItem / totalItems) * 100 : 0 })
   }
 
-  protected createSuccessResult(findings: string[], startTime: Date): ScanResult {
+  /** `partial`: why only part of the source was read — shown as incomplete coverage. */
+  protected createSuccessResult(findings: string[], startTime: Date, partial?: string): ScanResult {
     const endTime = new Date()
     // Every finding ends up in an uploaded report: never let a password,
     // e-mail or token copied off the PC (a window title, a command line) through.
@@ -171,6 +172,7 @@ export abstract class BaseScanner {
       scannerName: this.name,
       success: true,
       findings: clean,
+      ...(partial ? { partial } : {}),
       startTime,
       endTime,
       duration: endTime.getTime() - startTime.getTime(),

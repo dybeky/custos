@@ -189,3 +189,25 @@ export function lineReader(decode: (bytes: Buffer) => string, onLine: (line: str
     }
   }
 }
+
+/**
+ * How much of the journal's newest end is read (bytes of USN range) — the
+ * default size of the system drive's journal, which fits the time budget.
+ */
+export const USN_READ_WINDOW = 32n * 1024n * 1024n
+
+/**
+ * Where to start reading so the newest records are read first-hand: `fsutil
+ * usn readjournal` goes from the oldest record up and is stopped by a time
+ * budget, so on a big journal the recent activity — what a check is about —
+ * would never be reached. From `fsutil usn queryjournal` output (labels are
+ * localized; the order is fixed: journal id, first USN, next USN, …).
+ * Null when the whole journal fits the window or the output is unreadable.
+ */
+export function usnStartFromQuery(output: string, window = USN_READ_WINDOW): string | null {
+  const values = [...output.matchAll(/:\s*0x([0-9a-f]+)\s*$/gim)].map((m) => BigInt('0x' + m[1]))
+  if (values.length < 3) return null
+  const [, first, next] = values
+  if (next <= first || next - first <= window) return null
+  return '0x' + (next - window).toString(16)
+}

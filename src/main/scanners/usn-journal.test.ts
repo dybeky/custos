@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { UsnAggregator, dateOrderFromPattern, lineReader, parseUsnRecord, parseUsnTimestamp, splitCsv, usnColumns, usnColumnsFromRecord } from './usn-journal'
+import { UsnAggregator, dateOrderFromPattern, lineReader, parseUsnRecord, parseUsnTimestamp, splitCsv, usnColumns, usnColumnsFromRecord, usnStartFromQuery } from './usn-journal'
 
 const HEADER = 'Usn,File name,File name length,Reason,Time stamp,File attributes,File ID,Parent file ID,Source info,Security ID,Major version,Minor version,Record length'
 const row = (name: string, reason: string, time: string, id: string) =>
@@ -113,5 +113,26 @@ describe('usnColumnsFromRecord', () => {
     agg.add(parseUsnRecord(de('index.json', '2'.padStart(32, '0')), cols, 'DMY')!)
     const out = agg.findings('C:', () => 'T')
     expect(out).toEqual(['[USN C:] aimbot.dll — created | T'])
+  })
+})
+
+describe('usnStartFromQuery', () => {
+  const query = (first: string, next: string) => `
+Usn Journal ID   : 0x01d9f2a3b4c5d6e7
+First Usn        : ${first}
+Next Usn         : ${next}
+Lowest Valid Usn : 0x0000000000000000
+Max Usn          : 0x7fffffffffff0000
+Maximum Size     : 0x0000000020000000
+Allocation Delta : 0x0000000000400000
+`
+
+  it('starts the read a window before the newest record', () => {
+    expect(usnStartFromQuery(query('0x0000000000000000', '0x0000000050000000'), 0x10000000n)).toBe('0x40000000')
+  })
+
+  it('reads the whole journal when it fits the window or cannot be read', () => {
+    expect(usnStartFromQuery(query('0x0000000040000000', '0x0000000048000000'), 0x10000000n)).toBeNull()
+    expect(usnStartFromQuery('Access is denied.')).toBeNull()
   })
 })

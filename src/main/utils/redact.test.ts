@@ -8,6 +8,18 @@ describe('hideProfileNames', () => {
     expect(hideProfileNames('a C:\\Users\\a\\x.dll and C:\\Users\\b\\y.dll')).toBe('a C:\\Users\\<user>\\x.dll and C:\\Users\\<user>\\y.dll')
   })
 
+  it('hides the name in device paths and file:/// links too', () => {
+    expect(hideProfileNames('[BAM] Device\\HarddiskVolume3\\Users\\ivan\\aimbot.exe')).toBe('[BAM] Device\\HarddiskVolume3\\Users\\<user>\\aimbot.exe')
+    expect(hideProfileNames('\\Device\\HarddiskVolume3\\Users\\ivan\\x.exe')).toBe('\\Device\\HarddiskVolume3\\Users\\<user>\\x.exe')
+    expect(hideProfileNames('file:///C:/Users/ivan/Downloads/aimbot.exe')).toBe('file:///C:/Users/<user>/Downloads/aimbot.exe')
+  })
+
+  it('keeps the text after a bare profile folder', () => {
+    expect(hideProfileNames('C:\\Users\\ivan, D:\\x.exe')).toBe('C:\\Users\\<user>, D:\\x.exe')
+    expect(hideProfileNames('[Recent] C:\\Users\\ivan (opened)')).toBe('[Recent] C:\\Users\\<user> (opened)')
+    expect(hideProfileNames('C:\\Users\\ivan | 12/10/2026, 10:00')).toBe('C:\\Users\\<user> | 12/10/2026, 10:00')
+  })
+
   it('leaves shared profiles and other paths alone', () => {
     for (const s of ['C:\\Users\\Public\\cheat.exe', 'C:\\Users\\Default\\NTUSER.DAT', 'C:\\Program Files\\Steam', 'C:\\Users'])
       expect(hideProfileNames(s)).toBe(s)

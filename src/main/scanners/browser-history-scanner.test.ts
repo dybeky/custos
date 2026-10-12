@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest'
-import { BrowserHistoryScanner } from './browser-history-scanner'
+import initSqlJs from 'sql.js'
+import { BrowserHistoryScanner, FIREFOX_HISTORY_QUERY } from './browser-history-scanner'
 import { KeywordMatcher } from '../services/keyword-matcher'
 
 const minimalSettings = {
@@ -107,5 +108,23 @@ describe('BrowserHistoryScanner.convertFirefoxTimestamp', () => {
     const firefoxDate = scanner.convertFirefoxTimestamp(firefoxTs)
 
     expect(chromeDate.getTime()).toBe(firefoxDate.getTime())
+  })
+})
+
+describe('FIREFOX_HISTORY_QUERY', () => {
+  it('returns each page once, with its latest visit', async () => {
+    const SQL = await initSqlJs()
+    const db = new SQL.Database()
+    db.run(`CREATE TABLE moz_places (id INTEGER PRIMARY KEY, url TEXT, title TEXT);
+      CREATE TABLE moz_historyvisits (id INTEGER PRIMARY KEY, place_id INTEGER, visit_date INTEGER);
+      INSERT INTO moz_places VALUES (1, 'https://busy.example', 'Busy'), (2, 'https://aimbot.example', 'Aimbot'), (3, 'https://bookmark.example', NULL);
+      INSERT INTO moz_historyvisits (place_id, visit_date) VALUES (1, 100), (1, 300), (1, 200), (2, 150);`)
+    const rows = db.exec(FIREFOX_HISTORY_QUERY)[0].values
+    db.close()
+    expect(rows).toEqual([
+      ['https://busy.example', 'Busy', 300],
+      ['https://aimbot.example', 'Aimbot', 150],
+      ['https://bookmark.example', null, null]
+    ])
   })
 })

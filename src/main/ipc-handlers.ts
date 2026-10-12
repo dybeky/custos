@@ -186,6 +186,9 @@ export function setupIpcHandlers(mainWindow: BrowserWindow): void {
 
     logger.info('Scan started', { scannerIds: scannerIds || 'all' })
     scannerFactory.resetAll()
+    // The signatures this scan runs with: a site bundle that arrives mid-scan
+    // only applies to the next one, so the version must not be read at the end.
+    const signatureVersion = scannerFactory.getSignatureVersion()
 
     // Only run scanners supported on the current OS — unsupported ones are skipped
     const supportedIds = new Set(getSupportedScannerIds()) as Set<ScannerName>
@@ -234,11 +237,11 @@ export function setupIpcHandlers(mainWindow: BrowserWindow): void {
           scannedAt: new Date(scanStartedAt).toISOString(),
           durationMs: Date.now() - scanStartedAt,
           appVersion: app.getVersion(),
-          signatureVersion: scannerFactory.getSignatureVersion(),
+          signatureVersion,
           gameId: gameId ?? null,
           os: osMetaFromOsInfo(getOsInfo()),
           player: await playerPromise,
-          findKeyword: (value: string) => scannerFactory.getKeywordMatcher().findKeyword(value)
+          findKeyword: (value: string) => scannerFactory.getKeywordMatcher().findKeywordInFinding(value)
         }
         lastScan = { results, context }
         const report = analyze(results, {
