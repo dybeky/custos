@@ -25,6 +25,10 @@ Custos reads the artifacts Windows quietly records every time a program runs, an
 
 ---
 
+> **Custos Pro.** Custos 3.x stays here, but new work moves to **Custos Pro** — a closed, invite-only generation that starts at version 1.0.0 and runs only with a personal key. It is free for now; keys are given out by hand. Details and how to ask for an invite: **[97437.dev/pro](https://97437.dev/pro)**.
+
+---
+
 ## What is Custos?
 
 When someone runs a program on Windows — including a cheat — the operating system quietly records that it happened in dozens of different places: prefetch files, registry keys, recent‑files lists, an execution log called BAM, the DNS cache, and more. These records often survive **even after the program itself is deleted.**
