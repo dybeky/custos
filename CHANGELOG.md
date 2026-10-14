@@ -5,6 +5,11 @@ shows it in the update dialog and under "What's new". Keep the `### New`,
 `### Fixes` and `### Improvements` headings — the app groups entries by them.
 Keep each entry to one line of about 100 characters so the dialog stays tidy.
 
+## Unreleased
+
+### New
+- Settings → About links to Custos Pro, the invite-only generation that continues Custos
+
 ## 3.1.1
 
 ### New

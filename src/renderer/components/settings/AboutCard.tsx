@@ -56,6 +56,12 @@ export function AboutCard() {
           >
             {t('settings.about.license')}
           </button>
+          <button
+            onClick={() => open(CREDITS.proUrl)}
+            className="h-8 px-3 rounded-lg bg-panel-2 border border-scan/40 text-xs font-medium text-scan hover:border-scan transition-colors"
+          >
+            {t('settings.about.pro')}
+          </button>
         </div>
 
         <p className="mt-4 pt-3 border-t border-[color:var(--line)] text-[11px] leading-relaxed text-ink-dim">
