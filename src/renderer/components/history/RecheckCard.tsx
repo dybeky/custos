@@ -1,8 +1,10 @@
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useScanStore } from '../../stores/scan-store'
 import { featureName } from '../../utils/feature-i18n'
 import { bandChipClass } from '../../utils/report-view'
+import { dateLocale } from '../../utils/date-locale'
 
 /**
  * "Compared to this player's previous check": verdict then vs now and the
@@ -13,10 +15,11 @@ export function RecheckCard() {
   const { t, i18n } = useTranslation()
   const { previous, openHistory } = useScanStore()
   const [open, setOpen] = useState(false)
+  const navigate = useNavigate()
   if (!previous) return null
 
   const { summary, diff } = previous
-  const when = new Intl.DateTimeFormat(i18n.language, { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(summary.scannedAt))
+  const when = new Intl.DateTimeFormat(dateLocale(i18n.language), { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(summary.scannedAt))
   const changed = diff.added.length > 0 || diff.removed.length > 0
 
   return (
@@ -27,6 +30,12 @@ export function RecheckCard() {
           <p className="mt-1 text-xs text-ink-dim">
             {t('recheck.previousOn', { when })}{' '}
             <button onClick={() => void openHistory(summary.id)} className="text-scan hover:underline">{t('recheck.open')}</button>
+            {summary.playerKey && (
+              <>
+                {' · '}
+                <button onClick={() => navigate(`/case/${encodeURIComponent(summary.playerKey!)}`)} className="text-scan hover:underline">{t('casefile.openCaseForPlayer')}</button>
+              </>
+            )}
           </p>
         </div>
         <div className="flex items-center gap-1.5 shrink-0 text-xs">

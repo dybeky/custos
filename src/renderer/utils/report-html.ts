@@ -3,6 +3,7 @@ import type { AnalyzedFinding, ScanReport } from '../../shared/types'
 import { GAMES } from '../../shared/games'
 import { formatDuration, scannerLabel, type CaseInfo } from './report-export'
 import { buildTimeline, rankedCorrelations, reasonText } from './report-view'
+import { dateLocale } from './date-locale'
 
 const ESCAPES: Record<string, string> = {
   '&': '&amp;',
@@ -10,11 +11,6 @@ const ESCAPES: Record<string, string> = {
   '>': '&gt;',
   '"': '&quot;',
   "'": '&#39;'
-}
-
-/** Dates read day, month, year with a 24-hour clock; the English UI gets en-GB, not en-US. */
-function dateLocale(locale?: string): string | undefined {
-  return !locale || locale === 'en' ? 'en-GB' : locale
 }
 
 /** Everything in a report comes from the checked PC (file names, URLs): escape it all. */

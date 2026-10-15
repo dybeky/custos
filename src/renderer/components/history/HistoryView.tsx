@@ -1,8 +1,10 @@
 import { useEffect, useMemo, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useScanStore } from '../../stores/scan-store'
 import { bandChipClass } from '../../utils/report-view'
 import { GAMES, type GameId } from '../../../shared/games'
+import { dateLocale } from '../../utils/date-locale'
 
 /**
  * Every saved check, newest first, searchable by player. Opening one shows
@@ -14,12 +16,13 @@ export function HistoryView({ onOpened }: { onOpened: () => void }) {
   const { history, loadHistory, openHistory, deleteHistory, status } = useScanStore()
   const [query, setQuery] = useState('')
   const [confirmId, setConfirmId] = useState<string | null>(null)
+  const navigate = useNavigate()
 
   useEffect(() => {
     void loadHistory()
   }, [loadHistory])
 
-  const fmt = new Intl.DateTimeFormat(i18n.language, { dateStyle: 'medium', timeStyle: 'short' })
+  const fmt = new Intl.DateTimeFormat(dateLocale(i18n.language), { dateStyle: 'medium', timeStyle: 'short' })
   const rows = useMemo(() => {
     const q = query.trim().toLowerCase()
     return q ? history.filter((h) => h.player.toLowerCase().includes(q) || h.id.includes(q)) : history
@@ -78,6 +81,14 @@ export function HistoryView({ onOpened }: { onOpened: () => void }) {
                     >
                       {t('history.open')}
                     </button>
+                    {h.playerKey && (
+                      <button
+                        onClick={() => navigate(`/case/${encodeURIComponent(h.playerKey!)}`)}
+                        className="px-3 h-8 rounded-lg bg-panel-2 text-ink text-xs font-medium hover:bg-scan/15 hover:text-scan transition-colors"
+                      >
+                        {t('casefile.openCase')}
+                      </button>
+                    )}
                     <button onClick={() => setConfirmId(h.id)} className="px-2 h-8 rounded-lg text-ink-dim text-xs hover:text-alert" aria-label={t('history.delete')}>
                       {t('history.delete')}
                     </button>

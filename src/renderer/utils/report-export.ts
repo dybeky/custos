@@ -4,11 +4,7 @@ import { GAMES } from '../../shared/games'
 import { SCANNER_DISPLAY_TO_ID } from '../../shared/scanners-meta'
 import { featureName } from './feature-i18n'
 import { buildTimeline, rankedCorrelations, reasonText, relativeToScan } from './report-view'
-
-/** Dates read day, month, year with a 24-hour clock; the English UI gets en-GB, not en-US. */
-function dateLocale(locale?: string): string | undefined {
-  return !locale || locale === 'en' ? 'en-GB' : locale
-}
+import { dateLocale } from './date-locale'
 
 /** Who was checked and by whom — typed by the checker, not part of the hashed report. */
 export interface CaseInfo {
@@ -225,6 +221,16 @@ export function buildJsonReport(
 }
 
 /** Trigger a browser download of `content` as `fileName`. */
+export function downloadBytes(bytes: Uint8Array, fileName: string, mime: string): void {
+  const blob = new Blob([bytes as BlobPart], { type: mime })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = fileName
+  a.click()
+  setTimeout(() => URL.revokeObjectURL(url), 0)
+}
+
 export function downloadText(content: string, fileName: string, mime: string): void {
   const blob = new Blob([content], { type: `${mime};charset=utf-8` })
   const url = URL.createObjectURL(blob)

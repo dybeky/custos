@@ -669,6 +669,22 @@
     "detected": {
       "running": "Detected automatically: Steam was signed in to this account during the check.",
       "recent": "Detected automatically: the last account signed in to Steam on this PC."
+    },
+    "status": {
+      "cleaned": "Cleaned",
+      "new": "New",
+      "persistent": "Always there",
+      "intermittent": "Comes and goes"
+    },
+    "package": {
+      "summaryTitle": "Case summary",
+      "checksHeading": "Checks (oldest first)",
+      "reportHash": "Report hash",
+      "evidenceHeading": "Evidence across the checks",
+      "legend": "[# = present in that check, . = absent]  one mark per check, oldest first",
+      "noEvidence": "No evidence was found in these checks.",
+      "readmeTitle": "Custos case package",
+      "readmeBody": "This folder holds every saved check of one player: checks/ has each check as a readable page (.html) and as data (.json); SUMMARY.txt lists the checks and which evidence was present in which. MANIFEST.sha256 holds the SHA-256 of every other file. If a file is changed after the package was made, its hash no longer matches. Each report also carries its own integrity hash. A finding is a lead, not proof."
     }
   },
   "history": {
@@ -704,6 +720,38 @@
     "hide": "Hide changes",
     "addedTitle": "New since the previous check",
     "removedTitle": "Gone since the previous check"
+  },
+  "casefile": {
+    "title": "Case",
+    "back": "Back to history",
+    "casesTitle": "Cases",
+    "casesHint": "Players you checked in this session. Open a case to see their checks side by side.",
+    "openCase": "Open case",
+    "openCaseForPlayer": "Open this player's case",
+    "checks_one": "{{count}} check",
+    "checks_other": "{{count}} checks",
+    "firstLast": "First check {{first}}, latest {{last}}",
+    "notFound": "No saved checks for this player. Custos keeps checks only until it closes.",
+    "trendTitle": "Verdict over the checks",
+    "trendHint": "One dot per check, oldest on the left. A drop after a bad check often means the player cleaned up.",
+    "matrixTitle": "Evidence across the checks",
+    "matrixHint": "Each row is one lead; each column is a check. A filled dot means it was found in that check. Cleaned = found before, gone in the latest check.",
+    "matrixEmpty": "No evidence in these checks.",
+    "showAll": "Show all {{count}}",
+    "showLess": "Show fewer",
+    "checkLabel": "Check {{n}}",
+    "openCheck": "Open this check",
+    "compareTitle": "Compare two checks",
+    "compareFrom": "Earlier check",
+    "compareTo": "Later check",
+    "compareSame": "Pick two different checks.",
+    "exportTitle": "Case package",
+    "exportHint": "One zip with every check of this player (HTML and JSON), a summary, and a SHA-256 list so nobody can change a file unnoticed. Built on this PC.",
+    "exportButton": "Save case package",
+    "exporting": "Building…",
+    "exported": "Saved {{name}}",
+    "exportFailed": "Could not build the package.",
+    "notesTitle": "Notes"
   },
   "site": {
     "title": "Site",
