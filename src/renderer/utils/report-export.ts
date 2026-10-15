@@ -5,6 +5,11 @@ import { SCANNER_DISPLAY_TO_ID } from '../../shared/scanners-meta'
 import { featureName } from './feature-i18n'
 import { buildTimeline, rankedCorrelations, reasonText, relativeToScan } from './report-view'
 
+/** Dates read day, month, year with a 24-hour clock; the English UI gets en-GB, not en-US. */
+function dateLocale(locale?: string): string | undefined {
+  return !locale || locale === 'en' ? 'en-GB' : locale
+}
+
 /** Who was checked and by whom — typed by the checker, not part of the hashed report. */
 export interface CaseInfo {
   /** Player nickname / SteamID being checked. */
@@ -97,7 +102,7 @@ export function buildTextReport(
     ...(caseInfo?.player?.trim() ? [field(t('case.player'), caseInfo.player.trim())] : []),
     ...(caseInfo?.checkedBy?.trim() ? [field(t('case.checkedBy'), caseInfo.checkedBy.trim())] : []),
     field(t('report.scanId'), report.id),
-    field(t('report.date'), `${scanned.toLocaleString(locale)} (${meta.scannedAt})`),
+    field(t('report.date'), `${scanned.toLocaleString(dateLocale(locale))} (${meta.scannedAt})`),
     field(t('report.duration'), formatDuration(t, meta.durationMs)),
     field(t('report.game'), game),
     field(t('report.system'), os),
@@ -137,7 +142,7 @@ export function buildTextReport(
   const timeline = buildTimeline(report)
   if (timeline.length > 0) {
     out.push('', THIN, t('timeline.title').toUpperCase(), THIN)
-    const fmt = new Intl.DateTimeFormat(locale, { dateStyle: 'short', timeStyle: 'short' })
+    const fmt = new Intl.DateTimeFormat(dateLocale(locale), { dateStyle: 'short', timeStyle: 'short' })
     for (const e of timeline) {
       const scanner = report.scanners.find((s) => s.id === e.finding.scannerId)
       out.push(
