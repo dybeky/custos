@@ -8,6 +8,7 @@ Keep each entry to one line of about 100 characters so the dialog stays tidy.
 ## Unreleased
 
 ### New
+- The Dashboard shows the website's 3D Custos sword, turning inside its rings in the theme colour
 - Export HTML: a single printable report file you can open in a browser or send to a server owner
 - Settings → About links to Custos Pro, the invite-only generation that continues Custos
 
