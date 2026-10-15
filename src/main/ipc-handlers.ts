@@ -1,7 +1,7 @@
 import { ipcMain, app, BrowserWindow, shell } from 'electron'
 import { existsSync } from 'fs'
 import { IPC_CHANNELS, ScanResult, UserSettings, ScannerInfo, OsInfo, ScannerCapability } from '../shared/types'
-import type { ScanReport, TriageSettings, SignatureStatus, SiteUploadResult, SitePlayerResult } from '../shared/types'
+import type { ScanReport, TriageSettings, SignatureStatus, NewsFeed, SiteUploadResult, SitePlayerResult } from '../shared/types'
 import { logger } from './services/logger'
 import { execFile } from 'child_process'
 import { promisify } from 'util'
@@ -21,6 +21,7 @@ import { resolveSystemTool, systemCwd, systemRoot } from './utils/system-paths'
 import { locateSteam } from './utils/steam-locator'
 import { detectSteamPlayer } from './services/player-detect'
 import { HistoryStore } from './services/history-store'
+import { NewsService } from './services/news-service'
 import { SignatureUpdater } from './services/signature-updater'
 import { bundleAdditions, bundleEntryCount } from './services/signature-bundle'
 import { configService } from './services/config-service'
@@ -167,6 +168,13 @@ export function setupIpcHandlers(mainWindow: BrowserWindow): void {
   }
   ipcMain.handle(IPC_CHANNELS.SIGNATURES_STATUS, (): SignatureStatus => signatures.status())
   ipcMain.handle(IPC_CHANNELS.SIGNATURES_CHECK, (): Promise<SignatureStatus> => signatures.check())
+
+  // The site's announcements for the Dashboard's news card.
+  const news = new NewsService({
+    baseUrl: configService.loadAuthConfig().webBaseUrl,
+    appVersion: app.getVersion()
+  })
+  ipcMain.handle(IPC_CHANNELS.NEWS_GET, (): Promise<NewsFeed> => news.get())
 
   // Start scan
   ipcMain.handle(IPC_CHANNELS.SCAN_START, async (_event, scannerIds?: ScannerName[], gameId?: GameId): Promise<ScanResult[]> => {

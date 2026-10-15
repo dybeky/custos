@@ -376,8 +376,27 @@ export const IPC_CHANNELS = {
 
   // Signatures downloaded from the site
   SIGNATURES_STATUS: 'signatures:status',
-  SIGNATURES_CHECK: 'signatures:check'
+  SIGNATURES_CHECK: 'signatures:check',
+
+  // The site's announcements
+  NEWS_GET: 'news:get'
 } as const
+
+/** One announcement from 97437.dev/api/news, shown in the Dashboard's news card. */
+export type NewsTag = 'pro' | 'free' | 'site'
+export interface NewsItem {
+  id: string
+  /** ISO date, YYYY-MM-DD. */
+  date: string
+  tag: NewsTag
+  title: string
+  summary: string
+}
+export interface NewsFeed {
+  items: NewsItem[]
+  /** The site's news page. */
+  url: string
+}
 
 export type IpcChannel = typeof IPC_CHANNELS[keyof typeof IPC_CHANNELS]
 

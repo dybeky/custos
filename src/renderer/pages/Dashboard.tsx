@@ -10,6 +10,7 @@ import { featureName, featureDesc, featureHelp } from '../utils/feature-i18n'
 import type { CapabilityCategory, ScannerCapability, ChangelogGroup } from '../../shared/types'
 import { alpha } from '../utils/color'
 import { SwordStage } from '../components/SwordStage'
+import { NewsCard } from '../components/NewsCard'
 
 // Accent color per changelog group — replaces emojis with quiet semantic color.
 const CHANGELOG_ACCENT: Record<string, string> = {
@@ -160,6 +161,8 @@ export function Dashboard() {
             </div>
           </CardContent>
         </Card>
+
+        <NewsCard />
 
         {/* Version Card — compact & fancy */}
         <Card className="relative overflow-hidden" transition={{ duration: 0.4, delay: 0.08 }}>
