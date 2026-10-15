@@ -145,6 +145,7 @@
     "scanResults": "Scan Results",
     "exportResults": "EXPORT RESULTS",
     "exportJSON": "EXPORT JSON",
+    "exportHTML": "EXPORT HTML",
     "runScanToSee": "Run a scan to see results",
     "noResultsYet": "No results yet",
     "noFindings": "No findings",
