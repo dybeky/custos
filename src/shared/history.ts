@@ -1,4 +1,4 @@
-import type { AnalyzedFinding, ScanPlayer, ScanReport, ScanResult, VerdictBand } from './types'
+import type { ScanPlayer, ScanReport, ScanResult, VerdictBand } from './types'
 
 /** Case details saved with a check. */
 export interface HistoryCase {
@@ -92,7 +92,7 @@ export function findPrevious(summaries: HistorySummary[], currentId: string, cur
  * embedded times removed — a Prefetch "last run" moving forward is the same
  * artifact, not a new one.
  */
-export function findingIdentity(f: Pick<AnalyzedFinding, 'scannerId' | 'value'>): string {
+export function findingIdentity(f: { scannerId: string; value: string }): string {
   const value = f.value
     .replace(/\b\d{2}\/\d{2}\/\d{4}, \d{2}:\d{2}\b/g, '')
     .replace(/\b\d{4}-\d{2}-\d{2} \d{2}:\d{2} UTC\b/g, '')
@@ -103,11 +103,27 @@ export function findingIdentity(f: Pick<AnalyzedFinding, 'scannerId' | 'value'>)
   return `${f.scannerId}\n${value}`
 }
 
+/** What a comparison reads of a finding. */
+export interface DiffFinding {
+  id: string
+  scannerId: string
+  value: string
+  severity: string
+  dismissed?: boolean
+  whitelisted?: boolean
+}
+
+/** A check to compare: a full report, or the evidence the site keeps of an earlier one. */
+export interface DiffSource {
+  verdict: { band: VerdictBand; score: number }
+  findings: DiffFinding[]
+}
+
 export interface ReportDiff {
   /** Evidence present now but not in the previous check. */
-  added: AnalyzedFinding[]
+  added: DiffFinding[]
   /** Evidence in the previous check that is gone now. */
-  removed: AnalyzedFinding[]
+  removed: DiffFinding[]
   unchanged: number
   bandFrom: VerdictBand
   bandTo: VerdictBand
@@ -115,12 +131,12 @@ export interface ReportDiff {
   scoreTo: number
 }
 
-function activeEvidence(r: ScanReport): AnalyzedFinding[] {
+function activeEvidence(r: DiffSource): DiffFinding[] {
   return r.findings.filter((f) => f.severity !== 'info' && !f.dismissed && !f.whitelisted)
 }
 
 /** What changed between a player's previous check and this one. */
-export function diffReports(prev: ScanReport, curr: ScanReport): ReportDiff {
+export function diffReports(prev: DiffSource, curr: DiffSource): ReportDiff {
   const before = new Map(activeEvidence(prev).map((f) => [findingIdentity(f), f]))
   const after = new Map(activeEvidence(curr).map((f) => [findingIdentity(f), f]))
   const added = [...after].filter(([k]) => !before.has(k)).map(([, f]) => f)

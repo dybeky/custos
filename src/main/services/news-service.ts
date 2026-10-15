@@ -9,6 +9,15 @@ const ItemSchema = z.object({
   id: z.string().max(64),
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   tag: z.enum(['pro', 'free', 'site']),
+  // A bad value here must not blank the whole feed: fall back to the preset.
+  tagLabel: z.string().min(1).max(24).nullable().optional().catch(null),
+  tagColor: z
+    .string()
+    .regex(/^#[0-9a-fA-F]{6}$/)
+    .nullable()
+    .optional()
+    .catch(null),
+  pinned: z.boolean().optional().catch(false),
   title: z.string().max(200),
   summary: z.string().max(600)
 })

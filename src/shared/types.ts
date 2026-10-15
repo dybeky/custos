@@ -141,6 +141,38 @@ export interface SiteCheck {
   hashVerified: boolean
 }
 
+/** The evidence of an earlier check, as the site sends it for a comparison. */
+export interface SitePreviousFinding {
+  id: string
+  scannerId: string
+  value: string
+  matched: string | null
+  severity: string
+  category: string
+}
+
+/** The check of this player just before the current one (any checker), from the site. */
+export interface SitePrevious {
+  id: string
+  scannedAt: string
+  band: 'clean' | 'low' | 'medium' | 'high' | 'critical'
+  score: number
+  leads: number
+  uploader: string | null
+  hashVerified: boolean
+  anonymous: boolean
+  /** How many checks of this player came before the current one. */
+  total: number
+  findings: SitePreviousFinding[]
+}
+
+export interface SitePreviousResult {
+  ok: boolean
+  /** null = the player was never checked before. */
+  previous?: SitePrevious | null
+  error?: string
+}
+
 export interface SitePlayerResult {
   ok: boolean
   checks?: SiteCheck[]
@@ -372,6 +404,7 @@ export const IPC_CHANNELS = {
   AUTH_CHANGED: 'auth:changed',
   SITE_UPLOAD_CHECK: 'site:upload-check',
   SITE_PLAYER_CHECKS: 'site:player-checks',
+  SITE_PREVIOUS_CHECK: 'site:previous-check',
   SITE_OPEN: 'site:open',
 
   // Signatures downloaded from the site
@@ -389,6 +422,10 @@ export interface NewsItem {
   /** ISO date, YYYY-MM-DD. */
   date: string
   tag: NewsTag
+  /** The author's own tag text and colour (#rrggbb) for the chip, when set. */
+  tagLabel?: string | null
+  tagColor?: string | null
+  pinned?: boolean
   title: string
   summary: string
 }

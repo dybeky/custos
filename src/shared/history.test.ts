@@ -68,6 +68,27 @@ describe('diffReports', () => {
   })
 })
 
+describe('diffReports against the evidence the site keeps', () => {
+  it('compares the current check with a compact earlier one (a PC that never saw that check)', () => {
+    const earlier = {
+      verdict: { band: 'high' as const, score: 70 },
+      findings: [
+        { id: 'a', scannerId: 'prefetch', value: 'C:/P/UNDEAD.EXE-1.pf | last run 20/09/2026, 10:00', severity: 'high' },
+        { id: 'b', scannerId: 'appdata', value: 'C:/Users/p/AppData/Roaming/undead', severity: 'medium' }
+      ]
+    }
+    const now = rep('now', '2026-09-27T10:00:00Z', [
+      f('c', 'prefetch', 'C:/P/UNDEAD.EXE-1.pf | last run 27/09/2026, 09:00'),
+      f('d', 'recyclebin', '[Recycle Bin] C:/x/undead.exe | deleted 27/09/2026, 09:30')
+    ], 'critical', 90)
+    const d = diffReports(earlier, now)
+    expect(d.added.map((x) => x.id)).toEqual(['d'])
+    expect(d.removed.map((x) => x.id)).toEqual(['b'])
+    expect(d.unchanged).toBe(1)
+    expect([d.bandFrom, d.bandTo]).toEqual(['high', 'critical'])
+  })
+})
+
 describe('summarize', () => {
   it('builds a listing row', () => {
     const r = rep('x', '2026-09-27T10:00:00Z', [f('1', 'appdata', 'a'), f('2', 'steam', 'b', { severity: 'info' })], 'medium', 50)

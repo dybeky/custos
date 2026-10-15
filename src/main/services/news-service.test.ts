@@ -112,4 +112,29 @@ describe('NewsService', () => {
     })
     expect((await bad.get()).items).toEqual([])
   })
+
+  it("keeps the author's own tag text and colour, and drops a bad colour without losing the news", async () => {
+    const custom = { ...ITEM, tagLabel: 'Beta news', tagColor: '#4484e3', pinned: true }
+    const svc = new NewsService({
+      baseUrl: 'https://97437.dev',
+      appVersion: '3.3.0',
+      fetchImpl: site({ items: [custom] })
+    })
+    expect((await svc.get()).items[0]).toMatchObject({
+      tagLabel: 'Beta news',
+      tagColor: '#4484e3',
+      pinned: true
+    })
+
+    const bad = { ...ITEM, tagLabel: 'x'.repeat(40), tagColor: 'url(javascript:1)' }
+    const svc2 = new NewsService({
+      baseUrl: 'https://97437.dev',
+      appVersion: '3.3.0',
+      fetchImpl: site({ items: [bad] })
+    })
+    const got = (await svc2.get()).items
+    expect(got).toHaveLength(1)
+    expect(got[0].tagColor).toBeNull()
+    expect(got[0].tagLabel).toBeNull()
+  })
 })
