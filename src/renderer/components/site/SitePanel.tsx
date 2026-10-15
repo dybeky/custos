@@ -5,6 +5,7 @@ import { useAuthStore } from '../../stores/auth-store'
 import { useScanStore } from '../../stores/scan-store'
 import { useSiteSync } from '../../stores/site-sync'
 import { bandChipClass } from '../../utils/report-view'
+import { dateLocale } from '../../utils/date-locale'
 
 const BTN = 'px-3 py-1.5 rounded-lg text-xs font-medium transition-colors disabled:opacity-50'
 
@@ -51,7 +52,7 @@ export function SitePanel() {
     }
   }
 
-  const fmt = new Intl.DateTimeFormat(i18n.language, { dateStyle: 'medium' })
+  const fmt = new Intl.DateTimeFormat(dateLocale(i18n.language), { dateStyle: 'medium' })
   const uploadedId = upload?.ok && upload.url ? upload.url.split('/').pop() : null
 
   return (

@@ -5,6 +5,7 @@ import { Card, CardContent } from '../ui/Card'
 import { InfoTip } from '../ui/InfoTip'
 import { featureName } from '../../utils/feature-i18n'
 import { buildTimeline, groupTimeline, relativeToScan, severityChipClass } from '../../utils/report-view'
+import { dateLocale } from '../../utils/date-locale'
 
 const COLLAPSED_COUNT = 8
 
@@ -22,7 +23,7 @@ export function ActivityTimeline({ report, bare = false }: { report: ScanReport;
   if (groups.length === 0) return null
 
   const shown = expanded ? groups : groups.slice(0, COLLAPSED_COUNT)
-  const fmt = new Intl.DateTimeFormat(i18n.language, { dateStyle: 'short', timeStyle: 'short' })
+  const fmt = new Intl.DateTimeFormat(dateLocale(i18n.language), { dateStyle: 'short', timeStyle: 'short' })
   const toggleGroup = (id: string) =>
     setOpenGroups((prev) => {
       const next = new Set(prev)

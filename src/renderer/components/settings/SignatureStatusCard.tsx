@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { SignatureStatus } from '../../../shared/types'
+import { dateLocale } from '../../utils/date-locale'
 
 /** Which detection signatures scans use, and a manual "check the site now". */
 export function SignatureStatusCard() {
@@ -26,7 +27,7 @@ export function SignatureStatusCard() {
   }
 
   const when = status.lastCheckedAt
-    ? new Intl.DateTimeFormat(i18n.language, { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(status.lastCheckedAt))
+    ? new Intl.DateTimeFormat(dateLocale(i18n.language), { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(status.lastCheckedAt))
     : null
 
   return (

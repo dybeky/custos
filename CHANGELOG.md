@@ -8,9 +8,17 @@ Keep each entry to one line of about 100 characters so the dialog stays tidy.
 ## Unreleased
 
 ### New
+- Case mode: all of a player's checks side by side, with what was cleaned between them
+- Case package: one zip with every check, a summary and a SHA-256 list that proves nothing was edited
+- Compare any two checks of a player, not only the last two
+- The Dashboard shows the site's news, the same as the News page
 - The Dashboard shows the website's 3D Custos sword, turning inside its rings in the theme colour
 - Export HTML: a single printable report file you can open in a browser or send to a server owner
 - Settings → About links to Custos Pro, the invite-only generation that continues Custos
+
+### Improvements
+- Dates read day, month, year with a 24-hour clock instead of the American format
+- A file-hash lead carries its full SHA-256, so a confirmed cheat file can be added to the base
 
 ## 3.1.1
 
