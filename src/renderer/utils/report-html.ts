@@ -12,6 +12,11 @@ const ESCAPES: Record<string, string> = {
   "'": '&#39;'
 }
 
+/** Dates read day, month, year with a 24-hour clock; the English UI gets en-GB, not en-US. */
+function dateLocale(locale?: string): string | undefined {
+  return !locale || locale === 'en' ? 'en-GB' : locale
+}
+
 /** Everything in a report comes from the checked PC (file names, URLs): escape it all. */
 export function esc(value: unknown): string {
   return String(value ?? '').replace(/[&<>"']/g, (c) => ESCAPES[c])
@@ -83,7 +88,7 @@ export function buildHtmlReport(
   if (caseInfo?.checkedBy?.trim()) rows.push([t('case.checkedBy'), caseInfo.checkedBy.trim()])
   rows.push(
     [t('report.scanId'), report.id],
-    [t('report.date'), `${new Date(meta.scannedAt).toLocaleString(locale)} (${meta.scannedAt})`],
+    [t('report.date'), `${new Date(meta.scannedAt).toLocaleString(dateLocale(locale))} (${meta.scannedAt})`],
     [t('report.duration'), formatDuration(t, meta.durationMs)],
     [t('report.game'), game],
     [t('report.system'), os],
@@ -141,7 +146,7 @@ export function buildHtmlReport(
 
   const timeline = buildTimeline(report)
   if (timeline.length > 0) {
-    const fmt = new Intl.DateTimeFormat(locale, { dateStyle: 'short', timeStyle: 'short' })
+    const fmt = new Intl.DateTimeFormat(dateLocale(locale), { dateStyle: 'short', timeStyle: 'short' })
     out.push(
       section(
         t('timeline.title'),
