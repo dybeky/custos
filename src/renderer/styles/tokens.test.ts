@@ -44,13 +44,14 @@ describe('color themes', () => {
     expect(tw).not.toMatch(/#[0-9a-fA-F]{6}/)
   })
 
+  // report-html.ts is exempt: it writes a standalone document that must look right outside the app.
   it('renderer components contain no hard-coded palette colors', () => {
     const offenders: string[] = []
     const walk = (dir: string) => {
       for (const name of readdirSync(dir)) {
         const p = join(dir, name)
         if (statSync(p).isDirectory()) walk(p)
-        else if (/\.tsx?$/.test(name) && !/\.test\.tsx?$/.test(name) && !/roles\.ts$|Icon\w+\.tsx$/.test(name)) {
+        else if (/\.tsx?$/.test(name) && !/\.test\.tsx?$/.test(name) && !/roles\.ts$|Icon\w+\.tsx$|report-html\.ts$/.test(name)) {
           if (/#[0-9a-fA-F]{6}\b/.test(readFileSync(p, 'utf8'))) offenders.push(p)
         }
       }

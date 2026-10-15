@@ -20,6 +20,7 @@ import { useNavigate } from 'react-router-dom'
 import { useAuthStore } from '../stores/auth-store'
 import { IgnoredSignatures } from '../components/report/IgnoredSignatures'
 import { buildTextReport, buildJsonReport, downloadText, exportFileStem } from '../utils/report-export'
+import { buildHtmlReport } from '../utils/report-html'
 import { SCANNER_DISPLAY_TO_ID } from '../../shared/scanners-meta'
 
 export function Results() {
@@ -42,6 +43,11 @@ export function Results() {
   const handleExport = () => {
     const text = buildTextReport(t, report, results, i18n.language, exportCase)
     downloadText(text, `${exportFileStem(report)}.txt`, 'text/plain')
+  }
+
+  const handleExportHtml = () => {
+    if (!report) return
+    downloadText(buildHtmlReport(t, report, i18n.language, exportCase), `${exportFileStem(report)}.html`, 'text/html')
   }
 
   const handleExportJSON = () => {
@@ -158,6 +164,11 @@ export function Results() {
                   <Button variant="secondary" onClick={handleExport}>
                     {t('results.exportResults')}
                   </Button>
+                  {report && (
+                    <Button variant="secondary" onClick={handleExportHtml}>
+                      {t('results.exportHTML')}
+                    </Button>
+                  )}
                   <Button variant="secondary" onClick={handleExportJSON}>
                     {t('results.exportJSON')}
                   </Button>

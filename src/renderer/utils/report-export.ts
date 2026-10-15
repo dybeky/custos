@@ -33,11 +33,11 @@ export function exportFileStem(report: ScanReport | null, now = new Date()): str
   return `custos-${date}${id}`
 }
 
-function scannerLabel(t: TFunction, id: string, fallback: string): string {
+export function scannerLabel(t: TFunction, id: string, fallback: string): string {
   return featureName(t, id, fallback)
 }
 
-function formatDuration(t: TFunction, ms: number): string {
+export function formatDuration(t: TFunction, ms: number): string {
   return ms >= 1000 ? `${(ms / 1000).toFixed(1)} ${t('report.unitSec')}` : `${ms} ${t('report.unitMs')}`
 }
 
