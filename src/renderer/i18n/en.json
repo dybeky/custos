@@ -46,6 +46,15 @@
       "desc": "A soft click when you switch pages."
     }
   },
+  "news": {
+    "title": "NEWS",
+    "more": "All news on the site",
+    "tag": {
+      "pro": "Custos Pro",
+      "free": "Custos 3.x",
+      "site": "Site"
+    }
+  },
   "dashboard": {
     "title": "Dashboard",
     "eyebrow": "ANTI-CHEAT TOOLKIT",

@@ -1,6 +1,6 @@
 import { contextBridge, ipcRenderer } from 'electron'
 import { IPC_CHANNELS, ScanResult, ScanProgress, UserSettings, ScannerInfo, OsInfo, ScannerCapability, ScannerName, LiveFinding, LiveScanStatus, ScanReport } from '../shared/types'
-import type { ChangelogGroup, UpdateInfo, UpdateProgress, AuthState, AuthProvider, SuppressionState, TriageSettings, SiteUploadResult, SitePlayerResult, SignatureStatus } from '../shared/types'
+import type { ChangelogGroup, UpdateInfo, UpdateProgress, AuthState, AuthProvider, SuppressionState, TriageSettings, SiteUploadResult, SitePlayerResult, SignatureStatus, NewsFeed } from '../shared/types'
 import type { GameId } from '../shared/games'
 import type { HistoryEntry, HistorySummary } from '../shared/history'
 
@@ -265,6 +265,9 @@ const api = {
 
   /** Check the site for newer signatures now. */
   checkSignatures: (): Promise<SignatureStatus> => ipcRenderer.invoke(IPC_CHANNELS.SIGNATURES_CHECK),
+
+  /** The site's news (same in the free Custos and Custos Pro). */
+  getNews: (): Promise<NewsFeed> => ipcRenderer.invoke(IPC_CHANNELS.NEWS_GET),
 
   /** Subscribe to auth-state changes pushed from main. Returns unsubscribe fn. */
   onAuthChanged: (callback: AuthChangedCallback): (() => void) => {
