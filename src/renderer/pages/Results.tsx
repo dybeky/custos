@@ -14,6 +14,7 @@ import { ActivityTimeline } from '../components/report/ActivityTimeline'
 import { FindingRow } from '../components/report/FindingRow'
 import { CaseCard } from '../components/report/CaseCard'
 import { RecheckCard } from '../components/history/RecheckCard'
+import { SeenBeforeCard } from '../components/history/SeenBeforeCard'
 import { SitePanel } from '../components/site/SitePanel'
 import { HistoryBanner } from '../components/history/HistoryBanner'
 import { useNavigate } from 'react-router-dom'
@@ -26,7 +27,7 @@ import { SCANNER_DISPLAY_TO_ID } from '../../shared/scanners-meta'
 export function Results() {
   const { t, i18n } = useTranslation()
   const navigate = useNavigate()
-  const { results, status, _totalFindings, _evidenceCount, report, caseInfo } = useScanStore()
+  const { results, status, _totalFindings, _evidenceCount, report, caseInfo, siteSeen } = useScanStore()
   const [expandedScanner, setExpandedScanner] = useState<string | null>(null)
   const hasResults = results.length > 0
   const findingLookup = buildFindingLookup(report)
@@ -92,7 +93,7 @@ export function Results() {
             </CardContent>
           </Card>
         )}
-        <RecheckCard />
+        {siteSeen ? <SeenBeforeCard /> : <RecheckCard />}
         <SitePanel />
         {correlations.length > 0 && report && (
           <Card className="mb-6">

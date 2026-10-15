@@ -1,7 +1,7 @@
 import { ipcMain, app, BrowserWindow, shell } from 'electron'
 import { existsSync } from 'fs'
 import { IPC_CHANNELS, ScanResult, UserSettings, ScannerInfo, OsInfo, ScannerCapability } from '../shared/types'
-import type { ScanReport, TriageSettings, SignatureStatus, NewsFeed, SiteUploadResult, SitePlayerResult } from '../shared/types'
+import type { ScanReport, TriageSettings, SignatureStatus, NewsFeed, SiteUploadResult, SitePlayerResult, SitePreviousResult } from '../shared/types'
 import { logger } from './services/logger'
 import { execFile } from 'child_process'
 import { promisify } from 'util'
@@ -30,7 +30,7 @@ import { playerKey, type HistoryEntry, type HistorySummary } from '../shared/his
 import { join } from 'path'
 import { randomBytes } from 'crypto'
 import {
-  AuthLoginPayloadSchema, AuthUploadAvatarPayloadSchema, SiteOpenPayloadSchema, SitePlayerPayloadSchema, SiteUploadPayloadSchema
+  AuthLoginPayloadSchema, AuthUploadAvatarPayloadSchema, SiteOpenPayloadSchema, SitePlayerPayloadSchema, SitePreviousPayloadSchema, SiteUploadPayloadSchema
 } from './auth/auth-ipc-schema'
 import type { AuthService } from './auth/auth-service'
 import { GAMES, type GameId } from '../shared/games'
@@ -540,6 +540,14 @@ export function setupAuthHandlers(_mainWindow: BrowserWindow, authService: AuthS
     const key = parsed.success ? playerKey(parsed.data.player) : null
     if (!key) return { ok: false, error: 'invalid_payload' }
     return authService.playerChecks(key)
+  })
+
+  // Was this player checked before? The check just before this one, with its evidence.
+  ipcMain.handle(IPC_CHANNELS.SITE_PREVIOUS_CHECK, async (_e, payload: unknown): Promise<SitePreviousResult> => {
+    const parsed = SitePreviousPayloadSchema.safeParse(payload)
+    const key = parsed.success ? playerKey(parsed.data.player) : null
+    if (!parsed.success || !key) return { ok: false, error: 'invalid_payload' }
+    return authService.previousCheck(key, parsed.data.before)
   })
 
   // Open an uploaded check or a player card; main builds the URL, and

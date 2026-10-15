@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import { ScanResult, ScanProgress, ScannerInfo, ScanReport } from '../../shared/types'
+import { ScanResult, ScanProgress, ScannerInfo, ScanReport, SitePrevious } from '../../shared/types'
 import type { GameId } from '../../shared/games'
 import { evidenceFindings } from '../utils/report-view'
 import { ipcErrorMessage } from '../utils/ipc-error'
@@ -37,6 +37,9 @@ interface ScanState {
   history: HistorySummary[]
   /** The same player's previous check and what changed since, if any. */
   previous: { summary: HistorySummary; diff: ReportDiff } | null
+  /** The same player's check on the site (any checker, any PC) and what changed since. */
+  siteSeen: { previous: SitePrevious; diff: ReportDiff } | null
+  refreshSiteSeen: () => Promise<void>
   /** True while a saved check (not the live scan) is displayed — triage is off. */
   viewingHistory: boolean
   loadHistory: () => Promise<void>
@@ -157,6 +160,7 @@ export const useScanStore = create<ScanState>((set, get) => ({
 
   history: [],
   previous: null,
+  siteSeen: null,
   viewingHistory: false,
 
   loadHistory: async () => {
@@ -167,8 +171,32 @@ export const useScanStore = create<ScanState>((set, get) => ({
     }
   },
 
+  refreshSiteSeen: async () => {
+    const { report, caseInfo } = get()
+    const api = window.electronAPI
+    if (!report || !caseInfo.player.trim() || typeof api?.getSitePreviousCheck !== 'function') {
+      return set({ siteSeen: null })
+    }
+    try {
+      const res = await api.getSitePreviousCheck(caseInfo.player, report.meta.scannedAt)
+      // The player or the check may have changed while we were asking.
+      if (get().report?.id !== report.id || get().caseInfo.player !== caseInfo.player) return
+      if (!res.ok || !res.previous) return set({ siteSeen: null })
+      const prev = res.previous
+      set({
+        siteSeen: {
+          previous: prev,
+          diff: diffReports({ verdict: { band: prev.band, score: prev.score }, findings: prev.findings }, report)
+        }
+      })
+    } catch {
+      set({ siteSeen: null })
+    }
+  },
+
   refreshPrevious: async () => {
     const { report, caseInfo } = get()
+    void get().refreshSiteSeen()
     if (!report) return set({ previous: null })
     try {
       const history = await window.electronAPI.listHistory()
@@ -258,6 +286,7 @@ export const useScanStore = create<ScanState>((set, get) => ({
     // A new check is a new case: never carry the last player's name over.
     caseInfo: { player: '', notes: '' },
     previous: null,
+    siteSeen: null,
     viewingHistory: false
   }),
 

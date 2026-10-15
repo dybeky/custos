@@ -38,6 +38,27 @@ const PlayerChecksSchema = z.object({
     hashVerified: z.boolean()
   })).max(200)
 })
+const PreviousSchema = z.object({
+  previous: z.object({
+    id: z.string(),
+    scannedAt: z.string(),
+    band: z.enum(['clean', 'low', 'medium', 'high', 'critical']),
+    score: z.number(),
+    leads: z.number(),
+    uploader: z.string().nullable(),
+    hashVerified: z.boolean(),
+    anonymous: z.boolean(),
+    total: z.number(),
+    findings: z.array(z.object({
+      id: z.string().max(64),
+      scannerId: z.string().max(64),
+      value: z.string().max(4000),
+      matched: z.string().max(256).nullable(),
+      severity: z.string().max(16),
+      category: z.string().max(32)
+    })).max(600)
+  }).nullable()
+})
 const SessionSchema = z.object({ user: PublicUserSchema })
 const DeviceCodeSchema = z.object({
   device_code: z.string(),
@@ -273,6 +294,18 @@ export class AuthClient {
     const body = (await res.json().catch(() => ({}))) as { error?: string }
     if (!res.ok) throw new Error(body?.error ?? `player failed: ${res.status}`)
     return PlayerChecksSchema.parse(body).checks
+  }
+
+  /** The check of this player just before `before`, with its evidence (staff only). */
+  async getPreviousCheck(token: string, key: string, before: string): Promise<z.infer<typeof PreviousSchema>['previous']> {
+    const res = await this.request(
+      `/api/desktop/players/${encodeURIComponent(key)}/previous?before=${encodeURIComponent(before)}`,
+      { headers: { Authorization: `Bearer ${token}` } }
+    )
+    await checkUpdateRequired(res)
+    const body = (await res.json().catch(() => ({}))) as { error?: string }
+    if (!res.ok) throw new Error(body?.error ?? `previous failed: ${res.status}`)
+    return PreviousSchema.parse(body).previous
   }
 
   async requestDeviceCode(): Promise<{ deviceCode: string; userCode: string; verificationUri: string; expiresIn: number; interval: number }> {

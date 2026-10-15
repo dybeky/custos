@@ -138,4 +138,22 @@ describe('AuthClient site integration', () => {
     expect(await c.getPlayerChecks('t', 'name:bob smith')).toEqual([check])
     expect(url).toBe(`${BASE}/api/desktop/players/name%3Abob%20smith`)
   })
+
+  it('reads the previous check of a player and says when there is none', async () => {
+    let url = ''
+    const previous = {
+      id: 'r0', scannedAt: '2026-01-01T00:00:00.000Z', band: 'high', score: 70, leads: 1, uploader: 'mod',
+      hashVerified: true, anonymous: false, total: 3,
+      findings: [{ id: 'f1', scannerId: 'appdata', value: 'C:/x/undead', matched: 'undead', severity: 'high', category: 'file' }]
+    }
+    const c = new AuthClient(BASE, mockFetch((u) => { url = u; return json({ key: 'steam:1', previous }) }))
+    expect(await c.getPreviousCheck('t', 'steam:76561198012345678', '2026-02-01T00:00:00.000Z')).toEqual(previous)
+    expect(url).toBe(`${BASE}/api/desktop/players/steam%3A76561198012345678/previous?before=2026-02-01T00%3A00%3A00.000Z`)
+    const none = new AuthClient(BASE, mockFetch(() => json({ key: 'steam:1', previous: null })))
+    expect(await none.getPreviousCheck('t', 'steam:1', '2026-02-01T00:00:00.000Z')).toBeNull()
+    const bad = new AuthClient(BASE, mockFetch(() => json({ previous: { id: 5 } })))
+    await expect(bad.getPreviousCheck('t', 'steam:1', '2026-02-01T00:00:00.000Z')).rejects.toThrow()
+    const denied = new AuthClient(BASE, mockFetch(() => json({ error: 'forbidden' }, 403)))
+    await expect(denied.getPreviousCheck('t', 'steam:1', '2026-02-01T00:00:00.000Z')).rejects.toThrow('forbidden')
+  })
 })

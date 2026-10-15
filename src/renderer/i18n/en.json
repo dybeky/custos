@@ -721,6 +721,13 @@
     "addedTitle": "New since the previous check",
     "removedTitle": "Gone since the previous check"
   },
+  "seenBefore": {
+    "title": "Seen before",
+    "times_one": "This player was checked {{count}} time before.",
+    "times_other": "This player was checked {{count}} times before.",
+    "last": "Last check: {{when}}, by {{who}}.",
+    "open": "Open it on the site"
+  },
   "casefile": {
     "title": "Case",
     "back": "Back to history",
@@ -780,6 +787,7 @@
       "not_found": "This check is no longer available in this session.",
       "network": "Could not reach the site.",
       "disabled": "Site features are turned off."
-    }
+    },
+    "seenBeforeSignIn": "Sign in as staff to see whether this player was checked before and what changed."
   }
 }

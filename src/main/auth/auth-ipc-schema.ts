@@ -43,3 +43,8 @@ export const SiteOpenPayloadSchema = z.union([
   z.object({ checkId: z.string().regex(/^[A-Za-z0-9_-]{1,64}$/) }).strict(),
   z.object({ player: z.string().min(1).max(200) }).strict()
 ])
+
+export const SitePreviousPayloadSchema = z.object({
+  player: z.string().max(200),
+  before: z.string().datetime({ offset: true })
+})

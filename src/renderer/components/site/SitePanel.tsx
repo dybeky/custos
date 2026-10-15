@@ -81,6 +81,9 @@ export function SitePanel() {
             )}
             {upload && !upload.ok && <span className="text-xs text-alert">{errorText(upload.error)}</span>}
           </div>
+          {caseInfo.player.trim() && !canView && (
+            <p className="mt-1.5 text-[11px] text-ink-dim">{t('site.seenBeforeSignIn')}</p>
+          )}
           {!caseInfo.player.trim() && (
             <p className="mt-1.5 text-[11px] text-ink-dim">{t('site.addPlayerHint')}</p>
           )}

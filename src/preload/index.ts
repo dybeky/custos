@@ -1,6 +1,6 @@
 import { contextBridge, ipcRenderer } from 'electron'
 import { IPC_CHANNELS, ScanResult, ScanProgress, UserSettings, ScannerInfo, OsInfo, ScannerCapability, ScannerName, LiveFinding, LiveScanStatus, ScanReport } from '../shared/types'
-import type { ChangelogGroup, UpdateInfo, UpdateProgress, AuthState, AuthProvider, SuppressionState, TriageSettings, SiteUploadResult, SitePlayerResult, SignatureStatus, NewsFeed } from '../shared/types'
+import type { ChangelogGroup, UpdateInfo, UpdateProgress, AuthState, AuthProvider, SuppressionState, TriageSettings, SiteUploadResult, SitePlayerResult, SignatureStatus, NewsFeed, SitePreviousResult } from '../shared/types'
 import type { GameId } from '../shared/games'
 import type { HistoryEntry, HistorySummary } from '../shared/history'
 
@@ -255,6 +255,10 @@ const api = {
   /** Checks of this player uploaded to the site by any checker. */
   getSitePlayerChecks: (player: string): Promise<SitePlayerResult> =>
     ipcRenderer.invoke(IPC_CHANNELS.SITE_PLAYER_CHECKS, { player }),
+
+  /** The check of this player just before `before` (ISO time), with its evidence — for "seen before". */
+  getSitePreviousCheck: (player: string, before: string): Promise<SitePreviousResult> =>
+    ipcRenderer.invoke(IPC_CHANNELS.SITE_PREVIOUS_CHECK, { player, before }),
 
   /** Open a site check (`{ checkId }`) or player card (`{ player }`); main builds the URL. */
   openOnSite: (target: { checkId: string } | { player: string }): Promise<void> =>
