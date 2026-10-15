@@ -16,7 +16,7 @@ const findKeyword = (v: string): string | null =>
   SIGS.find(s => v.toLowerCase().includes(s)) ?? null
 
 // A file-hash scanner finding for a known-cheat hash (content match).
-const KNOWN = formatFileHashFinding('C:/d/cheat.exe', 'deadbeefdeadbeefdeadbeef', true)
+const KNOWN = formatFileHashFinding('C:/d/cheat.exe', 'deadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef', true)
 
 describe('classifyFindings', () => {
   it('classifies a lone keyword file match as medium severity / LOW confidence', () => {
@@ -34,12 +34,12 @@ describe('classifyFindings', () => {
     const out = classifyFindings([result('File Hash Scanner', [KNOWN])], findKeyword)
     expect(out[0]).toMatchObject({
       scannerId: 'filehash', category: 'hash', hashTrust: 'verified',
-      baseSeverity: 'critical', baseConfidence: 'high', matched: 'sha256:deadbeefdeadbeef'
+      baseSeverity: 'critical', baseConfidence: 'high', matched: 'sha256:deadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef'
     })
   })
 
   it('correlates a known-hash match on its keyword when the file name matches one', () => {
-    const v = formatFileHashFinding('C:/d/undead.exe', 'deadbeefdeadbeefdeadbeef', true)
+    const v = formatFileHashFinding('C:/d/undead.exe', 'deadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef', true)
     expect(classifyFindings([result('File Hash Scanner', [v])], findKeyword)[0].matched).toBe('undead')
   })
 

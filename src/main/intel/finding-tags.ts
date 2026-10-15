@@ -10,9 +10,9 @@
 export const FILEHASH_KNOWN_TAG = '(known-hash)'
 export const FILEHASH_KEYWORD_TAG = '(keyword)'
 
-/** Format a file-hash finding: `<path> [sha256:<prefix>…] (<tag>)`. */
+/** Format a file-hash finding: `<path> [sha256:<64 hex>] (<tag>)`. */
 export function formatFileHashFinding(filePath: string, sha256: string, knownHash: boolean): string {
-  return `${filePath} [sha256:${sha256.slice(0, 16)}…] ${knownHash ? FILEHASH_KNOWN_TAG : FILEHASH_KEYWORD_TAG}`
+  return `${filePath} [sha256:${sha256}] ${knownHash ? FILEHASH_KNOWN_TAG : FILEHASH_KEYWORD_TAG}`
 }
 
 /** True when a file-hash finding is a content match against the hash database. */
