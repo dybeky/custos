@@ -42,7 +42,9 @@
     "xenos64",
     "extremeinjector",
     "melonloader",
-    "titanium"
+    "titanium",
+    "splatvik",
+    "naim"
   ],
   "exactMatch": [
     "esp",
@@ -60,7 +62,8 @@
     "midnight",
     "fatality",
     "thanking",
-    "titanium"
+    "titanium",
+    "naim"
   ],
   "games": {
     "unturned": {
@@ -95,7 +98,11 @@
         "ducks-services.com",
         "eternalproduct.com",
         "cheatseller.com",
-        "cheatvault.net"
+        "cheatvault.net",
+        "forgecheats.store",
+        "bazelio.com",
+        "yougame.biz",
+        "elitepvpers.com"
       ]
     },
     "cs2": {
