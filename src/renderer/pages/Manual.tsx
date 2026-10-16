@@ -161,7 +161,10 @@ export function Manual() {
       action: 'external',
       items: [
         { label: '@undeadsellerbot', target: 'https://t.me/undeadsellerbot' },
-        { label: '@MelonySolutionBot', target: 'https://t.me/MelonySolutionBot' }
+        { label: '@MelonySolutionBot', target: 'https://t.me/MelonySolutionBot' },
+        { label: '@UndeadHacksbot', target: 'https://t.me/UndeadHacksbot' },
+        { label: '@UndeadHacksru', target: 'https://t.me/UndeadHacksru' },
+        { label: '@melonysolution', target: 'https://t.me/melonysolution' }
       ]
     },
     {

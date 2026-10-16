@@ -145,7 +145,10 @@
     ],
     "telegramBots": [
       { "username": "@MelonySolutionBot", "name": "Melony Solution Bot" },
-      { "username": "@UndeadSellerBot", "name": "Undead Seller Bot" }
+      { "username": "@UndeadSellerBot", "name": "Undead Seller Bot" },
+      { "username": "@UndeadHacksbot", "name": "Undead Hacks Support Bot" },
+      { "username": "@UndeadHacksru", "name": "Undead Hacks (cheat news channel)" },
+      { "username": "@melonysolution", "name": "Melony Solution (channel)" }
     ],
     "networkServices": ["netprofm", "NlaSvc", "Dhcp", "Dnscache"]
   }
