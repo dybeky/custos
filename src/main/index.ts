@@ -2,7 +2,7 @@
 // quit (nothing is left on the checked PC). Must run before anything below
 // resolves userData.
 import { ownsInstanceLock } from './ephemeral'
-import { app, BrowserWindow, net, safeStorage, shell } from 'electron'
+import { app, BrowserWindow, ipcMain, net, safeStorage, shell } from 'electron'
 import { join, resolve } from 'path'
 import { fileURLToPath } from 'url'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
@@ -63,6 +63,17 @@ try {
 } catch {
   // no error reports without a site address; the app itself is unaffected
 }
+
+// The language of the PC, for the first-run interface language. The window cannot
+// ask the browser: the program ships English Chromium strings only, so
+// navigator.language is always en-US. The first preferred language of Windows is used.
+ipcMain.on('system:locale', (event) => {
+  try {
+    event.returnValue = app.getPreferredSystemLanguages()[0] || app.getSystemLocale() || ''
+  } catch {
+    event.returnValue = ''
+  }
+})
 
 /** Background for the saved theme, falling back to the default Espresso base. */
 function windowBackground(): string {

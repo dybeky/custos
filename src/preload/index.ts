@@ -24,6 +24,9 @@ export type LiveScanProgressCallback = (progress: {
 export type LiveScanCompleteCallback = (findings: LiveFinding[]) => void
 
 const api = {
+  /** The first preferred language of the PC (e.g. "ru-RU"), read once when the window loads. */
+  systemLocale: ipcRenderer.sendSync('system:locale') as string,
+
   // Scanner operations
   getScanners: (): Promise<ScannerInfo[]> => {
     return ipcRenderer.invoke(IPC_CHANNELS.GET_SCANNERS)

@@ -20,7 +20,10 @@ export function detectLanguage(): Language {
   } catch {
     // storage unavailable — fall through to the system language
   }
-  const system = typeof navigator !== 'undefined' ? navigator.language : ''
+  // The PC's own language from main: the packaged program ships English Chromium
+  // strings only, so the browser's navigator.language is always en-US there.
+  const fromMain = (globalThis as { electronAPI?: { systemLocale?: unknown } }).electronAPI?.systemLocale
+  const system = typeof fromMain === 'string' && fromMain ? fromMain : typeof navigator !== 'undefined' ? navigator.language : ''
   return /^ru\b/i.test(system) ? 'ru' : 'en'
 }
 
