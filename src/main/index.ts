@@ -143,7 +143,9 @@ function createWindow(): void {
       // imports — no Node built-ins or app modules — so it is sandbox-compatible.
       sandbox: true,
       contextIsolation: true,
-      nodeIntegration: false
+      nodeIntegration: false,
+      // The launch music starts on its own, without a click.
+      autoplayPolicy: 'no-user-gesture-required'
     }
   })
 

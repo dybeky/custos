@@ -1004,5 +1004,10 @@
     "lastBan_other": "last ban {{count}} days ago",
     "community": "Community ban",
     "trade": "Trade ban"
+  },
+  "music": {
+    "on": "Music on — click to turn off",
+    "off": "Music off — click to turn on",
+    "replay": "Play the music again"
   }
 }
