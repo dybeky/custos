@@ -114,3 +114,24 @@ export function normalizeRevealPath(rawPath: string): string | null {
   if (p.indexOf(':', 2) !== -1) return null
   return p
 }
+
+const REGISTRY_KEY_CHARS = /^[A-Za-z0-9\\_\-\s.(){}]+$/
+const REGISTRY_HIVE = /^(HKCU|HKLM|HKU|HKCR|HKCC|HKEY_[A-Z_]+)\\/i
+
+/**
+ * True for a registry key path regedit may be pointed at: a hive root followed
+ * by backslash-separated names, no empty segment, no leading or trailing
+ * backslash, and only the characters real key names need.
+ */
+export function isValidRegistryKey(keyPath: string): boolean {
+  return (
+    typeof keyPath === 'string' &&
+    keyPath.length > 0 &&
+    keyPath.length <= 400 &&
+    REGISTRY_KEY_CHARS.test(keyPath) &&
+    !keyPath.startsWith('\\') &&
+    !keyPath.endsWith('\\') &&
+    !keyPath.includes('\\\\') &&
+    REGISTRY_HIVE.test(keyPath)
+  )
+}

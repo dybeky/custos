@@ -125,7 +125,34 @@
     "videos": "Videos",
     "downloads": "Downloads",
     "registryKeyNotFound": "Registry key does not exist on this system",
-    "steamFolderNotFound": "Not found — Steam or the game is not installed on this PC."
+    "steamFolderNotFound": "Not found — Steam or the game is not installed on this PC.",
+    "traces": "Windows traces",
+    "tracesDesc": "Where Windows remembers what was run and opened",
+    "item": {
+      "installedApps": "Installed apps",
+      "startupApps": "Startup apps",
+      "desktop": "Desktop",
+      "documents": "Documents",
+      "pictures": "Pictures",
+      "telegramDownloads": "Telegram downloads",
+      "temp": "Temp",
+      "recent": "Recent files",
+      "startupUser": "Startup (this user)",
+      "startupAll": "Startup (all users)",
+      "tasks": "Scheduled tasks",
+      "eventLogs": "Event logs",
+      "crashDumps": "Crash dumps",
+      "errorReports": "Error reports",
+      "windowsTemp": "Windows Temp",
+      "unturnedLogs": "Unturned logs",
+      "unturnedModules": "Unturned modules",
+      "cs2Cfg": "CS2 configs",
+      "cs2Addons": "CS2 addons",
+      "cs2Bin": "CS2 binaries",
+      "steamUserdata": "Steam accounts",
+      "steamConfig": "Steam logins",
+      "steamLogs": "Steam logs"
+    }
   },
   "utilities": {
     "title": "Utilities",
@@ -605,10 +632,11 @@
     "manual": {
       "systemTools": "Opens Windows settings pages for a quick manual look — for example, Data Usage shows which apps used the network recently.",
       "folders": "Folders where cheats are typically stored or leave traces. Look for recently changed files and suspicious executables.",
-      "games": "Game and Steam installation folders — check for foreign DLLs and recently modified files.",
-      "registry": "Forensic registry keys where Windows logs program execution. Each button opens regedit at the exact key.",
+      "games": "Game and Steam folders: look for foreign DLLs, plugins in addons and modules, edited configs, recent logs and the Steam accounts used on this PC.",
+      "registry": "Forensic registry keys where Windows logs program execution, opened files, startup, services, USB drives and Defender exclusions. Each button opens regedit at the exact key.",
       "telegram": "Cheats are often sold through these Telegram bots. Opening a bot in the user's Telegram can reveal whether they have interacted with it.",
-      "resources": "Marketplaces where cheats are commonly sold. Review purchase history together with the user if needed."
+      "resources": "Marketplaces where cheats are commonly sold. Review purchase history together with the user if needed.",
+      "traces": "Places Windows fills on its own: recently opened files, startup programs, scheduled tasks, event logs, crash dumps and the Amcache program list. A cheat that was run and deleted often still leaves a line here."
     }
   },
   "verdict": {

@@ -46,3 +46,42 @@ export async function locateSteam(game: string): Promise<{ steam: string | null;
   }
   return { steam, game: null }
 }
+
+const SEGMENT = /^[A-Za-z0-9][A-Za-z0-9 ._-]{0,63}$/
+
+export type SteamTarget =
+  | { kind: 'steam'; sub: string[] }
+  | { kind: 'game'; game: string; sub: string[] }
+
+/**
+ * What a "Manual" button asks for: '' is Steam's own folder, 'Name' a game
+ * folder under steamappscommon, 'Name/Sub/Dir' a folder inside the game, and
+ * '@steam/Sub/Dir' a folder inside Steam itself. Only plain folder names are
+ * accepted (no '..', no drive letters, no backslashes), so the renderer can
+ * never steer this outside Steam's folders. Null when the text is not valid.
+ */
+export function parseSteamTarget(spec: string): SteamTarget | null {
+  if (spec === '') return { kind: 'steam', sub: [] }
+  const parts = spec.split('/')
+  const steamRoot = parts[0] === '@steam'
+  const names = steamRoot ? parts.slice(1) : parts
+  if (names.length === 0 || names.length > 6) return null
+  if (!names.every((n) => SEGMENT.test(n) && !n.endsWith('.') && !n.endsWith(' '))) return null
+  return steamRoot ? { kind: 'steam', sub: names } : { kind: 'game', game: names[0], sub: names.slice(1) }
+}
+
+/** The folder a Manual button points at on this PC, or null when it is not there. */
+export async function locateSteamTarget(spec: string): Promise<string | null> {
+  const target = parseSteamTarget(spec)
+  if (!target) return null
+  if (target.kind === 'steam') {
+    const steam = await findSteamRoot()
+    if (!steam) return null
+    const dir = join(steam, ...target.sub)
+    return existsSync(dir) ? dir : null
+  }
+  const { game } = await locateSteam(target.game)
+  if (!game) return null
+  const dir = join(game, ...target.sub)
+  return existsSync(dir) ? dir : null
+}

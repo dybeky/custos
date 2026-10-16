@@ -7,19 +7,7 @@ import { alpha } from '../utils/color'
 
 const ERROR_TOAST_MS = 6000
 
-// 'steam': target is a game folder under steamapps/common (or '' for Steam itself),
-// found through Steam's own library list rather than a fixed path.
-type ActionType = 'path' | 'registry' | 'external' | 'steam'
-
-interface ManualItem {
-  label: string
-  /** Optional i18n key — proper nouns (Steam, AppData…) stay untranslated. */
-  labelKey?: string
-  hint?: string
-  target: string
-  /** Overrides the category's action for this one item. */
-  action?: ActionType
-}
+import { MANUAL_ITEMS, type ManualAction as ActionType, type ManualItemDef as ManualItem } from '../../shared/manual-items'
 
 interface ManualCategory {
   id: string
@@ -67,6 +55,11 @@ const globeIcon = (
     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
   </svg>
 )
+const traceIcon = (
+  <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8v4l3 2m6-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+  </svg>
+)
 const chevron = (
   <svg className="w-4 h-4 shrink-0 text-ink-dim opacity-0 -translate-x-1 transition-all duration-200 group-hover:opacity-100 group-hover:translate-x-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
@@ -90,10 +83,7 @@ export function Manual() {
       accent: 'var(--scan)',
       action: 'path',
       showHint: true,
-      items: [
-        { label: 'Data Usage', labelKey: 'manual.dataUsage', hint: 'ms-settings:datausage', target: 'ms-settings:datausage' },
-        { label: 'Windows Defender', labelKey: 'manual.windowsDefender', hint: 'windowsdefender:', target: 'windowsdefender:' }
-      ]
+      items: MANUAL_ITEMS.systemTools
     },
     {
       id: 'folders',
@@ -103,14 +93,18 @@ export function Manual() {
       accent: 'var(--scan-dim)',
       action: 'path',
       showHint: true,
-      items: [
-        { label: 'Videos', labelKey: 'manual.videos', hint: '%USERPROFILE%\\Videos', target: '%USERPROFILE%\\Videos' },
-        { label: 'Downloads', labelKey: 'manual.downloads', hint: '%USERPROFILE%\\Downloads', target: '%USERPROFILE%\\Downloads' },
-        { label: 'AppData', hint: '%APPDATA%', target: '%APPDATA%' },
-        { label: 'LocalAppData', hint: '%LOCALAPPDATA%', target: '%LOCALAPPDATA%' },
-        { label: 'Prefetch', hint: '%SystemRoot%\\Prefetch', target: '%SystemRoot%\\Prefetch' },
-        { label: 'OneDrive', hint: '%USERPROFILE%\\OneDrive', target: '%USERPROFILE%\\OneDrive' }
-      ]
+      items: MANUAL_ITEMS.folders
+    },
+    {
+      id: 'traces',
+      titleKey: 'manual.traces',
+      descKey: 'manual.tracesDesc',
+      helpKey: 'help.manual.traces',
+      icon: traceIcon,
+      accent: 'var(--scan-2)',
+      action: 'path',
+      showHint: true,
+      items: MANUAL_ITEMS.traces
     },
     {
       id: 'games',
@@ -118,18 +112,9 @@ export function Manual() {
       helpKey: 'help.manual.games',
       icon: gameIcon,
       accent: 'var(--scan-dim)',
-      action: 'path',
+      action: 'steam',
       showHint: true,
-      items: [
-        { label: 'Unturned', hint: 'Steam\\steamapps\\common\\Unturned', target: 'Unturned', action: 'steam' },
-        {
-          label: 'Counter-Strike 2',
-          hint: 'Steam\\steamapps\\common\\Counter-Strike Global Offensive',
-          target: 'Counter-Strike Global Offensive',
-          action: 'steam'
-        },
-        { label: 'Steam', hint: 'Steam', target: '', action: 'steam' }
-      ]
+      items: MANUAL_ITEMS.games
     },
     {
       id: 'registry',
@@ -139,17 +124,7 @@ export function Manual() {
       accent: 'var(--scan)',
       action: 'registry',
       grid: true,
-      items: [
-        { label: 'MuiCache', target: 'HKCU\\SOFTWARE\\Classes\\Local Settings\\Software\\Microsoft\\Windows\\Shell\\MuiCache' },
-        { label: 'AppSwitched', target: 'HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\FeatureUsage\\AppSwitched' },
-        { label: 'ShowJumpView', target: 'HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\FeatureUsage\\ShowJumpView' },
-        { label: 'AppBadgeUpdated', target: 'HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\FeatureUsage\\AppBadgeUpdated' },
-        { label: 'AppLaunch', target: 'HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\FeatureUsage\\AppLaunch' },
-        { label: 'RunMRU', target: 'HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\RunMRU' },
-        { label: 'UserAssist', target: 'HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\UserAssist' },
-        { label: 'AppCompatFlags', target: 'HKCU\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\AppCompatFlags\\Layers' },
-        { label: 'Compatibility Assistant', target: 'HKCU\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\AppCompatFlags\\Compatibility Assistant\\Store' }
-      ]
+      items: MANUAL_ITEMS.registry
     },
     {
       id: 'telegram',
@@ -159,13 +134,7 @@ export function Manual() {
       icon: telegramIcon,
       accent: 'var(--scan-dim)',
       action: 'external',
-      items: [
-        { label: '@undeadsellerbot', target: 'https://t.me/undeadsellerbot' },
-        { label: '@MelonySolutionBot', target: 'https://t.me/MelonySolutionBot' },
-        { label: '@UndeadHacksbot', target: 'https://t.me/UndeadHacksbot' },
-        { label: '@UndeadHacksru', target: 'https://t.me/UndeadHacksru' },
-        { label: '@melonysolution', target: 'https://t.me/melonysolution' }
-      ]
+      items: MANUAL_ITEMS.telegram
     },
     {
       id: 'resources',
@@ -176,10 +145,7 @@ export function Manual() {
       accent: 'var(--scan-2)',
       action: 'external',
       showHint: true,
-      items: [
-        { label: 'Oplata.info', hint: 'oplata.info', target: 'https://oplata.info' },
-        { label: 'FunPay.com', hint: 'funpay.com', target: 'https://funpay.com' }
-      ]
+      items: MANUAL_ITEMS.resources
     }
   ]
 
@@ -250,7 +216,7 @@ export function Manual() {
               </div>
 
               {/* Items */}
-              <div className={cat.grid ? 'grid grid-cols-[repeat(auto-fill,minmax(180px,1fr))] gap-2' : 'space-y-2'}>
+              <div className={cat.grid ? 'grid grid-cols-[repeat(auto-fill,minmax(150px,1fr))] gap-2' : 'space-y-2'}>
                 {cat.items.map((item) => (
                   <button
                     key={item.label}

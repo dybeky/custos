@@ -16,9 +16,9 @@ import { setupLiveIpcHandlers } from './live-ipc'
 import { checkForUpdate, currentReleaseNotes, installUpdate } from './services/updater'
 import { appStore } from './services/app-store'
 import { safeOpenExternal, safeOpenPath } from './utils/safe-open'
-import { normalizeRevealPath } from './utils/url-policy'
+import { normalizeRevealPath, isValidRegistryKey } from './utils/url-policy'
 import { resolveSystemTool, systemCwd, systemRoot } from './utils/system-paths'
-import { locateSteam } from './utils/steam-locator'
+import { locateSteamTarget } from './utils/steam-locator'
 import { detectSteamPlayer } from './services/player-detect'
 import { HistoryStore } from './services/history-store'
 import { NewsService } from './services/news-service'
@@ -376,10 +376,9 @@ export function setupIpcHandlers(mainWindow: BrowserWindow): void {
 
   // Steam and games can live on any drive; resolve through Steam's registry
   // key + libraryfolders.vdf instead of guessing a fixed path.
-  ipcMain.handle(IPC_CHANNELS.APP_OPEN_STEAM_FOLDER, async (_event, game: unknown): Promise<boolean> => {
-    if (typeof game !== 'string' || !/^[A-Za-z0-9 ._-]{0,64}$/.test(game) || game.includes('..')) return false
-    const found = await locateSteam(game)
-    const dir = game ? found.game : found.steam
+  ipcMain.handle(IPC_CHANNELS.APP_OPEN_STEAM_FOLDER, async (_event, target: unknown): Promise<boolean> => {
+    if (typeof target !== 'string') return false
+    const dir = await locateSteamTarget(target)
     if (!dir) return false
     const err = await shell.openPath(dir)
     return err === ''
@@ -388,7 +387,7 @@ export function setupIpcHandlers(mainWindow: BrowserWindow): void {
   ipcMain.handle(IPC_CHANNELS.APP_OPEN_REGISTRY, async (_event, keyPath: string): Promise<{ success: boolean; error?: string }> => {
     // Validate keyPath. Reject leading/trailing backslashes — a path must be a
     // hive root followed by backslash-separated segments, never an empty segment.
-    if (!keyPath || !/^[A-Za-z0-9\\_\-\s.(){}]+$/.test(keyPath) || keyPath.startsWith('\\') || keyPath.endsWith('\\')) {
+    if (!isValidRegistryKey(keyPath)) {
       return { success: false, error: 'Invalid registry key path' }
     }
 
