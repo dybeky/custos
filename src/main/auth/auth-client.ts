@@ -64,7 +64,7 @@ const OpenedCheckSchema = z.object({
   report: z.object({
     id: z.string(),
     meta: z.object({ scannedAt: z.string() }).passthrough(),
-    verdict: z.object({ score: z.number(), band: z.enum(['clean', 'low', 'medium', 'high', 'critical']) }).passthrough(),
+    verdict: z.object({ score: z.number(), band: z.enum(['clean', 'low', 'medium', 'high', 'critical']), reasons: z.array(z.unknown()) }).passthrough(),
     findings: z.array(z.object({ scannerId: z.string(), value: z.string() }).passthrough()),
     correlations: z.array(z.unknown()),
     scanners: z.array(z.unknown())
@@ -328,22 +328,20 @@ export class AuthClient {
     return PlayerChecksSchema.parse(body).checks
   }
 
-  /** A page of every check on the site, by every checker, newest first (staff only). */
-  async listChecks(token: string, opts: { page: number; q: string }): Promise<z.infer<typeof ChecksPageSchema>> {
+  /** A page of every check on the site, by every checker, newest first. Public and read-only: no sign-in. */
+  async listChecks(opts: { page: number; q: string }): Promise<z.infer<typeof ChecksPageSchema>> {
     const qs = new URLSearchParams({ page: String(opts.page) })
     if (opts.q) qs.set('q', opts.q)
-    const res = await this.request(`/api/desktop/reports?${qs}`, { headers: { Authorization: `Bearer ${token}` } })
+    const res = await this.request(`/api/desktop/reports?${qs}`)
     await checkUpdateRequired(res)
     const body = (await res.json().catch(() => ({}))) as { error?: string }
     if (!res.ok) throw new Error(body?.error ?? `checks failed: ${res.status}`)
     return ChecksPageSchema.parse(body)
   }
 
-  /** One check from the site with its full report (staff only). */
-  async getCheck(token: string, id: string): Promise<z.infer<typeof OpenedCheckSchema>> {
-    const res = await this.request(`/api/desktop/reports/${encodeURIComponent(id)}`, {
-      headers: { Authorization: `Bearer ${token}` }
-    })
+  /** One check from the site with its full report (public, read-only). */
+  async getCheck(id: string): Promise<z.infer<typeof OpenedCheckSchema>> {
+    const res = await this.request(`/api/desktop/reports/${encodeURIComponent(id)}`)
     await checkUpdateRequired(res)
     const body = (await res.json().catch(() => ({}))) as { error?: string }
     if (!res.ok) throw new Error(body?.error ?? `check failed: ${res.status}`)

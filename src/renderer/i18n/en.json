@@ -696,7 +696,7 @@
   },
   "history": {
     "title": "Check history",
-    "subtitle": "Every check is saved to the site automatically, under the player. Here you see all checks by every checker; this session's own checks are on the other tab.",
+    "subtitle": "Every check is saved to the site automatically, under the player. Here are all checks by every checker; nobody can change or delete them. This session's own checks are on the other tab.",
     "search": "Search by player…",
     "empty": "No checks in this session yet. This list is cleared when Custos closes — earlier checks are on the site, under the player.",
     "noMatches": "No checks match this player.",
@@ -714,8 +714,6 @@
       "session": "This session"
     },
     "siteEmpty": "No checks on the site yet.",
-    "siteSignIn": "Sign in as staff to see every check on the site. This session's own checks are on the other tab.",
-    "siteNoRight": "Your role does not allow viewing other checkers' checks. This session's own checks are on the other tab.",
     "checkedBy": "checked by {{name}}",
     "retry": "Try again",
     "prev": "Previous",

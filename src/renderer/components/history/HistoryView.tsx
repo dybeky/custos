@@ -2,7 +2,6 @@ import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useScanStore } from '../../stores/scan-store'
-import { useAuthStore } from '../../stores/auth-store'
 import { SiteHistoryList } from './SiteHistoryList'
 import { bandChipClass } from '../../utils/report-view'
 import { GAMES, type GameId } from '../../../shared/games'
@@ -18,10 +17,8 @@ export function HistoryView({ onOpened }: { onOpened: () => void }) {
   const { history, loadHistory, openHistory, deleteHistory, status } = useScanStore()
   const [query, setQuery] = useState('')
   const [confirmId, setConfirmId] = useState<string | null>(null)
-  const authed = useAuthStore((a) => a.status === 'authed')
-  const canViewSite = useAuthStore((a) => a.status === 'authed' && a.capabilities.includes('view_reports'))
   const [tab, setTab] = useState<'site' | 'session'>('site')
-  const showSite = canViewSite && tab === 'site'
+  const showSite = tab === 'site'
   const navigate = useNavigate()
 
   useEffect(() => {
@@ -57,22 +54,17 @@ export function HistoryView({ onOpened }: { onOpened: () => void }) {
         <div className="mb-4 flex items-center gap-1.5">
           {(['site', 'session'] as const).map((k) => {
             const active = (k === 'site') === showSite
-            const locked = k === 'site' && !canViewSite
             return (
               <button
                 key={k}
-                onClick={() => !locked && setTab(k)}
-                disabled={locked}
-                className={`px-3 h-8 rounded-lg text-xs font-medium transition-colors ${active ? 'bg-scan/15 text-scan' : 'bg-panel text-ink-dim hover:text-ink'} disabled:opacity-50 disabled:hover:text-ink-dim`}
+                onClick={() => setTab(k)}
+                className={`px-3 h-8 rounded-lg text-xs font-medium transition-colors ${active ? 'bg-scan/15 text-scan' : 'bg-panel text-ink-dim hover:text-ink'}`}
               >
                 {t(`history.tab.${k}`)}
               </button>
             )
           })}
         </div>
-        {!canViewSite && (
-          <p className="mb-4 text-xs text-ink-dim">{authed ? t('history.siteNoRight') : t('history.siteSignIn')}</p>
-        )}
 
         {showSite ? (
           <SiteHistoryList query={query} onOpened={onOpened} />

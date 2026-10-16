@@ -161,20 +161,20 @@ describe('AuthClient site integration', () => {
     let url = ''
     const row = { id: 'r1', scannedAt: '2026-01-01T00:00:00.000Z', band: 'high', score: 70, leads: 2, gameId: 'cs2', player: 'Bob', uploader: 'mod', hashVerified: true, anonymous: false }
     const c = new AuthClient(BASE, mockFetch((u) => { url = u; return json({ page: 2, pageSize: 50, total: 51, checks: [row] }) }))
-    expect(await c.listChecks('t', { page: 2, q: 'bob smith' })).toEqual({ page: 2, pageSize: 50, total: 51, checks: [row] })
+    expect(await c.listChecks({ page: 2, q: 'bob smith' })).toEqual({ page: 2, pageSize: 50, total: 51, checks: [row] })
     expect(url).toBe(`${BASE}/api/desktop/reports?page=2&q=bob+smith`)
     const denied = new AuthClient(BASE, mockFetch(() => json({ error: 'forbidden' }, 403)))
-    await expect(denied.listChecks('t', { page: 1, q: '' })).rejects.toThrow('forbidden')
+    await expect(denied.listChecks({ page: 1, q: '' })).rejects.toThrow('forbidden')
   })
 
   it('opens one check with its report, and refuses a malformed answer', async () => {
     let url = ''
-    const report = { id: 's1', meta: { scannedAt: '2026-01-01T00:00:00.000Z' }, verdict: { score: 5, band: 'low' }, findings: [], correlations: [], scanners: [] }
+    const report = { id: 's1', meta: { scannedAt: '2026-01-01T00:00:00.000Z' }, verdict: { score: 5, band: 'low', reasons: [] }, findings: [], correlations: [], scanners: [] }
     const body = { uploader: 'mod', anonymous: false, hashVerified: true, case: { player: 'Bob', notes: '' }, report }
     const c = new AuthClient(BASE, mockFetch((u) => { url = u; return json(body) }))
-    expect((await c.getCheck('t', 'r1')).report.id).toBe('s1')
+    expect((await c.getCheck('r1')).report.id).toBe('s1')
     expect(url).toBe(`${BASE}/api/desktop/reports/r1`)
     const bad = new AuthClient(BASE, mockFetch(() => json({ ...body, report: { id: 's1' } })))
-    await expect(bad.getCheck('t', 'r1')).rejects.toThrow()
+    await expect(bad.getCheck('r1')).rejects.toThrow()
   })
 })

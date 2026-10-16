@@ -318,16 +318,34 @@ export class AuthService {
     return res.ok ? { ok: true, checks: res.value } : { ok: false, error: res.error }
   }
 
-  /** Every check on the site, a page at a time (staff with the right only). */
+  /** Every check on the site, a page at a time. Needs no account. */
   async siteChecks(page: number, q: string): Promise<SiteChecksPage> {
-    const res = await this.withToken((t) => this.client.listChecks(t, { page, q }))
-    return res.ok ? { ok: true, ...res.value } : { ok: false, error: res.error }
+    if (!this.deps.config.enabled) return { ok: false, error: 'disabled' }
+    try {
+      return { ok: true, ...(await this.client.listChecks({ page, q })) }
+    } catch (e) {
+      return this.publicFailure(e)
+    }
   }
 
-  /** One check from the site, to open in the app (staff with the right only). */
+  /** One check from the site, to open in the app. Needs no account. */
   async siteCheck(id: string): Promise<SiteCheckOpened> {
-    const res = await this.withToken((t) => this.client.getCheck(t, id))
-    return res.ok ? { ok: true, ...res.value, report: res.value.report as unknown as ScanReport } : { ok: false, error: res.error }
+    if (!this.deps.config.enabled) return { ok: false, error: 'disabled' }
+    try {
+      const value = await this.client.getCheck(id)
+      return { ok: true, ...value, report: value.report as unknown as ScanReport }
+    } catch (e) {
+      return this.publicFailure(e)
+    }
+  }
+
+  private publicFailure(e: unknown): { ok: false; error: string } {
+    if (e instanceof UpdateRequiredError) {
+      this.markUpdateRequired(e.minVersion)
+      this.emit()
+      return { ok: false, error: 'update_required' }
+    }
+    return { ok: false, error: networkError((e as Error).message) }
   }
 
   /** The check of one player just before `before` (staff with the right only). */
