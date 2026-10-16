@@ -30,8 +30,6 @@ export interface BandTone {
   stroke: string
   /** Soft background wash of the hero. */
   wash: string
-  /** Border colour of the hero. */
-  border: string
   /** Solid badge (band chip). */
   badge: string
 }
@@ -40,11 +38,11 @@ export function bandTone(band: VerdictBand): BandTone {
   switch (band) {
     case 'critical':
     case 'high':
-      return { text: 'text-alert', stroke: 'stroke-alert', wash: 'from-alert/[0.14]', border: 'border-alert/40', badge: 'bg-alert/15 text-alert' }
+      return { text: 'text-alert', stroke: 'stroke-alert', wash: 'from-alert/[0.14]', badge: 'bg-alert/15 text-alert' }
     case 'medium':
-      return { text: 'text-amber', stroke: 'stroke-amber', wash: 'from-amber/[0.12]', border: 'border-amber/40', badge: 'bg-amber/15 text-amber' }
+      return { text: 'text-amber', stroke: 'stroke-amber', wash: 'from-amber/[0.12]', badge: 'bg-amber/15 text-amber' }
     default:
-      return { text: 'text-scan', stroke: 'stroke-scan', wash: 'from-scan/[0.10]', border: 'border-scan/30', badge: 'bg-scan/10 text-scan' }
+      return { text: 'text-scan', stroke: 'stroke-scan', wash: 'from-scan/[0.10]', badge: 'bg-scan/10 text-scan' }
   }
 }
 
