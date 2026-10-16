@@ -31,16 +31,6 @@
       "violet": "Violet",
       "violetDesc": "Ink-violet with a soft lavender accent, matching 97437.dev."
     },
-    "signatures": {
-      "title": "Detection signatures",
-      "bundled": "Built-in signatures only.",
-      "site": "Built-in signatures + {{count}} from the site (version {{version}}).",
-      "off": "Updates from the site are off in this build.",
-      "checked": "Last checked {{when}}.",
-      "check": "Check now",
-      "checking": "Checking…",
-      "error": "Last check failed ({{error}})."
-    },
     "sound": {
       "title": "Menu sounds",
       "desc": "A soft click when you switch pages."
@@ -50,6 +40,12 @@
       "desc": "The language of the Custos interface.",
       "en": "English",
       "ru": "Русский"
+    },
+    "errorReports": {
+      "title": "Error reports",
+      "toggle": "Send errors to the site",
+      "desc": "If Custos breaks, the error goes to 97437.dev so it can be fixed.",
+      "details": "Only the error itself, the program version and the system are sent. Check results, player names and findings are never sent, and the Windows account name is cut out of paths. The choice lasts while the program is open (Custos keeps nothing on the PC). To turn it off for good, start it with --no-error-reports."
     }
   },
   "news": {

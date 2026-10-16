@@ -61,6 +61,8 @@ export interface ScannerInfo {
 export interface UserSettings {
   /** Color theme of the interface. */
   colorTheme: ColorTheme
+  /** Send errors and crashes to the site so they can be fixed (default on). */
+  sendErrorReports?: boolean
 }
 
 // Desktop auth providers. 'google'/'github' are interactive OAuth via the
@@ -179,17 +181,6 @@ export interface SitePlayerResult {
   error?: string
 }
 
-/** Detection signatures downloaded from the site (Ed25519-signed). */
-export interface SignatureStatus {
-  /** False when the app has no pinned public key (updates switched off). */
-  enabled: boolean
-  /** Version of the site bundle in use; 0 = bundled signatures only. */
-  version: number
-  /** Extra entries the site bundle adds. */
-  entries: number
-  lastCheckedAt?: string
-  lastError?: string
-}
 
 // Cross-platform OS info for renderer
 export type OsPlatform = 'windows' | 'macos' | 'linux' | 'unknown'
@@ -408,11 +399,10 @@ export const IPC_CHANNELS = {
   SITE_OPEN: 'site:open',
 
   // Signatures downloaded from the site
-  SIGNATURES_STATUS: 'signatures:status',
-  SIGNATURES_CHECK: 'signatures:check',
 
   // The site's announcements
-  NEWS_GET: 'news:get'
+  NEWS_GET: 'news:get',
+  CRASH_REPORT: 'crash:report'
 } as const
 
 /** One announcement from 97437.dev/api/news, shown in the Dashboard's news card. */

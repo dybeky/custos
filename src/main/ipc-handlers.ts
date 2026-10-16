@@ -1,7 +1,7 @@
 import { ipcMain, app, BrowserWindow, shell } from 'electron'
 import { existsSync } from 'fs'
 import { IPC_CHANNELS, ScanResult, UserSettings, ScannerInfo, OsInfo, ScannerCapability } from '../shared/types'
-import type { ScanReport, TriageSettings, SignatureStatus, NewsFeed, SiteUploadResult, SitePlayerResult, SitePreviousResult } from '../shared/types'
+import type { ScanReport, TriageSettings, NewsFeed, SiteUploadResult, SitePlayerResult, SitePreviousResult } from '../shared/types'
 import { logger } from './services/logger'
 import { execFile } from 'child_process'
 import { promisify } from 'util'
@@ -22,8 +22,8 @@ import { locateSteam } from './utils/steam-locator'
 import { detectSteamPlayer } from './services/player-detect'
 import { HistoryStore } from './services/history-store'
 import { NewsService } from './services/news-service'
-import { SignatureUpdater } from './services/signature-updater'
-import { bundleAdditions, bundleEntryCount } from './services/signature-bundle'
+import { reportCrash } from './services/crash-reporter'
+import { scannerIdFromDisplayName } from '../shared/scanners-meta'
 import { configService } from './services/config-service'
 import { COLOR_THEMES, DEFAULT_THEME, isColorTheme } from '../shared/themes'
 import { playerKey, type HistoryEntry, type HistorySummary } from '../shared/history'
@@ -41,7 +41,8 @@ const execFileP = promisify(execFile)
 
 // Strict schema for partial user settings — rejects unknown properties
 const UserSettingsPartialSchema = z.object({
-  colorTheme: z.enum(COLOR_THEMES).optional()
+  colorTheme: z.enum(COLOR_THEMES).optional(),
+  sendErrorReports: z.boolean().optional()
 }).strict()
 
 /**
@@ -51,9 +52,10 @@ const UserSettingsPartialSchema = z.object({
  * the strict partial schema on the next SETTINGS_SET.
  */
 export function migrateSettings(raw: unknown): UserSettings {
-  const obj = raw && typeof raw === 'object' ? (raw as { colorTheme?: unknown }) : {}
+  const obj = raw && typeof raw === 'object' ? (raw as { colorTheme?: unknown; sendErrorReports?: unknown }) : {}
   return {
-    colorTheme: isColorTheme(obj.colorTheme) ? obj.colorTheme : DEFAULT_THEME
+    colorTheme: isColorTheme(obj.colorTheme) ? obj.colorTheme : DEFAULT_THEME,
+    ...(typeof obj.sendErrorReports === 'boolean' ? { sendErrorReports: obj.sendErrorReports } : {})
   }
 }
 
@@ -149,32 +151,23 @@ export function setupIpcHandlers(mainWindow: BrowserWindow): void {
   // Timeout per scanner — adaptive based on Windows version
   const SCANNER_TIMEOUT_MS = Math.round(30000 * getTimeoutMultiplier())
 
-  // Detection signatures published by the site (Ed25519-signed, additive).
-  // Checked once shortly after launch and every 6 hours; a verified newer bundle
-  // takes effect at the next scan start.
-  const signatures = new SignatureUpdater({
-    baseUrl: configService.loadAuthConfig().webBaseUrl,
-    publicKey: configService.loadSignaturePublicKey(),
-    cacheFile: join(app.getPath('userData'), 'site-signatures.json'),
-    appVersion: app.getVersion(),
-    onApply: (bundle) => {
-      scannerFactory.setExtraSignatures({ version: bundle.version, ...bundleAdditions(bundle) })
-      logger.info('Site signatures applied', { version: bundle.version, entries: bundleEntryCount(bundle) })
-    }
-  })
-  if (signatures.enabled) {
-    void signatures.loadCached().then(() => signatures.check())
-    setInterval(() => void signatures.check(), 6 * 60 * 60 * 1000).unref()
-  }
-  ipcMain.handle(IPC_CHANNELS.SIGNATURES_STATUS, (): SignatureStatus => signatures.status())
-  ipcMain.handle(IPC_CHANNELS.SIGNATURES_CHECK, (): Promise<SignatureStatus> => signatures.check())
-
   // The site's announcements for the Dashboard's news card.
   const news = new NewsService({
     baseUrl: configService.loadAuthConfig().webBaseUrl,
     appVersion: app.getVersion()
   })
   ipcMain.handle(IPC_CHANNELS.NEWS_GET, (): Promise<NewsFeed> => news.get())
+
+  // Errors from the window (error screen, window.onerror): validated, then sent like any other.
+  const CrashPayloadSchema = z.object({
+    message: z.string().min(1).max(4000),
+    stack: z.string().max(16000).optional()
+  }).strict()
+  ipcMain.on(IPC_CHANNELS.CRASH_REPORT, (_event, payload: unknown) => {
+    const parsed = CrashPayloadSchema.safeParse(payload)
+    if (!parsed.success) return
+    void reportCrash('renderer_error', parsed.data, { process: 'renderer' })
+  })
 
   // Start scan
   ipcMain.handle(IPC_CHANNELS.SCAN_START, async (_event, scannerIds?: ScannerName[], gameId?: GameId): Promise<ScanResult[]> => {
@@ -231,6 +224,14 @@ export function setupIpcHandlers(mainWindow: BrowserWindow): void {
         if (signal.aborted) {
           logger.info('Scan cancelled', { finishedScanners: results.length })
           return results
+        }
+
+        for (const r of results) {
+          if (r.success || !r.error || /cancel/i.test(r.error)) continue
+          void reportCrash('scanner_error', r.error, {
+            scanner: scannerIdFromDisplayName(r.scannerName) ?? r.scannerName.slice(0, 40),
+            game: gameId ?? undefined
+          })
         }
 
         const totalFindings = results.reduce((sum, r) => sum + r.findings.length, 0)

@@ -2,7 +2,7 @@
 // quit (nothing is left on the checked PC). Must run before anything below
 // resolves userData.
 import { ownsInstanceLock } from './ephemeral'
-import { app, BrowserWindow, safeStorage, shell } from 'electron'
+import { app, BrowserWindow, net, safeStorage, shell } from 'electron'
 import { join, resolve } from 'path'
 import { fileURLToPath } from 'url'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
@@ -20,6 +20,7 @@ import { isAllowedAuthUrl } from './utils/url-policy'
 import { IPC_CHANNELS } from '../shared/types'
 import { DEFAULT_THEME, THEME_SWATCHES, isColorTheme } from '../shared/themes'
 import { applyGpuFallback, installCrashHandlers, watchWindow } from './diagnostics/crash-handler'
+import { initCrashReporter, postJson, reportCrash } from './services/crash-reporter'
 
 // Window background shown before the renderer paints; matches the CSS `--bg`
 // token of the default theme so there is no flash of a different colour on launch.
@@ -30,6 +31,38 @@ const bgColor = THEME_SWATCHES[DEFAULT_THEME].bg
 // before 'ready'.
 installCrashHandlers()
 applyGpuFallback()
+
+// Errors and crashes go to the site (Crashes in the admin panel) so they can be
+// fixed: the error, the app version and the system only, never check results.
+// Off with the Settings switch (this launch), --no-error-reports or
+// CUSTOS_NO_ERROR_REPORTS=1. Electron's net.fetch keeps running while a crash
+// dialog blocks the main thread.
+try {
+  initCrashReporter({
+    baseUrl: configService.loadAuthConfig().webBaseUrl,
+    app: 'custos',
+    appVersion: app.getVersion(),
+    enabled: () =>
+      process.env.NODE_ENV !== 'test' &&
+      !process.env.CUSTOS_NO_ERROR_REPORTS &&
+      !process.argv.includes('--no-error-reports') &&
+      (appStore.get('settings') as { sendErrorReports?: unknown } | undefined)?.sendErrorReports !== false,
+    context: () => {
+      const os = getOsInfo()
+      return {
+        os: `${os.name} ${os.edition}`.trim(),
+        osBuild: String(os.build),
+        arch: os.arch,
+        electron: process.versions.electron,
+        locale: app.isReady() ? app.getLocale() : ''
+      }
+    },
+    send: (url, body) => postJson((app.isReady() ? net.fetch.bind(net) : fetch) as typeof fetch)(url, body)
+  })
+  process.on('unhandledRejection', (reason) => void reportCrash('main_rejection', reason, { process: 'main' }))
+} catch {
+  // no error reports without a site address; the app itself is unaffected
+}
 
 /** Background for the saved theme, falling back to the default Espresso base. */
 function windowBackground(): string {

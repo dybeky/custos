@@ -1,6 +1,6 @@
 import { contextBridge, ipcRenderer } from 'electron'
 import { IPC_CHANNELS, ScanResult, ScanProgress, UserSettings, ScannerInfo, OsInfo, ScannerCapability, ScannerName, LiveFinding, LiveScanStatus, ScanReport } from '../shared/types'
-import type { ChangelogGroup, UpdateInfo, UpdateProgress, AuthState, AuthProvider, SuppressionState, TriageSettings, SiteUploadResult, SitePlayerResult, SignatureStatus, NewsFeed, SitePreviousResult } from '../shared/types'
+import type { ChangelogGroup, UpdateInfo, UpdateProgress, AuthState, AuthProvider, SuppressionState, TriageSettings, SiteUploadResult, SitePlayerResult, NewsFeed, SitePreviousResult } from '../shared/types'
 import type { GameId } from '../shared/games'
 import type { HistoryEntry, HistorySummary } from '../shared/history'
 
@@ -264,11 +264,10 @@ const api = {
   openOnSite: (target: { checkId: string } | { player: string }): Promise<void> =>
     ipcRenderer.invoke(IPC_CHANNELS.SITE_OPEN, target),
 
-  /** State of the detection signatures downloaded from the site. */
-  getSignatureStatus: (): Promise<SignatureStatus> => ipcRenderer.invoke(IPC_CHANNELS.SIGNATURES_STATUS),
-
-  /** Check the site for newer signatures now. */
-  checkSignatures: (): Promise<SignatureStatus> => ipcRenderer.invoke(IPC_CHANNELS.SIGNATURES_CHECK),
+  /** An error shown by the window, sent to the site so it can be fixed (see crash-reporter). */
+  reportError: (payload: { message: string; stack?: string }): void => {
+    ipcRenderer.send(IPC_CHANNELS.CRASH_REPORT, payload)
+  },
 
   /** The site's news (same in the free Custos and Custos Pro). */
   getNews: (): Promise<NewsFeed> => ipcRenderer.invoke(IPC_CHANNELS.NEWS_GET),

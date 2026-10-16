@@ -9,8 +9,8 @@ import { roleInfo } from '../utils/roles'
 import { ThemePicker } from '../components/settings/ThemePicker'
 import { LanguagePicker } from '../components/settings/LanguagePicker'
 import { SoundToggle } from '../components/settings/SoundToggle'
+import { ErrorReportsToggle } from '../components/settings/ErrorReportsToggle'
 import { AboutCard } from '../components/settings/AboutCard'
-import { SignatureStatusCard } from '../components/settings/SignatureStatusCard'
 
 export function Settings() {
   const { t } = useTranslation()
@@ -56,13 +56,13 @@ export function Settings() {
           </CardContent>
         </Card>
 
-        {/* Detection signatures: bundled, plus the site's signed additions */}
+        {/* Errors and crashes go to the site so they can be fixed */}
         <Card className="mb-4">
           <CardHeader>
-            <CardTitle>{t('settings.signatures.title')}</CardTitle>
+            <CardTitle>{t('settings.errorReports.title')}</CardTitle>
           </CardHeader>
           <CardContent>
-            <SignatureStatusCard />
+            <ErrorReportsToggle />
           </CardContent>
         </Card>
 

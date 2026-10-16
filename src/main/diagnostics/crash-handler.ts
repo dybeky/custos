@@ -2,6 +2,7 @@ import { app, BrowserWindow, clipboard, dialog } from 'electron'
 import { readFileSync } from 'fs'
 import { logger } from '../services/logger'
 import { safeOpenExternal } from '../utils/safe-open'
+import { reportCrash } from '../services/crash-reporter'
 import {
   diagnoseError, diagnoseLoadFailure, diagnoseProcessGone, gpuVendorFromId,
   type Diagnosis, type GpuVendor
@@ -104,10 +105,15 @@ async function detectGpuVendor(): Promise<GpuVendor> {
 /** Process-wide handlers; call once, early in main. */
 export function installCrashHandlers(): void {
   logger.setFatalHandler((error) => {
+    // First: the dialog below blocks, and the request goes out while it is open.
+    void reportCrash('main_exception', error, { process: 'main' })
     presentOnce(diagnoseError(error), 'close')
   })
 
   app.on('child-process-gone', (_event, details) => {
+    if (details.reason !== 'clean-exit') {
+      void reportCrash('child_gone', `${details.type} process gone: ${details.reason} (exit ${details.exitCode})`, { process: details.type })
+    }
     if (details.type !== 'GPU' || gpuReported) return
     void (async () => {
       const d = diagnoseProcessGone({ type: details.type, reason: details.reason, exitCode: details.exitCode }, await detectGpuVendor())
@@ -126,6 +132,9 @@ export function installCrashHandlers(): void {
 /** Per-window handlers: renderer crash and failed page load. */
 export function watchWindow(win: BrowserWindow): void {
   win.webContents.on('render-process-gone', (_event, details) => {
+    if (details.reason !== 'clean-exit') {
+      void reportCrash('renderer_gone', `Window process gone: ${details.reason} (exit ${details.exitCode})`, { process: 'renderer' })
+    }
     const d = diagnoseProcessGone({ reason: details.reason, exitCode: details.exitCode })
     if (!d) return
     if (presentOnce(d, 'reload', win) === 'primary' && !win.isDestroyed()) win.webContents.reload()

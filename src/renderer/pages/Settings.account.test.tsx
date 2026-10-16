@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { Settings } from './Settings'
 import { useAuthStore } from '../stores/auth-store'
 
@@ -17,8 +17,8 @@ beforeEach(() => {
     openProfile: vi.fn(),
     logout: vi.fn(),
     login: vi.fn(),
-    getSignatureStatus: vi.fn(async () => ({ enabled: true, version: 7, entries: 12 })),
-    checkSignatures: vi.fn()
+    getSettings: vi.fn(async () => ({ colorTheme: 'violet' })),
+    setSettings: vi.fn(async (s: object) => s)
   }
   useAuthStore.setState({ status: 'anon', user: null, isLoaded: true, updateRequired: undefined, capabilities: [] } as any)
 })
@@ -29,10 +29,13 @@ describe('Settings Account card', () => {
     expect(screen.getByText('settings.account')).toBeTruthy()
     expect(screen.queryByText('#C8A47E')).toBeNull()
   })
-  it('shows which detection signatures are in use', async () => {
+  it('has an error-reports switch that is on by default and turns off', async () => {
     render(<Settings />)
-    expect(await screen.findByText('settings.signatures.site')).toBeTruthy()
-    expect(screen.getByText('settings.signatures.check')).toBeTruthy()
+    const sw = screen.getByText('settings.errorReports.toggle').closest('button') as HTMLButtonElement
+    expect(sw.getAttribute('aria-checked')).toBe('true')
+    fireEvent.click(sw)
+    await waitFor(() => expect(sw.getAttribute('aria-checked')).toBe('false'))
+    expect((window as any).electronAPI.setSettings).toHaveBeenCalledWith({ sendErrorReports: false })
   })
   it('warns when the site requires a newer app', () => {
     useAuthStore.setState({ status: 'anon', user: null, updateRequired: '9.0.0' } as any)

@@ -1,5 +1,6 @@
 import { Component, ErrorInfo, ReactNode } from 'react'
 import i18next from 'i18next'
+import { reportWindowError } from '../utils/report-error'
 
 interface Props {
   children: ReactNode
@@ -24,6 +25,7 @@ export class ErrorBoundary extends Component<Props, State> {
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo): void {
     console.error('ErrorBoundary caught an error:', error, errorInfo)
+    reportWindowError(error)
   }
 
   handleReload = (): void => {
