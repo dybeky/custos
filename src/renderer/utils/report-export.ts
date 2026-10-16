@@ -39,6 +39,7 @@ export function scannerLabel(t: TFunction, id: string, fallback: string): string
 }
 
 export function formatDuration(t: TFunction, ms: number): string {
+  if (!Number.isFinite(ms)) return '—'
   return ms >= 1000 ? `${(ms / 1000).toFixed(1)} ${t('report.unitSec')}` : `${ms} ${t('report.unitMs')}`
 }
 

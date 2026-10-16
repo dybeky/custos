@@ -32,7 +32,8 @@ export function Case() {
   const { t, i18n } = useTranslation()
   const navigate = useNavigate()
   const { key = '' } = useParams()
-  const playerKey = decodeURIComponent(key)
+  // The router has already decoded the segment; decoding again throws on a name holding "%".
+  const playerKey = key
   const { history, loadHistory, openHistory, checker } = useScanStore()
   const account = useAuthStore((s) => s.user?.username)
   const [entries, setEntries] = useState<HistoryEntry[] | null>(null)

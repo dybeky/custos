@@ -338,7 +338,9 @@ export const useScanStore = create<ScanState>((set, get) => ({
   },
 
   cancelScan: async () => {
-    set({ status: 'idle', progress: null })
+    // The half-finished results go too: they have no report, so the results
+    // page would show them as a scan "in progress" and the sidebar would count them.
+    set({ status: 'idle', progress: null, results: [], ...computeDerivedValues([]), _evidenceCount: null })
     await window.electronAPI.cancelScan().catch(() => {})
   },
 

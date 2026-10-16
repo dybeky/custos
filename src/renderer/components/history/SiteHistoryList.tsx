@@ -5,6 +5,7 @@ import { GAMES, type GameId } from '../../../shared/games'
 import { useScanStore } from '../../stores/scan-store'
 import { bandChipClass } from '../../utils/report-view'
 import { dateLocale } from '../../utils/date-locale'
+import { uploaderLabel } from '../../utils/site-check'
 
 const SEARCH_DELAY_MS = 350
 
@@ -100,7 +101,7 @@ export function SiteHistoryList({ query, onOpened }: { query: string; onOpened: 
                   {fmt.format(new Date(c.scannedAt))}
                   {c.gameId && GAMES[c.gameId as GameId] ? ` · ${GAMES[c.gameId as GameId].name}` : ''}
                   {` · ${t('history.leads', { count: c.leads })}`}
-                  {` · ${t('history.checkedBy', { name: c.uploader ?? '—' })}`}
+                  {` · ${t('history.checkedBy', { name: uploaderLabel(t, c.uploader) })}`}
                 </span>
               </span>
               <span className="shrink-0 text-xs text-scan">{openingId === c.id ? t('site.loading') : t('history.open')}</span>

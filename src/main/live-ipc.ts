@@ -7,7 +7,7 @@
 
 import { ipcMain, BrowserWindow } from 'electron'
 import { IPC_CHANNELS, LiveScanStatus, LiveFinding } from '../shared/types'
-import { GAMES, type GameId } from '../shared/games'
+import { GAMES, allowsLiveScan, type GameId } from '../shared/games'
 import { logger } from './services/logger'
 import { isMemoryNativeAvailable, getMemoryNativeLoadError } from './live/native/memory'
 import { diagnoseError } from './diagnostics/diagnose'
@@ -50,6 +50,9 @@ export function setupLiveIpcHandlers(mainWindow: BrowserWindow): void {
   ipcMain.handle(IPC_CHANNELS.LIVE_SCAN_START, async (_e, gameId?: GameId): Promise<LiveFinding[]> => {
     if (gameId !== undefined && (typeof gameId !== 'string' || !Object.hasOwn(GAMES, gameId))) {
       throw new Error(`Invalid game ID: ${String(gameId)}`)
+    }
+    if (gameId && !allowsLiveScan(gameId)) {
+      throw new Error(`Live scan is not available for ${gameId}`)
     }
     if (isLiveScanning) {
       logger.warn('Live scan already in progress')

@@ -6,6 +6,7 @@ import { useScanStore } from '../../stores/scan-store'
 import { useSiteSync } from '../../stores/site-sync'
 import { bandChipClass } from '../../utils/report-view'
 import { dateLocale } from '../../utils/date-locale'
+import { uploaderLabel } from '../../utils/site-check'
 
 const BTN = 'px-3 py-1.5 rounded-lg text-xs font-medium transition-colors disabled:opacity-50'
 
@@ -109,7 +110,7 @@ export function SitePanel() {
                         >
                           <span className={`px-1.5 py-0.5 rounded font-semibold ${bandChipClass(c.band)}`}>{t(`verdict.band.${c.band}`)}</span>
                           <span className="text-ink">{fmt.format(new Date(c.scannedAt))}</span>
-                          <span className="ml-auto truncate text-ink-dim">{c.uploader ?? '—'}</span>
+                          <span className="ml-auto truncate text-ink-dim">{uploaderLabel(t, c.uploader)}</span>
                         </button>
                       </li>
                     ))}

@@ -337,7 +337,10 @@
   "header": {
     "allSystemsOk": "Всё в порядке",
     "warningDetected": "Есть предупреждение",
-    "errorDetected": "Есть ошибка"
+    "errorDetected": "Есть ошибка",
+    "minimize": "Свернуть",
+    "maximize": "Развернуть",
+    "close": "Закрыть"
   },
   "errorBoundary": {
     "title": "Что-то пошло не так",
@@ -973,6 +976,8 @@
   },
   "site": {
     "title": "Сайт",
+    "noAccount": "без аккаунта",
+    "appUploader": "приложение",
     "uploading": "Сохраняем на сайте…",
     "uploadedIntact": "Сохранено на сайте — целостность подтверждена",
     "uploadedUnverified": "Сохранено на сайте — целостность проверить не удалось",

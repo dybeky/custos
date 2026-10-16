@@ -17,6 +17,12 @@ const BanSchema = z.object({
 const ResponseSchema = z.object({ bans: z.array(BanSchema).max(MAX_IDS), exact: z.boolean() })
 
 /**
+ * What the window may ask for. More accounts than the site answers for are
+ * allowed (a PC with many logins): `get` asks for the first ones only.
+ */
+export const SteamIdsSchema = z.array(z.string().regex(/^\d{17}$/)).max(200)
+
+/**
  * VAC and game bans of the Steam accounts found on the checked PC, asked from
  * the site (which asks Steam; the Steam key stays on the server). Only the
  * SteamIDs of the accounts leave the PC. Never throws: no site, no answer.

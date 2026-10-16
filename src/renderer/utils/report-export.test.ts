@@ -135,6 +135,11 @@ describe('buildTextReport formatting', () => {
     expect(txt).toContain('12.3 s')
     expect(txt).toContain('[INFO] ')
   })
+
+  it('does not print NaN for a duration a site check lacks', () => {
+    const noDuration = { ...report, meta: { ...report.meta, durationMs: undefined as unknown as number } }
+    expect(buildTextReport(tEn, noDuration, [])).not.toContain('NaN')
+  })
 })
 
 describe('activity timeline', () => {

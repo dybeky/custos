@@ -45,4 +45,21 @@ describe('Modal', () => {
     expect(overlay.className).toContain('items-center')
     expect(overlay.className).toContain('justify-center')
   })
+
+  it('keeps the focus where the user put it when the parent re-renders with a new onClose', async () => {
+    const view = (onClose: () => void) => (
+      <Modal isOpen onClose={onClose} title="Pick">
+        <button>first</button>
+        <button>second</button>
+      </Modal>
+    )
+    const { rerender } = render(view(() => {}))
+    await new Promise((r) => setTimeout(r, 5))
+    const second = screen.getByText('second')
+    second.focus()
+    // A progress event, a store update: the parent renders again with a fresh arrow function.
+    rerender(view(() => {}))
+    await new Promise((r) => setTimeout(r, 5))
+    expect(document.activeElement).toBe(second)
+  })
 })

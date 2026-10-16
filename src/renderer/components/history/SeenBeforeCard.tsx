@@ -4,6 +4,7 @@ import { useScanStore } from '../../stores/scan-store'
 import { featureName } from '../../utils/feature-i18n'
 import { bandChipClass } from '../../utils/report-view'
 import { dateLocale } from '../../utils/date-locale'
+import { uploaderLabel } from '../../utils/site-check'
 
 /**
  * "This player was checked before": the site keeps every check under the player
@@ -35,7 +36,7 @@ export function SeenBeforeCard() {
             {t('seenBefore.times', { count: previous.total })}
           </p>
           <p className="mt-0.5 text-xs text-ink-dim">
-            {t('seenBefore.last', { when, who: previous.uploader ?? '—' })}{' '}
+            {t('seenBefore.last', { when, who: uploaderLabel(t, previous.uploader) })}{' '}
             <button
               onClick={() => void window.electronAPI.openOnSite({ checkId: previous.id })}
               className="text-scan hover:underline"

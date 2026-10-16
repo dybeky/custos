@@ -35,11 +35,15 @@ export function Modal({
   const modalRef = useRef<HTMLDivElement>(null)
   const previousActiveElement = useRef<HTMLElement | null>(null)
   const titleId = useId()
+  // Callers pass a fresh arrow function on every render. The effect below must not
+  // re-run for that: it would pull the focus back to the first button each time.
+  const onCloseRef = useRef(onClose)
+  onCloseRef.current = onClose
 
   // Close on escape key and manage focus trap
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose()
+      if (e.key === 'Escape') onCloseRef.current()
     }
 
     const handleTab = (e: KeyboardEvent) => {
@@ -85,7 +89,7 @@ export function Modal({
         previousActiveElement.current.focus()
       }
     }
-  }, [isOpen, onClose])
+  }, [isOpen])
 
   // Portal to <body> so the overlay escapes any transformed/filtered ancestor
   // (e.g. the header's `backdrop-blur-xl`, which establishes a containing block

@@ -151,7 +151,8 @@ export function Sidebar() {
   const { t } = useTranslation()
   const navigate = useNavigate()
   const { pathname } = useLocation()
-  const { status, _evidenceCount, _totalFindings } = useScanStore()
+  const { status, viewingHistory, _evidenceCount, _totalFindings } = useScanStore()
+  const completed = status === 'completed' && !viewingHistory
   const [pinnedCollapsed, setPinnedCollapsed] = useState(readCollapsed)
   const [narrow, setNarrow] = useState(() => typeof window !== 'undefined' && window.innerWidth < AUTO_COLLAPSE_PX)
 
@@ -163,6 +164,8 @@ export function Sidebar() {
 
   useNavShortcuts(navigate, pathname)
 
+  // A player's case belongs to the history it was opened from.
+  const inCaseOf = (path: string): boolean => path === '/history' && pathname.startsWith('/case/')
   const collapsed = pinnedCollapsed || narrow
   const totalFindings = shownFindingCount({ _evidenceCount, _totalFindings })
   const smooth = useSmoothProgress()
@@ -241,13 +244,16 @@ export function Sidebar() {
                       onClick={() => {
                         if (pathname !== item.path) playClick()
                       }}
-                      className={({ isActive }) =>
-                        `group relative flex items-center h-9 rounded-xl px-[13px] gap-3 outline-none transition-colors duration-150 focus-visible:ring-2 focus-visible:ring-scan/60 ${
+                      className={({ isActive: here }) => {
+                        const isActive = here || inCaseOf(item.path)
+                        return `group relative flex items-center h-9 rounded-xl px-[13px] gap-3 outline-none transition-colors duration-150 focus-visible:ring-2 focus-visible:ring-scan/60 ${
                           isActive ? 'text-ink' : 'text-ink-dim hover:text-ink'
                         }`
-                      }
+                      }}
                     >
-                      {({ isActive }) => (
+                      {({ isActive: here }) => {
+                        const isActive = here || inCaseOf(item.path)
+                        return (
                         <>
                           {isActive && (
                             <motion.span
@@ -293,7 +299,8 @@ export function Sidebar() {
                             </>
                           )}
                         </>
-                      )}
+                        )
+                      }}
                     </NavLink>
                   )
                 })}
@@ -318,14 +325,14 @@ export function Sidebar() {
               <span className={`relative w-2 h-2 rounded-full ${scanning ? 'bg-scan' : totalFindings > 0 ? 'bg-alert' : 'bg-ok'}`} />
             </span>
             <span className="text-[11px] font-semibold text-ink whitespace-nowrap">
-              {scanning ? t('nav.scanning') : status === 'completed' ? t('nav.lastScanDone') : t('nav.ready')}
+              {scanning ? t('nav.scanning') : completed ? t('nav.lastScanDone') : t('nav.ready')}
             </span>
             {scanning && <span className="ml-auto text-[10px] font-mono text-ink-dim">{Math.round(progress)}%</span>}
           </div>
           <div className="mt-2 h-1 rounded-full bg-[color:var(--line)] overflow-hidden">
             <motion.div
               className="h-full rounded-full bg-gradient-to-r from-scan to-scan-2"
-              style={{ width: scanning ? `${Math.max(3, progress)}%` : status === 'completed' ? '100%' : '0%' }}
+              style={{ width: scanning ? `${Math.max(3, progress)}%` : completed ? '100%' : '0%' }}
             />
           </div>
         </button>

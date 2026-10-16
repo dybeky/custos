@@ -1,6 +1,6 @@
-import { shell } from 'electron'
+import { app, shell } from 'electron'
 import { logger } from '../services/logger'
-import { expandEnv, isAllowedExternalUrl, isAllowedLocalPath } from './url-policy'
+import { expandEnv, isAllowedExternalUrl, isAllowedLocalPath, resolveKnownFolder } from './url-policy'
 
 const URI_SCHEME = /^[A-Za-z][A-Za-z0-9+.-]*:/
 const DRIVE_LETTER = /^[A-Za-z]:[\\/]/
@@ -27,7 +27,8 @@ export function safeOpenPath(rawPath: string): void {
     logger.warn('Blocked path open (not an allowed local path)', { path: expanded })
     return
   }
-  shell.openPath(expanded).catch((err) =>
+  const target = resolveKnownFolder(expanded, process.env.USERPROFILE, (name) => app.getPath(name as 'desktop'))
+  shell.openPath(target).catch((err) =>
     logger.warn('Failed to open path', { path: expanded, error: err instanceof Error ? err.message : String(err) })
   )
 }

@@ -9,6 +9,11 @@ import { execFileAsync } from '../utils/async-exec'
 // Small batch size to prevent PowerShell hangs
 const BATCH_SIZE = 15
 
+/** The Recent folder of this user: under %APPDATA%, which can be redirected away from the profile. */
+export function recentFolderPath(env: NodeJS.ProcessEnv, home: string): string {
+  return join(env.APPDATA || join(home, 'AppData', 'Roaming'), 'Microsoft', 'Windows', 'Recent')
+}
+
 /** stdin for the shortcut resolver: each path as base64 of UTF-16LE, one per line. */
 export function encodeLnkPaths(paths: string[]): string {
   return paths.map((p) => Buffer.from(p, 'utf16le').toString('base64')).join('\n') + '\n'
@@ -91,14 +96,7 @@ $results | ConvertTo-Json -Compress
     let timedOut = false
     const isTimedOut = () => (timedOut ||= this.outOfTime())
 
-    const recentFolder = join(
-      homedir(),
-      'AppData',
-      'Roaming',
-      'Microsoft',
-      'Windows',
-      'Recent'
-    )
+    const recentFolder = recentFolderPath(process.env, homedir())
 
     if (!existsSync(recentFolder)) {
       return this.createSuccessResult([], startTime)

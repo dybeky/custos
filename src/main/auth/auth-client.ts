@@ -64,7 +64,7 @@ const OpenedCheckSchema = z.object({
   report: z.object({
     id: z.string(),
     meta: z.object({ scannedAt: z.string() }).passthrough(),
-    verdict: z.object({ score: z.number(), band: z.enum(['clean', 'low', 'medium', 'high', 'critical']), reasons: z.array(z.unknown()) }).passthrough(),
+    verdict: z.object({ score: z.number(), band: z.enum(['clean', 'low', 'medium', 'high', 'critical']), reasons: z.array(z.unknown()).default([]) }).passthrough(),
     findings: z.array(z.object({ scannerId: z.string(), value: z.string() }).passthrough()),
     correlations: z.array(z.unknown()),
     scanners: z.array(z.unknown())

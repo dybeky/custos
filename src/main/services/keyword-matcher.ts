@@ -31,14 +31,17 @@ function contextAround(text: string, index: number, length: number): string {
 }
 
 /** Version, build or package words a renamed cheat tacks on: "spoofer_v2", "esp-setup". */
-const NAME_SUFFIX = /[-_ .]+(v?\d+([._]\d+)*|x64|x86|win64|win32|setup|installer|loader|crack(ed)?|free|new|final)$/
+const NAME_SUFFIX = /(?:[-_ .]+(?:v?\d+(?:[._]\d+)*|x64|x86|win64|win32|setup|installer|loader|crack(?:ed)?|free|new|final|copy|копия)|\s*\(\d+\))$/
 
 /** A keyword is spelled with or without its separators: "cheat engine", "cheat-engine", "cheatengine". */
 const squash = (s: string): string => s.replace(/[-_ ]/g, '')
 
-/** Where the account name sits in `C:\Users\<name>`: a person's name, not a lead. */
+/**
+ * Where the account name sits in `C:\Users\<name>`, `C:/Users/<name>` (browser
+ * file links) or `\Device\HarddiskVolume3\Users\<name>` (BAM): a person's name, not a lead.
+ */
 function profileSpan(textLower: string): [number, number] | null {
-  const m = /[a-z]:\\users\\([^\\/]+)/.exec(textLower)
+  const m = /(?:[a-z]:|\\device\\harddiskvolume\d+)[\\/]+users[\\/]+([^\\/]+)/.exec(textLower)
   return m ? [m.index + m[0].length - m[1].length, m.index + m[0].length] : null
 }
 
@@ -66,7 +69,10 @@ export class KeywordMatcher {
         p.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/[-_ ]+/g, '[-_ ]?')
       )
       // Build pattern index map for findKeyword, keyed without separators
-      this.patternsLower.forEach((p, i) => this.patternIndexMap.set(squash(p), i))
+      // First spelling wins: "aimbot" and "aim-bot" are one signature.
+      this.patternsLower.forEach((p, i) => {
+        if (!this.patternIndexMap.has(squash(p))) this.patternIndexMap.set(squash(p), i)
+      })
 
       // Word boundaries: a keyword must start after a non-alphanumeric char and
       // end before one — so "cheater" / "TitaniumBackup" do not match. A run of
@@ -127,7 +133,7 @@ export class KeywordMatcher {
     // "spoofer_v2.exe", "esp-setup.exe": the exact name plus a version or package word.
     let stem = baseName
     for (let i = 0; i < 3 && NAME_SUFFIX.test(stem); i++) {
-      stem = stem.replace(NAME_SUFFIX, '')
+      stem = stem.replace(NAME_SUFFIX, '').replace(/[-_ .]+$/, '')
       if (this.exactMatch.has(stem)) return stem
     }
     const profile = profileSpan(textLower)

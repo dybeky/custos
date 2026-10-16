@@ -29,7 +29,8 @@ export function Header({ updateVersion, onUpdateClick }: { updateVersion?: strin
   const { status, osInfo, isLoaded, initialize } = useAppHealthStore()
   const { selectedGame } = useGameStore()
   const { pathname } = useLocation()
-  const pageKey = PAGE_TITLES[pathname]
+  // A player's case is opened from the history, and is titled so.
+  const pageKey = PAGE_TITLES[pathname] ?? (pathname.startsWith('/case/') ? 'casefile.title' : undefined)
 
   useEffect(() => {
     initialize()
@@ -119,6 +120,8 @@ export function Header({ updateVersion, onUpdateClick }: { updateVersion?: strin
 
         <button
           onClick={handleMinimize}
+          title={t('header.minimize')}
+          aria-label={t('header.minimize')}
           className="w-8 h-8 flex items-center justify-center rounded hover:bg-panel-2 active:opacity-70 transition-colors dock-icon"
         >
           <svg className="w-4 h-4 text-ink-dim" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -128,6 +131,8 @@ export function Header({ updateVersion, onUpdateClick }: { updateVersion?: strin
 
         <button
           onClick={handleMaximize}
+          title={t('header.maximize')}
+          aria-label={t('header.maximize')}
           className="w-8 h-8 flex items-center justify-center rounded hover:bg-panel-2 active:opacity-70 transition-colors dock-icon"
         >
           <svg className="w-4 h-4 text-ink-dim" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -137,6 +142,8 @@ export function Header({ updateVersion, onUpdateClick }: { updateVersion?: strin
 
         <button
           onClick={handleClose}
+          title={t('header.close')}
+          aria-label={t('header.close')}
           className="w-8 h-8 flex items-center justify-center rounded hover:bg-alert/20 active:bg-alert/30 transition-colors group dock-icon"
         >
           <svg className="w-4 h-4 text-ink-dim group-hover:text-alert transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">

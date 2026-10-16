@@ -32,6 +32,16 @@ export async function hashFile(filePath: string): Promise<string> {
   })
 }
 
+/**
+ * Folders whose files are hashed: Downloads, Desktop and Temp, plus the same
+ * folders under OneDrive, where Windows moves them when folder backup is on.
+ */
+export function fileHashRoots(home: string, env: NodeJS.ProcessEnv, tmp: string): string[] {
+  const bases = [home, env.OneDrive, env.OneDriveConsumer, env.OneDriveCommercial].filter((b): b is string => !!b)
+  const roots = bases.flatMap((b) => [join(b, 'Downloads'), join(b, 'Desktop')])
+  return [...new Set([...roots, tmp])]
+}
+
 /** Custos's own folders in %TEMP% (session data, instance lock, unpacked exe). */
 function isOwnTempDir(name: string, fullPath: string): boolean {
   if (isSessionDirName(name) || name === LOCK_DIR_NAME) return true
@@ -54,12 +64,7 @@ export class FileHashScanner extends BaseScanner {
   protected async doScan(events: ScannerEventEmitter | undefined, startTime: Date): Promise<ScanResult> {
     this.reset()
 
-    const home = homedir()
-    const targetDirs = [
-      join(home, 'Downloads'),
-      join(home, 'Desktop'),
-      tmpdir()
-    ].filter(d => existsSync(d))
+    const targetDirs = fileHashRoots(homedir(), process.env, tmpdir()).filter(d => existsSync(d))
 
     // Collect all candidate file paths up to the cap, then hash them.
     const filePaths: string[] = []

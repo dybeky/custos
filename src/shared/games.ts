@@ -33,3 +33,8 @@ export const GAMES: Record<GameId, GameMeta> = {
 }
 
 export const GAME_IDS: GameId[] = ['unturned', 'cs2']
+
+/** Whether Live Scan may read this game's memory (the main process refuses anything else, e.g. VAC-protected CS2). */
+export function allowsLiveScan(gameId: string): boolean {
+  return Object.hasOwn(GAMES, gameId) && GAMES[gameId as GameId].liveScan
+}

@@ -337,7 +337,10 @@
   "header": {
     "allSystemsOk": "All systems OK",
     "warningDetected": "Warning detected",
-    "errorDetected": "Error detected"
+    "errorDetected": "Error detected",
+    "minimize": "Minimize",
+    "maximize": "Maximize",
+    "close": "Close"
   },
   "errorBoundary": {
     "title": "Something went wrong",
@@ -949,6 +952,8 @@
   },
   "site": {
     "title": "Site",
+    "noAccount": "no account",
+    "appUploader": "app",
     "uploading": "Saving to the site…",
     "uploadedIntact": "Saved to the site — integrity verified",
     "uploadedUnverified": "Saved to the site — integrity could not be verified",

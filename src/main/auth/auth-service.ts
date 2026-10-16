@@ -83,9 +83,11 @@ export class AuthService {
   private async refreshCapabilities(token: string): Promise<void> {
     try {
       const me = await this.client.getMe(token)
+      if (this.tokens.load() !== token) return // signed out (or in as someone else) meanwhile
       this.capabilities = me.capabilities
       this.updateRequired = undefined
     } catch (e) {
+      if (this.tokens.load() !== token) return
       if (e instanceof UpdateRequiredError) this.markUpdateRequired(e.minVersion)
       else return
     }
@@ -221,7 +223,7 @@ export class AuthService {
     // an error; the new avatar simply shows up on the next session check.
     try {
       const session = await this.client.getSession(token)
-      if (session) {
+      if (session && this.tokens.load() === token) {
         this.user = session.user
         this.tokens.saveUser(session.user)
         this.emit()

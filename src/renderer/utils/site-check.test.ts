@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import type { ScanReport } from '../../shared/types'
-import { resultsFromReport } from './site-check'
+import { resultsFromReport, uploaderLabel } from './site-check'
 
 const report = {
   id: 'r1',
@@ -28,5 +28,19 @@ describe('resultsFromReport', () => {
 
   it('handles a report with no scanners', () => {
     expect(resultsFromReport({ ...report, scanners: [] } as unknown as ScanReport)).toEqual([])
+  })
+})
+
+describe('uploaderLabel', () => {
+  const t = ((k: string) => ({ 'site.noAccount': 'без аккаунта', 'site.appUploader': 'приложение' })[k] ?? k) as never
+
+  it('translates the site\'s "no account" wording and keeps the checker\'s name', () => {
+    expect(uploaderLabel(t, 'app · no account')).toBe('приложение · без аккаунта')
+    expect(uploaderLabel(t, 'Alice · no account')).toBe('Alice · без аккаунта')
+  })
+
+  it('leaves a signed-in checker alone and dashes an unknown one', () => {
+    expect(uploaderLabel(t, 'Alice')).toBe('Alice')
+    expect(uploaderLabel(t, null)).toBe('—')
   })
 })

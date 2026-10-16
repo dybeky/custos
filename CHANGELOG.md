@@ -27,6 +27,15 @@ Keep each entry to one line of about 100 characters so the dialog stays tidy.
 - Results redesigned: risk ring, severity bar, tabs, searchable evidence list, scanner tiles
 
 ### Fixes
+- Cheat names written with a space, dash or underscore are found (Aim Bot, wall-hack, no_recoil, Speed Hack)
+- Downloaded copies like "Spoofer (1).exe" and "esp (3).exe" are found
+- A cancelled scan no longer leaves half-finished results on the Results screen
+- A player name containing a percent sign no longer crashes the case page
+- Desktop, Documents, Downloads, Pictures and Videos open correctly when OneDrive moved them
+- Opening a saved check no longer looks like a finished scan
+- The Steam bans card works on a PC with more than 10 Steam accounts
+- A Windows account name with spaces or brackets is hidden whole in uploads
+- A trick path ending in a dot segment can no longer pass as a folder when opening paths
 - A Windows account named like a cheat (e.g. C:\Users\Mason) is no longer reported as a lead
 - A scheduled task's state is shown in English, whatever language Windows is set to
 - The "Upload to site" button is gone: every check is saved to the site automatically

@@ -55,7 +55,11 @@ export function UpdateModal({ info, onClose }: { info: UpdateInfo; onClose: () =
     onClose()
   }
 
-  const pct = phase.kind === 'downloading' && phase.progress ? Math.round((phase.progress.received / phase.progress.total) * 100) : 0
+  // The size can be unknown (0) while the download starts: never show NaN% or a bar past the end.
+  const pct =
+    phase.kind === 'downloading' && phase.progress && phase.progress.total > 0
+      ? Math.min(100, Math.round((phase.progress.received / phase.progress.total) * 100))
+      : 0
 
   return (
     <Modal isOpen onClose={busy ? () => {} : onClose} showCloseButton={!busy} title={t('update.title')} size="xl">
@@ -76,7 +80,7 @@ export function UpdateModal({ info, onClose }: { info: UpdateInfo; onClose: () =
                   className="text-2xs font-bold tracking-[0.18em] uppercase font-display"
                   style={{ color: accent }}
                 >
-                  {group.group}
+                  {t(`changelogGroups.${group.group}`, { defaultValue: group.group })}
                 </h3>
               </div>
               <ul className="space-y-1.5 pl-3">

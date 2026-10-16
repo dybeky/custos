@@ -50,10 +50,13 @@ export function redactSecrets(text: string): string {
 // whole only when a path goes on after it; otherwise the name ends at the first
 // space, comma or bracket, so text after a bare profile folder is kept.
 const NAME_CHAR = String.raw`[^\s\\/:*?"<>|\[\]();,=+@]`
+// A name that is followed by a path may hold brackets and @ ("John Doe (work)"),
+// which Windows allows in account names.
+const NAME_WORD = String.raw`[^\s\\/:*?"<>|\[\];,=+]`
 const PROFILE_DIR = new RegExp(
   String.raw`((?:[A-Za-z]:|\\?Device\\HarddiskVolume\d+)[\\/]+Users[\\/]+)` +
     String.raw`(?!(?:Public|Default|Default User|All Users)(?:[\\/]|$))` +
-    `(${NAME_CHAR}+(?: ${NAME_CHAR}+)+(?=[\\\\/])|${NAME_CHAR}+)`,
+    `(${NAME_WORD}+(?: ${NAME_WORD}+)*(?=[\\\\/])|${NAME_CHAR}+)`,
   'giu'
 )
 

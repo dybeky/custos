@@ -46,7 +46,8 @@ export function ResultsHero(props: Props) {
     new Date(report.meta.scannedAt)
   )
   const game = report.meta.gameId && GAMES[report.meta.gameId as GameId] ? GAMES[report.meta.gameId as GameId].name : null
-  const seconds = Math.max(1, Math.round(report.meta.durationMs / 1000))
+  // A check from the site may lack the duration: show no chip rather than "NaN s".
+  const seconds = Number.isFinite(report.meta.durationMs) ? Math.max(1, Math.round(report.meta.durationMs / 1000)) : null
 
   return (
     <motion.section
@@ -72,7 +73,7 @@ export function ResultsHero(props: Props) {
           <div className="mt-3 flex flex-wrap items-center gap-1.5 text-[11px] text-ink-dim">
             {game && <Chip>{game}</Chip>}
             <Chip>{when}</Chip>
-            <Chip>{t('results.tookSeconds', { count: seconds })}</Chip>
+            {seconds !== null && <Chip>{t('results.tookSeconds', { count: seconds })}</Chip>}
             <Chip>v{report.meta.appVersion}</Chip>
           </div>
         </div>

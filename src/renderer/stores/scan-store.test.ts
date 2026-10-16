@@ -92,6 +92,27 @@ describe('subscribeToScanEvents', () => {
     unsub()
   })
 
+  it('drops the half-finished results when the user cancels', async () => {
+    const cancelScan = vi.fn().mockResolvedValue(undefined)
+    vi.stubGlobal('window', { electronAPI: { cancelScan } })
+    const h: Handlers = {}
+    const unsub = subscribeToScanEvents(fakeApi(h))
+    useScanStore.getState().setStatus('scanning')
+    h.result!(result)
+    expect(useScanStore.getState()._totalFindings).toBe(1)
+
+    await useScanStore.getState().cancelScan()
+    const s = useScanStore.getState()
+    expect(cancelScan).toHaveBeenCalled()
+    expect(s.status).toBe('idle')
+    // Nothing of the cancelled scan stays: no list, no counts for the sidebar badge.
+    expect(s.results).toEqual([])
+    expect(s._totalFindings).toBe(0)
+    expect(s._hasFindings).toBe(false)
+    unsub()
+    vi.unstubAllGlobals()
+  })
+
   it('surfaces a scan error while scanning', () => {
     const h: Handlers = {}
     const unsub = subscribeToScanEvents(fakeApi(h))

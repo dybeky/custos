@@ -150,14 +150,8 @@ export async function runScan(opts: RunScanOptions): Promise<ScanResult[]> {
     if (!signal.aborted) opts.emit(channel, payload)
   }
 
-  const allScanners = requestedIds
-    .filter(id => supportedIds.has(id))
-    .map(id => factory.getScanner(id))
-    .filter((s): s is NonNullable<typeof s> => s !== undefined)
-
   const throttledProgress = new ThrottledProgress(100)
   const completedRef = { count: 0 }
-  const totalScanners = allScanners.length
 
   // Build per-group scanner lists keyed off stable ScannerName ids
   const groupScanners = new Map<ScannerName, BaseScanner>(
@@ -175,6 +169,9 @@ export async function runScan(opts: RunScanOptions): Promise<ScanResult[]> {
       .filter(id => groupScanners.has(id))
       .map(id => groupScanners.get(id)!)
   }))
+
+  // Counted from what actually runs: a repeated id would otherwise keep the progress below 100%.
+  const totalScanners = groupedArrays.reduce((sum, g) => sum + g.scanners.length, 0)
 
   const results = (await Promise.all(
     groupedArrays.map(({ group, scanners }) =>

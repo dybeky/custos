@@ -27,6 +27,32 @@ export function expandEnv(p: string): string {
   return p.replace(/%([^%]+)%/g, (_, name: string) => process.env[name] || '')
 }
 
+const KNOWN_FOLDERS = ['desktop', 'documents', 'downloads', 'pictures', 'videos'] as const
+
+/**
+ * Desktop, Documents, Downloads, Pictures and Videos can be moved (OneDrive
+ * backup does it by default), leaving an empty or missing folder at
+ * %USERPROFILE%\Name. A path inside one of them is pointed at where Windows
+ * really keeps it; `lookup` is Electron's app.getPath (the Known Folders API).
+ */
+export function resolveKnownFolder(path: string, profile: string | undefined, lookup: (name: string) => string): string {
+  if (!profile) return path
+  const norm = (s: string): string => s.replace(/\//g, '\\').replace(/\\+$/, '').toLowerCase()
+  const p = norm(path)
+  const base = norm(profile)
+  for (const name of KNOWN_FOLDERS) {
+    const root = `${base}\\${name}`
+    if (p !== root && !p.startsWith(`${root}\\`)) continue
+    try {
+      const real = lookup(name)
+      return real ? real.replace(/\\+$/, '') + path.replace(/\//g, '\\').replace(/\\+$/, '').slice(root.length) : path
+    } catch {
+      return path
+    }
+  }
+  return path
+}
+
 /** True when a URL is safe to hand to shell.openExternal. */
 export function isAllowedExternalUrl(url: string): boolean {
   let scheme: string
@@ -66,6 +92,9 @@ export function isAllowedLocalPath(rawPath: string): boolean {
   // not an extension); only the inert document allowlist is permitted, and every
   // executable/script/shortcut — known or unknown — is rejected by default.
   const segments = p.split(/[\\/]/).filter((s) => s.length > 0)
+  // Windows resolves "." / ".." and drops a segment that is only spaces/dots, so
+  // "C:\x\evil.exe\." would name evil.exe itself: no real path needs them.
+  if (segments.slice(1).some((s) => s.replace(/[\s.]+$/, '') === '')) return false
   const finalSegment = (segments[segments.length - 1] ?? '').replace(/[\s.]+$/, '')
   if (finalSegment.lastIndexOf('.') > 0 && !SAFE_OPEN_EXT.test(finalSegment)) return false
   return true

@@ -72,7 +72,7 @@ export function pickAsset(assets: GithubAsset[] | undefined, arch: string): Gith
     if (!a || !a.sha256 || a.size <= 0 || a.size > MAX_UPDATE_BYTES) continue
     try {
       const u = new URL(a.url)
-      if (u.protocol === 'https:' && u.hostname === 'github.com' && u.pathname.startsWith(`/${REPO}/releases/download/`)) return a
+      if (u.protocol === 'https:' && u.hostname === 'github.com' && u.pathname.toLowerCase().startsWith(`/${REPO.toLowerCase()}/releases/download/`)) return a
     } catch {
       // malformed URL — skip
     }

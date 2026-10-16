@@ -54,7 +54,13 @@ export function Results() {
 
   const account = useAuthStore((s) => s.user?.username)
   const checker = useScanStore((s) => s.checker)
-  const exportCase = { ...caseInfo, checkedBy: checker.trim() || account }
+  // A check opened from the site was made by someone else: its export names that
+  // checker, never the person exporting it. The site words an unsigned one as
+  // "Name · no account" (just "app · no account" when no name was given).
+  const siteOrigin = useScanStore((s) => s.siteOrigin)
+  const siteChecker = (siteOrigin?.uploader ?? '').replace(/\s*·\s*no account$/, '').trim()
+  const checkedBy = siteOrigin ? (siteChecker && siteChecker !== 'app' ? siteChecker : undefined) : checker.trim() || account
+  const exportCase = { ...caseInfo, checkedBy }
 
   const handleExport = () => {
     const text = buildTextReport(t, report, results, i18n.language, exportCase)
