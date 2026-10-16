@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeAll } from 'vitest'
 import en from '../../renderer/i18n/en.json'
 import ru from '../../renderer/i18n/ru.json'
-import { MANUAL_ITEMS } from '../../shared/manual-items'
+import { MANUAL_ITEMS, itemSlug, shortRegistryKey } from '../../shared/manual-items'
 import { isAllowedLocalPath, isAllowedExternalUrl, isValidRegistryKey } from './url-policy'
 import { parseSteamTarget } from './steam-locator'
 
@@ -49,6 +49,23 @@ describe('Manual page targets', () => {
         expect(typeof lookup(ru, item.labelKey), `ru ${item.labelKey}`).toBe('string')
       }
     }
+  })
+
+  it('every place that opens something on this PC says what it shows, in both languages', () => {
+    for (const id of ['systemTools', 'folders', 'traces', 'games', 'registry'] as const) {
+      for (const item of MANUAL_ITEMS[id] as Array<{ label: string }>) {
+        const key = `manual.desc.${id}.${itemSlug(item.label)}`
+        expect(typeof lookup(en, key), `en ${key}`).toBe('string')
+        expect(typeof lookup(ru, key), `ru ${key}`).toBe('string')
+      }
+    }
+  })
+
+  it('makes ids and short registry names', () => {
+    expect(itemSlug('Run (this user)')).toBe('run-this-user')
+    expect(itemSlug('CS2 configs')).toBe('cs2-configs')
+    expect(shortRegistryKey('HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\RunMRU')).toBe('HKCU\\…\\Explorer\\RunMRU')
+    expect(shortRegistryKey('HKCU\\Software\\Valve\\Steam')).toBe('HKCU\\Software\\Valve\\Steam')
   })
 
   it('has no two buttons with the same name in one category', () => {

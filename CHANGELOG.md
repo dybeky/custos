@@ -29,6 +29,7 @@ Keep each entry to one line of about 100 characters so the dialog stays tidy.
 - The "Upload to site" button is gone: every check is saved to the site automatically
 
 ### Improvements
+- Manual check redesigned: search, tabs, a card per place that says what it shows and why to look
 - Manual check: Windows traces, game logs/configs/addons, Steam accounts and logs, 15 more registry keys
 - The scan's progress bar glides smoothly and never jumps, even when a scan is over in seconds
 - Dates read day, month, year with a 24-hour clock instead of the American format

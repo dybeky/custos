@@ -107,3 +107,18 @@ export const MANUAL_ITEMS = {
     { label: 'Lolz Market', hint: 'lzt.market', target: 'https://lzt.market' }
   ]
 } satisfies Record<string, ManualItemDef[]>
+
+/** The i18n id of an item: its name in lower case, letters and digits only ("Run (this user)" → "run-this-user"). */
+export function itemSlug(label: string): string {
+  return label
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+}
+
+/** "HKCU\…\Explorer\RunMRU": the hive and the last two names of a long registry key. */
+export function shortRegistryKey(key: string): string {
+  const parts = key.split('\\')
+  if (parts.length <= 4) return key
+  return `${parts[0]}\\…\\${parts.slice(-2).join('\\')}`
+}

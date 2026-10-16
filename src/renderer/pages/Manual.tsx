@@ -1,13 +1,15 @@
 import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Card } from '../components/ui/Card'
-import { InfoTip } from '../components/ui/InfoTip'
+import { ResultsTabs, type TabDef } from '../components/results/ResultsTabs'
 import { alpha } from '../utils/color'
 
 const ERROR_TOAST_MS = 6000
 
-import { MANUAL_ITEMS, type ManualAction as ActionType, type ManualItemDef as ManualItem } from '../../shared/manual-items'
+import {
+  MANUAL_ITEMS, itemSlug, shortRegistryKey,
+  type ManualAction as ActionType, type ManualItemDef as ManualItem
+} from '../../shared/manual-items'
 
 interface ManualCategory {
   id: string
@@ -18,7 +20,6 @@ interface ManualCategory {
   icon: React.ReactNode
   accent: string
   action: ActionType
-  grid?: boolean
   showHint?: boolean
   items: ManualItem[]
 }
@@ -60,19 +61,51 @@ const traceIcon = (
     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8v4l3 2m6-2a9 9 0 11-18 0 9 9 0 0118 0z" />
   </svg>
 )
-const chevron = (
-  <svg className="w-4 h-4 shrink-0 text-ink-dim opacity-0 -translate-x-1 transition-all duration-200 group-hover:opacity-100 group-hover:translate-x-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-  </svg>
-)
+
+const TAB_OF: Record<string, TabId> = {
+  systemTools: 'system',
+  folders: 'folders',
+  traces: 'traces',
+  games: 'games',
+  registry: 'registry',
+  telegram: 'links',
+  resources: 'links'
+}
+
+type TabId = 'all' | 'system' | 'folders' | 'traces' | 'games' | 'registry' | 'links'
+
+const DESCRIBED = new Set(['systemTools', 'folders', 'traces', 'games', 'registry'])
+
+/** Which program a button opens its place in, for the little label on the card. */
+function openerLabelKey(action: ActionType, target: string): string {
+  if (action === 'registry') return 'manual.openRegedit'
+  if (action === 'external') return 'manual.openBrowser'
+  if (/^(ms-settings|windowsdefender):/i.test(target)) return 'manual.openSettings'
+  return 'manual.openExplorer'
+}
 
 export function Manual() {
   const { t } = useTranslation()
   // i18n key of the failure toast, or false when hidden.
   const [registryError, setRegistryError] = useState<string | false>(false)
+  const [tab, setTab] = useState<TabId>('all')
+  const [query, setQuery] = useState('')
   const errorTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
+  const searchRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => () => clearTimeout(errorTimer.current), [])
+
+  // "/" jumps to the search box, like on most sites.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const el = e.target as HTMLElement | null
+      if (e.key !== '/' || e.ctrlKey || e.metaKey || el?.tagName === 'INPUT' || el?.tagName === 'TEXTAREA') return
+      e.preventDefault()
+      searchRef.current?.focus()
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [])
 
   const categories: ManualCategory[] = [
     {
@@ -98,7 +131,6 @@ export function Manual() {
     {
       id: 'traces',
       titleKey: 'manual.traces',
-      descKey: 'manual.tracesDesc',
       helpKey: 'help.manual.traces',
       icon: traceIcon,
       accent: 'var(--scan-2)',
@@ -123,7 +155,6 @@ export function Manual() {
       icon: registryIcon,
       accent: 'var(--scan)',
       action: 'registry',
-      grid: true,
       items: MANUAL_ITEMS.registry
     },
     {
@@ -172,87 +203,145 @@ export function Manual() {
     } else window.electronAPI.openExternal(target)
   }
 
+  const labelOf = (item: ManualItem) => (item.labelKey ? t(item.labelKey) : item.label)
+  const descOf = (cat: ManualCategory, item: ManualItem) =>
+    DESCRIBED.has(cat.id) ? t(`manual.desc.${cat.id}.${itemSlug(item.label)}`, { defaultValue: '' }) : ''
+
+  const q = query.trim().toLowerCase()
+  const sections = categories
+    .filter((cat) => tab === 'all' || TAB_OF[cat.id] === tab)
+    .map((cat) => ({
+      cat,
+      items: cat.items.filter(
+        (item) =>
+          !q ||
+          `${labelOf(item)} ${item.label} ${descOf(cat, item)} ${item.hint ?? ''} ${item.target}`.toLowerCase().includes(q)
+      )
+    }))
+    .filter((s) => s.items.length > 0)
+
+  const countIn = (id: TabId) =>
+    categories.filter((c) => id === 'all' || TAB_OF[c.id] === id).reduce((n, c) => n + c.items.length, 0)
+  const tabs: TabDef<TabId>[] = (
+    [
+      ['all', 'manual.tabAll'],
+      ['system', 'manual.tabSystem'],
+      ['folders', 'manual.tabFolders'],
+      ['traces', 'manual.tabTraces'],
+      ['games', 'manual.tabGames'],
+      ['registry', 'manual.tabRegistry'],
+      ['links', 'manual.tabLinks']
+    ] as Array<[TabId, string]>
+  ).map(([key, label]) => ({ key, label: t(label), count: countIn(key) }))
+
   return (
-    <div className="flex-1 p-6 overflow-y-auto">
-      <div className="animate-fade-in">
-        {/* Header */}
-        <div className="mb-6">
-          <h1 className="text-2xl font-bold text-ink font-display">{t('manual.title')}</h1>
-          <p className="text-ink-dim mt-1">{t('manual.subtitle')}</p>
+    <div className="flex-1 overflow-y-auto p-6">
+      <div className="mx-auto max-w-5xl animate-fade-in">
+        <div className="mb-5 flex flex-wrap items-end justify-between gap-4">
+          <div>
+            <h1 className="font-display text-2xl font-bold text-ink">{t('manual.title')}</h1>
+            <p className="mt-1 text-sm text-ink-dim">{t('manual.subtitle')}</p>
+          </div>
+          <div className="relative w-full sm:w-80">
+            <svg className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-dim" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M21 21l-4.3-4.3M17 10.5a6.5 6.5 0 11-13 0 6.5 6.5 0 0113 0z" />
+            </svg>
+            <input
+              ref={searchRef}
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              onKeyDown={(e) => e.key === 'Escape' && (setQuery(''), e.currentTarget.blur())}
+              placeholder={t('manual.search')}
+              title={t('manual.searchHint')}
+              className="h-10 w-full rounded-xl border border-[color:var(--line)] bg-panel/60 pl-9 pr-9 text-sm text-ink placeholder:text-ink-dim/60 focus:border-scan/50 focus:outline-none"
+            />
+            <kbd className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 rounded-md border border-[color:var(--line)] px-1.5 text-[10px] text-ink-dim">/</kbd>
+          </div>
         </div>
 
-        <div className="columns-1 md:columns-2 xl:columns-3 gap-3">
-          {categories.map((cat, i) => (
-            <Card
-              key={cat.id}
-              padding="md"
-              className="mb-3 break-inside-avoid"
-              transition={{ duration: 0.25, delay: i * 0.05 }}
-              style={{ '--accent': cat.accent } as React.CSSProperties}
-            >
-              {/* Card header */}
-              <div className="flex items-center gap-3 mb-4">
-                <span
-                  className="shrink-0 w-9 h-9 rounded-xl flex items-center justify-center [&>svg]:w-[18px] [&>svg]:h-[18px]"
-                  style={{ background: alpha(cat.accent, 0.12), color: cat.accent }}
-                >
-                  {cat.icon}
-                </span>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-1.5">
-                    <h3 className="text-sm font-semibold text-ink leading-tight font-display">{t(cat.titleKey)}</h3>
-                    <InfoTip title={t(cat.titleKey)} text={t(cat.helpKey)} />
-                  </div>
-                  {cat.descKey && (
-                    <p className="text-2xs text-ink-dim mt-0.5 truncate">{t(cat.descKey)}</p>
-                  )}
-                </div>
-                <span
-                  className="shrink-0 text-2xs font-mono px-2 py-0.5 rounded-full"
-                  style={{ background: alpha(cat.accent, 0.1), color: cat.accent }}
-                >
-                  {cat.items.length}
-                </span>
-              </div>
+        <div className="mb-4 flex items-start gap-2.5 rounded-2xl border border-scan/20 bg-scan/[0.05] px-4 py-3 text-xs text-ink-dim">
+          <svg className="mt-px h-4 w-4 shrink-0 text-scan" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          <span>{t('manual.tip')}</span>
+        </div>
 
-              {/* Items */}
-              <div className={cat.grid ? 'grid grid-cols-[repeat(auto-fill,minmax(150px,1fr))] gap-2' : 'space-y-2'}>
-                {cat.items.map((item) => (
-                  <button
-                    key={item.label}
-                    onClick={() => run(item.action ?? cat.action, item.target)}
-                    // Full name + target on hover.
-                    title={item.target && item.action !== 'steam' ? `${item.label}\n${item.target}` : item.label}
-                    className="group relative w-full flex items-center gap-3 pl-3.5 pr-2.5 py-2.5 rounded-xl bg-panel-2 hover:bg-panel-2 border border-[color:var(--line)] hover:border-[color:var(--line-strong)] transition-all duration-200 text-left overflow-hidden"
+        <ResultsTabs tabs={tabs} active={tab} onChange={setTab} />
+
+        {sections.length === 0 ? (
+          <div className="rounded-2xl border border-[color:var(--line)] bg-panel/40 p-10 text-center text-sm text-ink-dim">
+            {t('manual.noMatches')}
+          </div>
+        ) : (
+          <div className="space-y-8">
+            {sections.map(({ cat, items }, si) => (
+              <section key={cat.id} style={{ '--accent': cat.accent } as React.CSSProperties}>
+                <div className="mb-3 flex items-center gap-3">
+                  <span
+                    className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl [&>svg]:h-[18px] [&>svg]:w-[18px]"
+                    style={{ background: alpha(cat.accent, 0.14), color: cat.accent }}
                   >
-                    {/* Hover accent bar */}
-                    <span
-                      className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-0 rounded-full transition-all duration-200 group-hover:h-7"
-                      style={{ background: 'var(--accent)' }}
-                    />
-                    {/* Icon chip */}
-                    <span
-                      className="shrink-0 w-7 h-7 rounded-lg flex items-center justify-center transition-transform duration-200 group-hover:scale-110 [&>svg]:w-[15px] [&>svg]:h-[15px]"
-                      style={{ background: alpha(cat.accent, 0.12), color: cat.accent }}
-                    >
-                      {cat.icon}
-                    </span>
-                    {/* Text */}
-                    <span className="flex-1 min-w-0">
-                      <span className={`block text-sm text-ink ${cat.grid ? 'leading-snug break-words' : 'truncate'}`}>
-                        {item.labelKey ? t(item.labelKey) : item.label}
-                      </span>
-                      {cat.showHint && item.hint && (
-                        <span className="block text-2xs text-ink-dim font-mono truncate mt-0.5">{item.hint}</span>
-                      )}
-                    </span>
-                    {chevron}
-                  </button>
-                ))}
-              </div>
-            </Card>
-          ))}
-        </div>
+                    {cat.icon}
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2">
+                      <h2 className="font-display text-base font-bold text-ink">{t(cat.titleKey)}</h2>
+                      <span className="rounded-md bg-ink/10 px-1.5 py-px text-[10px] font-bold text-ink-dim">{items.length}</span>
+                    </div>
+                    <p className="text-xs text-ink-dim">{cat.descKey ? t(cat.descKey) : t(cat.helpKey)}</p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 xl:grid-cols-3">
+                  {items.map((item, i) => {
+                    const action = item.action ?? cat.action
+                    const desc = descOf(cat, item)
+                    const hint = cat.id === 'registry' ? shortRegistryKey(item.target) : item.hint
+                    return (
+                      <motion.button
+                        key={item.label}
+                        initial={{ opacity: 0, y: 8 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.22, delay: Math.min(si * 0.04 + i * 0.015, 0.4) }}
+                        onClick={() => run(action, item.target)}
+                        title={item.target && action !== 'steam' ? `${item.label}\n${item.target}` : item.label}
+                        className="group relative flex min-h-[112px] flex-col gap-2 overflow-hidden rounded-2xl border border-[color:var(--line)] bg-panel/50 p-3.5 text-left transition-all duration-200 hover:-translate-y-0.5 hover:border-[color:var(--accent)] hover:bg-panel-2/70"
+                      >
+                        <span
+                          className="absolute inset-x-0 top-0 h-px opacity-0 transition-opacity group-hover:opacity-100"
+                          style={{ background: 'linear-gradient(90deg, transparent, var(--accent), transparent)' }}
+                        />
+                        <div className="flex items-center gap-2.5">
+                          <span
+                            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg [&>svg]:h-4 [&>svg]:w-4"
+                            style={{ background: alpha(cat.accent, 0.14), color: cat.accent }}
+                          >
+                            {cat.icon}
+                          </span>
+                          <span className="min-w-0 flex-1 break-words text-sm font-semibold leading-snug text-ink">
+                            {labelOf(item)}
+                          </span>
+                        </div>
+                        {desc && <p className="line-clamp-3 text-xs leading-relaxed text-ink-dim">{desc}</p>}
+                        <div className="mt-auto flex items-center gap-2 pt-1">
+                          {(cat.showHint || cat.id === 'registry') && hint && (
+                            <span className="min-w-0 flex-1 truncate font-mono text-[10px] text-ink-dim/80">{hint}</span>
+                          )}
+                          <span
+                            className="ml-auto shrink-0 rounded-md px-1.5 py-0.5 text-[10px] font-semibold opacity-80 transition-opacity group-hover:opacity-100"
+                            style={{ background: alpha(cat.accent, 0.12), color: cat.accent }}
+                          >
+                            {t(openerLabelKey(action, item.target))} ↗
+                          </span>
+                        </div>
+                      </motion.button>
+                    )
+                  })}
+                </div>
+              </section>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Registry failure toast */}
@@ -263,12 +352,12 @@ export function Manual() {
             animate={{ opacity: 1, x: 0, y: 0 }}
             exit={{ opacity: 0, x: 40 }}
             transition={{ type: 'spring', stiffness: 300, damping: 26 }}
-            className="fixed bottom-4 right-4 z-[60] w-72 rounded-xl bg-panel border border-[color:var(--line-strong)] shadow-lg overflow-hidden"
+            className="fixed bottom-4 right-4 z-[60] w-72 overflow-hidden rounded-xl border border-[color:var(--line-strong)] bg-panel shadow-lg"
           >
-            <div className="p-3 flex items-start justify-between gap-2">
+            <div className="flex items-start justify-between gap-2 p-3">
               <p className="text-xs text-ink-dim">{registryError && t(registryError)}</p>
               <button onClick={() => setRegistryError(false)} aria-label={t('general.dismiss')} className="text-ink-dim hover:text-ink">
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                 </svg>
               </button>

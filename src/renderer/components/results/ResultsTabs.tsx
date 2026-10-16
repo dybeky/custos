@@ -20,7 +20,7 @@ export function ResultsTabs<K extends string>({
   onChange: (key: K) => void
 }) {
   return (
-    <div role="tablist" className="mb-5 flex gap-1 overflow-x-auto rounded-2xl border border-[color:var(--line)] bg-panel/40 p-1 backdrop-blur-xl">
+    <div role="tablist" className="mb-5 flex flex-wrap gap-1 rounded-2xl border border-[color:var(--line)] bg-panel/40 p-1 backdrop-blur-xl">
       {tabs.map((tab) => {
         const on = tab.key === active
         return (
@@ -29,7 +29,7 @@ export function ResultsTabs<K extends string>({
             role="tab"
             aria-selected={on}
             onClick={() => onChange(tab.key)}
-            className={`relative flex shrink-0 items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium transition-colors ${
+            className={`relative flex shrink-0 items-center gap-2 rounded-xl px-3 py-2 text-sm font-medium transition-colors ${
               on ? 'text-scan' : 'text-ink-dim hover:text-ink'
             }`}
           >
