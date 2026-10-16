@@ -108,13 +108,17 @@ const KnownHashesSchema = z.object({
 })
 
 /**
- * Flatten the per-game sections into one matcher configuration. Custos checks
- * a PC as a whole: a CS2 cheat found during an Unturned check is still a lead.
+ * Flatten the keywords into one matcher configuration: the shared list plus the
+ * checked game's own section, so a CS2 check uses the CS2 base and an Unturned
+ * check the Unturned one. With no game (or an unknown one) every section is
+ * used: a PC checked without a game is checked against everything.
  */
-export function flattenKeywords(k: z.input<typeof KeywordSettingsSchema>): KeywordSettings {
+export function flattenKeywords(k: z.input<typeof KeywordSettingsSchema>, game?: string | null): KeywordSettings {
   const patterns = [...k.patterns]
   const exactMatch = [...k.exactMatch]
-  for (const g of Object.values(k.games ?? {})) {
+  const sections = k.games ?? {}
+  const only = game && Object.hasOwn(sections, game) ? [sections[game]] : Object.values(sections)
+  for (const g of only) {
     patterns.push(...(g.patterns ?? []), ...(g.domains ?? []))
     exactMatch.push(...(g.exactMatch ?? []))
   }
@@ -187,7 +191,7 @@ export function resolveAuthConfig(fileBlock: AuthConfig, allowEnvOverrides = !ap
 
 class ConfigService {
   private config: AppConfig | null = null
-  private keywords: KeywordSettings | null = null
+  private keywords = new Map<string, KeywordSettings>()
   private knownHashes: string[] | null = null
   private authConfig: AuthConfig | null = null
 
@@ -218,8 +222,10 @@ class ConfigService {
     }
   }
 
-  loadKeywords(): KeywordSettings {
-    if (this.keywords) return this.keywords
+  loadKeywords(game?: string | null): KeywordSettings {
+    const cacheKey = game ?? ''
+    const cached = this.keywords.get(cacheKey)
+    if (cached) return cached
 
     try {
       const keywordsPath = join(this.getResourcePath(), 'keywords.json')
@@ -229,8 +235,9 @@ class ConfigService {
       // Validate with Zod
       const result = KeywordSettingsSchema.safeParse(parsed)
       if (result.success) {
-        this.keywords = flattenKeywords(result.data)
-        return this.keywords
+        const flat = flattenKeywords(result.data, game)
+        this.keywords.set(cacheKey, flat)
+        return flat
       } else {
         logger.error('Keywords validation failed:', result.error.format())
         return { patterns: [], exactMatch: [] }

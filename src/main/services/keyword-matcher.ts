@@ -76,7 +76,8 @@ export class KeywordMatcher {
       // letter ("aimbot2x") still do not match. Global, so findKeyword can
       // step past an ambiguous match that has no cheat context.
       this.compiledPattern = new RegExp(
-        `(?<![a-zA-Z0-9])(${escaped.join('|')})(?!\\d*[a-zA-Z])`,
+        // Longest first: "gamesense.pub" must win over a shorter "gamesense".
+        `(?<![a-zA-Z0-9])(${[...escaped].sort((a, b) => b.length - a.length).join('|')})(?!\\d*[a-zA-Z])`,
         'gi'
       )
     }
@@ -155,6 +156,9 @@ export class KeywordMatcher {
    * flagged it for.
    */
   findKeywordInFinding(text: string): string | null {
+    // A Steam launch option that switches protection off (CS2: -insecure).
+    const launch = /^\[Steam Launch Options\].* launch option (-[a-z_]+) /i.exec(text)
+    if (launch) return launch[1].toLowerCase()
     const whole = this.findKeyword(text)
     if (whole) return whole
     const parts = text

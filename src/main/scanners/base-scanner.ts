@@ -3,6 +3,7 @@ import type { Dirent } from 'fs'
 import { readdir, realpath } from 'fs/promises'
 import { join } from 'path'
 import { ScanResult, ScanProgress } from '../../shared/types'
+import type { GameId } from '../../shared/games'
 import { KeywordMatcher } from '../services/keyword-matcher'
 import { ScanSettings } from '../services/config-service'
 import { isWithin } from '../utils/path-safety'
@@ -19,6 +20,8 @@ export abstract class BaseScanner {
   protected scanSettings: ScanSettings
   protected excludedDirs: Set<string>
   protected cancelled = false
+  /** The game being checked, for the few scanners that read game-specific places. */
+  protected game: GameId | null = null
   /** How long one scan may take before it should stop and report what it has (see setTimeBudget). */
   private timeBudgetMs = Infinity
   private budgetEndsAt = Infinity
@@ -63,6 +66,10 @@ export abstract class BaseScanner {
 
   protected outOfTime(): boolean {
     return this.timeLeftMs() <= 0
+  }
+
+  setGame(game: GameId | null): void {
+    this.game = game
   }
 
   cancel(): void {

@@ -1,6 +1,7 @@
 import { KeywordMatcher } from '../services/keyword-matcher'
 import { configService, AppConfig, ScanSettings, RegistrySettings, type KeywordSettings } from '../services/config-service'
 import { ScannerInfo, ScannerName } from '../../shared/types'
+import type { GameId } from '../../shared/games'
 import initSqlJs from 'sql.js'
 
 import { BaseScanner } from './base-scanner'
@@ -69,6 +70,8 @@ export class ScannerFactory {
   private scanSettings: ScanSettings
   private registrySettings: RegistrySettings
   private scanners: Map<ScannerName, BaseScanner> = new Map()
+  /** The game being checked: picks its section of the keyword base. null = all games. */
+  private game: GameId | null = null
 
   constructor() {
     this.config = configService.loadConfig()
@@ -106,6 +109,14 @@ export class ScannerFactory {
     this.scanners.set('recyclebin', new RecycleBinScanner(this.keywordMatcher, this.scanSettings))
     this.scanners.set('usb', new UsbScanner(this.keywordMatcher, this.scanSettings))
     this.scanners.set('usnjournal', new UsnJournalScanner(this.keywordMatcher, this.scanSettings))
+    for (const scanner of this.scanners.values()) scanner.setGame(this.game)
+  }
+
+  /** Swap in the keyword base for the current game (and any site additions). */
+  private rebuild(): void {
+    this.keywordMatcher = new KeywordMatcher(mergeKeywords(configService.loadKeywords(this.game), this.extra))
+    this.scanners.clear()
+    this.initializeScanners()
   }
 
   getScanner(name: ScannerName): BaseScanner | undefined {
@@ -146,13 +157,15 @@ export class ScannerFactory {
   }
 
   /** Called before every scan: swaps in queued site signatures, then resets scanners. */
-  resetAll(): void {
-    if (this.pendingExtra) {
-      this.extra = this.pendingExtra
-      this.pendingExtra = null
-      this.keywordMatcher = new KeywordMatcher(mergeKeywords(configService.loadKeywords(), this.extra))
-      this.scanners.clear()
-      this.initializeScanners()
+  resetAll(game: GameId | null = null): void {
+    const gameChanged = game !== this.game
+    if (this.pendingExtra || gameChanged) {
+      if (this.pendingExtra) {
+        this.extra = this.pendingExtra
+        this.pendingExtra = null
+      }
+      this.game = game
+      this.rebuild()
     }
     for (const scanner of this.scanners.values()) {
       scanner.reset()

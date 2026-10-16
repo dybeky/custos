@@ -5,6 +5,7 @@ import { Button } from '../components/ui/Button'
 import { InfoTip } from '../components/ui/InfoTip'
 import type { LiveFinding, LiveScanStatus } from '../../shared/types'
 import { useGameStore } from '../stores/game-store'
+import { GAMES } from '../../shared/games'
 import { detectorName, detectorHelp } from '../utils/feature-i18n'
 import { ipcErrorMessage } from '../utils/ipc-error'
 
@@ -289,6 +290,24 @@ export function LiveScan() {
   const incomplete =
     scanError !== null ||
     findings.some(f => f.detectorId === 'orchestrator' || f.i18nKey === 'detectorError')
+
+  // Live Scan reads Unity/Mono memory: it does not apply to every game.
+  if (selectedGame && !GAMES[selectedGame].liveScan) {
+    return (
+      <div className="flex-1 p-6 overflow-y-auto">
+        <div className="max-w-2xl mx-auto">
+          <Card>
+            <CardContent className="text-center py-10">
+              <p className="text-base font-semibold text-ink font-display">
+                {t('liveScan.unsupportedTitle', { game: GAMES[selectedGame].name })}
+              </p>
+              <p className="mt-2 text-sm text-ink-dim">{t('liveScan.unsupportedBody', { game: GAMES[selectedGame].name })}</p>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="flex-1 p-6 overflow-y-auto">

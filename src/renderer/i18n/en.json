@@ -279,7 +279,9 @@
     "scanIncomplete": "Scan incomplete — see the notes below",
     "scanFailed": "The live scan could not run",
     "noLiveThreats": "No live threats detected",
-    "noLiveThreatsDesc": "The process memory appears clean"
+    "noLiveThreatsDesc": "The process memory appears clean",
+    "unsupportedTitle": "Live Scan is not available for {{game}}",
+    "unsupportedBody": "Live Scan reads the memory of Unity and Mono games such as Unturned. {{game}} is built differently, and attaching to a protected game from outside can look like tampering. All the other checks work as usual."
   },
   "features": {
     "appdata": {
