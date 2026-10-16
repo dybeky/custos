@@ -69,6 +69,11 @@ const INNOCENT = [
   'https://en.wikipedia.org/wiki/Midnight_(disambiguation)',
   'https://www.spiegel.de/wissenschaft',
   'https://github.com/microsoft/vscode',
+  'https://unturned-servers.net/blog/458/unturneds-source-code-released/',
+  'https://unturned.wiki.gg/wiki/Valve_Anti-Cheat',
+  'https://github.com/RocketModFix/RocketModFix',
+  `${U}Downloads\\Unturned Server Manager.zip`,
+  `${U}Documents\\Unturned Server\\Rocket\\Plugins\\ZaupShop.dll`,
   'https://discord.com/channels/1/2',
   'https://cheatsheetseries.owasp.org/',
   'https://www.google.com/search?q=how+to+report+a+cheater',
@@ -103,6 +108,14 @@ const CHEATS = [
   `${U}Downloads\\Medusa Hack v3.exe`,
   'https://www.unknowncheats.me/forum/unturned',
   'https://www.mpgh.net/forum/',
+  // Unturned cheats named in public source repositories
+  `${U}Downloads\\MSZ-Reborn.zip`,
+  `${U}Downloads\\CryEye 1.1\\CryEye.exe`,
+  `${U}Downloads\\UnturnedHelper2026.exe`,
+  `${U}Downloads\\Unturned-Tsunami-main.zip`,
+  `${U}Downloads\\Uranus Unturned Hack v3.rar`,
+  `${U}Downloads\\Unturned ESP.dll`,
+  `${U}Downloads\\Unturned_Spoofer.exe`,
   'C:\\Users\\Mason\\Downloads\\Aimbot.rar'
 ]
 

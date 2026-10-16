@@ -27,6 +27,7 @@ Keep each entry to one line of about 100 characters so the dialog stays tidy.
 - A file-hash lead carries its full SHA-256, so a confirmed cheat file can be added to the base
 - Cheats are found under any spelling: "Cheat Engine", "cheat_engine", "spoofer_v2", "esp-setup"
 - Added SharpMonoInjector and kdmapper, and the unknowncheats.me and mpgh.net forums, to the base
+- Added Unturned cheats known from public source code: MSZ Reborn, CryEye, Tsunami, Uranus and others
 
 ## 3.1.1
 
