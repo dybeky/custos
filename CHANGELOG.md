@@ -17,7 +17,7 @@ Keep each entry to one line of about 100 characters so the dialog stays tidy.
 - The Dashboard shows the website's 3D Custos sword, turning inside its rings in the theme colour
 - Export HTML: a single printable report file you can open in a browser or send to a server owner
 - Settings → About links to Custos Pro, the invite-only generation that continues Custos
-- Counter-Strike 2: pick it in the game list; it has its own base of cheats, loaders, forums and private providers
+- Counter-Strike 2: pick it in the game list; its own base holds cheats, loaders, forums and 80+ provider sites
 - CS2 check reports the Steam launch options -insecure and -allow_third_party_software
 
 ### Fixes
