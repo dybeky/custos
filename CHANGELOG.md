@@ -18,9 +18,15 @@ Keep each entry to one line of about 100 characters so the dialog stays tidy.
 - Export HTML: a single printable report file you can open in a browser or send to a server owner
 - Settings → About links to Custos Pro, the invite-only generation that continues Custos
 
+### Fixes
+- A Windows account named like a cheat (e.g. C:\Users\Mason) is no longer reported as a lead
+- A scheduled task's state is shown in English, whatever language Windows is set to
+
 ### Improvements
 - Dates read day, month, year with a 24-hour clock instead of the American format
 - A file-hash lead carries its full SHA-256, so a confirmed cheat file can be added to the base
+- Cheats are found under any spelling: "Cheat Engine", "cheat_engine", "spoofer_v2", "esp-setup"
+- Added SharpMonoInjector and kdmapper, and the unknowncheats.me and mpgh.net forums, to the base
 
 ## 3.1.1
 

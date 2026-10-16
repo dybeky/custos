@@ -9,6 +9,18 @@ interface ScheduledTask {
   status: string
 }
 
+/**
+ * schtasks prints the state in the PC's language ("Bereit", "Готово"). Report
+ * it in the report's language, or leave it out when it is not one we know.
+ */
+export function taskState(raw: string): string {
+  const s = raw.trim().toLowerCase()
+  if (/^(ready|bereit|готово|prêt|listo|pronto)$/.test(s)) return 'Ready'
+  if (/^(running|wird ausgeführt|выполняется|en cours d.exécution|en ejecución)$/.test(s)) return 'Running'
+  if (/^(disabled|deaktiviert|отключено|désactivé|deshabilitado)$/.test(s)) return 'Disabled'
+  return ''
+}
+
 export class ScheduledTasksScanner extends BaseScanner {
   readonly name = 'Scheduled Tasks Scanner'
   readonly description = 'Scanning Windows Task Scheduler for suspicious persistence entries'
@@ -91,7 +103,8 @@ export class ScheduledTasksScanner extends BaseScanner {
           if (keyword) entry += `{${keyword}} `
           entry += task.taskName
           if (task.taskToRun) entry += ` | CMD: ${task.taskToRun}`
-          if (task.status) entry += ` | Status: ${task.status}`
+          const state = taskState(task.status)
+          if (state) entry += ` | Status: ${state}`
 
           results.push(entry)
         }
