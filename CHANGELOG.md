@@ -19,10 +19,13 @@ Keep each entry to one line of about 100 characters so the dialog stays tidy.
 - Settings → About links to Custos Pro, the invite-only generation that continues Custos
 - Counter-Strike 2: pick it in the game list; its own base holds cheats, loaders, forums and 80+ provider sites
 - CS2 check reports the Steam launch options -insecure and -allow_third_party_software
+- History tab: every check on the site, who checked whom, opens in the app (staff)
+- Steam bans: each Steam account found on the PC shows its VAC and game bans
 
 ### Fixes
 - A Windows account named like a cheat (e.g. C:\Users\Mason) is no longer reported as a lead
 - A scheduled task's state is shown in English, whatever language Windows is set to
+- The "Upload to site" button is gone: every check is saved to the site automatically
 
 ### Improvements
 - Dates read day, month, year with a 24-hour clock instead of the American format

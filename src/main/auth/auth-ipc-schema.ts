@@ -48,3 +48,14 @@ export const SitePreviousPayloadSchema = z.object({
   player: z.string().max(200),
   before: z.string().datetime({ offset: true })
 })
+
+/** site:checks — a page of the site's checks, optionally filtered by player. */
+export const SiteChecksPayloadSchema = z.object({
+  page: z.number().int().min(1).max(10_000),
+  q: z.string().max(80).default('')
+}).strict()
+
+/** site:check — one check of the site, by id. */
+export const SiteCheckPayloadSchema = z.object({
+  id: z.string().regex(/^[A-Za-z0-9_-]{1,64}$/)
+}).strict()

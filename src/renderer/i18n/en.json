@@ -696,7 +696,7 @@
   },
   "history": {
     "title": "Check history",
-    "subtitle": "Checks from this session. Custos keeps nothing on this PC after it closes — every check is saved to the site automatically, under the player. Re-checks of the same player are compared automatically.",
+    "subtitle": "Every check is saved to the site automatically, under the player. Here you see all checks by every checker; this session's own checks are on the other tab.",
     "search": "Search by player…",
     "empty": "No checks in this session yet. This list is cleared when Custos closes — earlier checks are on the site, under the player.",
     "noMatches": "No checks match this player.",
@@ -708,7 +708,21 @@
     "confirmDelete": "Delete",
     "cancel": "Cancel",
     "viewing": "Viewing a saved check from {{when}} — read-only.",
-    "back": "Back to history"
+    "back": "Back to history",
+    "tab": {
+      "site": "All checks",
+      "session": "This session"
+    },
+    "siteEmpty": "No checks on the site yet.",
+    "siteSignIn": "Sign in as staff to see every check on the site. This session's own checks are on the other tab.",
+    "siteNoRight": "Your role does not allow viewing other checkers' checks. This session's own checks are on the other tab.",
+    "checkedBy": "checked by {{name}}",
+    "retry": "Try again",
+    "prev": "Previous",
+    "next": "Next",
+    "pageOf": "Page {{page}} of {{pages}}",
+    "viewingSite": "Viewing a check from the site, {{when}}, checked by {{name}} — read-only.",
+    "backSite": "Back to history"
   },
   "recheck": {
     "title": "Compared to the previous check of this player",
@@ -771,8 +785,6 @@
   },
   "site": {
     "title": "Site",
-    "upload": "Upload to site",
-    "reupload": "Upload again",
     "uploading": "Saving to the site…",
     "uploadedIntact": "Saved to the site — integrity verified",
     "uploadedUnverified": "Saved to the site — integrity could not be verified",

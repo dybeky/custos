@@ -32,30 +32,37 @@ beforeEach(() => {
 })
 
 describe('SitePanel', () => {
-  it('lets a signed-out checker send the check, without the staff-only history', () => {
+  it('has no manual upload button: checks are saved to the site on their own', () => {
     useAuthStore.setState({ status: 'anon', capabilities: [], updateRequired: undefined } as any)
     render(<SitePanel />)
-    expect(screen.getByText('site.upload')).toBeTruthy()
+    expect(screen.queryByText('site.upload')).toBeNull()
+    expect(screen.queryByText('site.reupload')).toBeNull()
     expect(screen.queryByText('site.playerHistory')).toBeNull()
   })
 
-  it('uploads the check with its case details and offers to open it', async () => {
+  it('shows how the automatic save went', () => {
     useAuthStore.setState({ status: 'authed', capabilities: ['upload_reports'], updateRequired: undefined } as any)
+    useSiteSync.setState({ reportId: 'scan_1', uploading: false, result: { ok: true, url: 'https://97437.dev/admin/reports/r1', hashVerified: true } })
     render(<SitePanel />)
-    fireEvent.click(screen.getByText('site.upload'))
-    expect(await screen.findByText('site.uploadedIntact')).toBeTruthy()
-    expect(api.uploadCheckToSite).toHaveBeenCalledWith('scan_1', 'Bob', 'n', '')
+    expect(screen.getByText('site.uploadedIntact')).toBeTruthy()
     // Opening it on the site, like the player's history, needs the view right.
     expect(screen.queryByText('site.openCheck')).toBeNull()
     expect(screen.queryByText('site.playerHistory')).toBeNull()
   })
 
-  it('offers to open an uploaded check to staff who can view checks', async () => {
+  it('offers to open the saved check to staff who can view checks', () => {
     useAuthStore.setState({ status: 'authed', capabilities: ['view_reports'], updateRequired: undefined } as any)
+    useSiteSync.setState({ reportId: 'scan_1', uploading: false, result: { ok: true, url: 'https://97437.dev/admin/reports/r1', hashVerified: true } })
     render(<SitePanel />)
-    fireEvent.click(screen.getByText('site.upload'))
-    fireEvent.click(await screen.findByText('site.openCheck'))
+    fireEvent.click(screen.getByText('site.openCheck'))
     expect(api.openOnSite).toHaveBeenCalledWith({ checkId: 'r1' })
+  })
+
+  it('shows a failed save', () => {
+    useAuthStore.setState({ status: 'anon', capabilities: [], updateRequired: undefined } as any)
+    useSiteSync.setState({ reportId: 'scan_1', uploading: false, result: { ok: false, error: 'network' } })
+    render(<SitePanel />)
+    expect(screen.getByText('site.errors.network')).toBeTruthy()
   })
 
   it("lists the player's other checks on the site", async () => {

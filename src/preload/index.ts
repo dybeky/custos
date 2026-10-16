@@ -1,6 +1,6 @@
 import { contextBridge, ipcRenderer } from 'electron'
 import { IPC_CHANNELS, ScanResult, ScanProgress, UserSettings, ScannerInfo, OsInfo, ScannerCapability, ScannerName, LiveFinding, LiveScanStatus, ScanReport } from '../shared/types'
-import type { SteamBansResult } from '../shared/types'
+import type { SteamBansResult, SiteChecksPage, SiteCheckOpened } from '../shared/types'
 import type { ChangelogGroup, UpdateInfo, UpdateProgress, AuthState, AuthProvider, SuppressionState, TriageSettings, SiteUploadResult, SitePlayerResult, NewsFeed, SitePreviousResult } from '../shared/types'
 import type { GameId } from '../shared/games'
 import type { HistoryEntry, HistorySummary } from '../shared/history'
@@ -263,6 +263,13 @@ const api = {
   /** The check of this player just before `before` (ISO time), with its evidence — for "seen before". */
   getSitePreviousCheck: (player: string, before: string): Promise<SitePreviousResult> =>
     ipcRenderer.invoke(IPC_CHANNELS.SITE_PREVIOUS_CHECK, { player, before }),
+
+  /** A page of every check on the site (all checkers), optionally filtered by player — staff only. */
+  getSiteChecks: (page: number, q: string): Promise<SiteChecksPage> =>
+    ipcRenderer.invoke(IPC_CHANNELS.SITE_CHECKS, { page, q }),
+
+  /** One check from the site with its full report, to open in the app — staff only. */
+  getSiteCheck: (id: string): Promise<SiteCheckOpened> => ipcRenderer.invoke(IPC_CHANNELS.SITE_CHECK, { id }),
 
   /** Open a site check (`{ checkId }`) or player card (`{ player }`); main builds the URL. */
   openOnSite: (target: { checkId: string } | { player: string }): Promise<void> =>

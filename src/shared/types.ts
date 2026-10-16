@@ -200,6 +200,28 @@ export interface SitePlayerResult {
   error?: string
 }
 
+/** One page of every check on the site (all checkers), newest first. */
+export interface SiteChecksPage {
+  ok: boolean
+  checks?: Array<SiteCheck & { anonymous: boolean }>
+  page?: number
+  pageSize?: number
+  total?: number
+  error?: string
+}
+
+/** One check opened from the site: its full report and the case text. */
+export interface SiteCheckOpened {
+  ok: boolean
+  /** Who sent it, as the site shows it. */
+  uploader?: string | null
+  anonymous?: boolean
+  hashVerified?: boolean
+  case?: { player: string; notes: string }
+  report?: ScanReport
+  error?: string
+}
+
 
 // Cross-platform OS info for renderer
 export type OsPlatform = 'windows' | 'macos' | 'linux' | 'unknown'
@@ -415,6 +437,8 @@ export const IPC_CHANNELS = {
   SITE_UPLOAD_CHECK: 'site:upload-check',
   SITE_PLAYER_CHECKS: 'site:player-checks',
   SITE_PREVIOUS_CHECK: 'site:previous-check',
+  SITE_CHECKS: 'site:checks',
+  SITE_CHECK: 'site:check',
   STEAM_BANS: 'steam:bans',
   SITE_OPEN: 'site:open',
 

@@ -3,6 +3,7 @@ import { ScanResult, ScanProgress, ScannerInfo, ScanReport, SitePrevious } from 
 import type { GameId } from '../../shared/games'
 import { evidenceFindings } from '../utils/report-view'
 import { ipcErrorMessage } from '../utils/ipc-error'
+import { resultsFromReport } from '../utils/site-check'
 import { diffReports, findPrevious, scanPlayerLabel, type HistorySummary, type ReportDiff } from '../../shared/history'
 
 export type ScanStatus = 'idle' | 'scanning' | 'completed' | 'error'
@@ -46,6 +47,10 @@ interface ScanState {
   /** Recompute `previous` for the current report + player. */
   refreshPrevious: () => Promise<void>
   openHistory: (id: string) => Promise<boolean>
+  /** Who sent the check on screen when it was opened from the site's list (read-only), else null. */
+  siteOrigin: { uploader: string | null; anonymous: boolean; hashVerified: boolean } | null
+  /** Open a check from the site (its report arrives from the site); false if it can't be opened. */
+  openSiteCheck: (id: string) => Promise<{ ok: boolean; error?: string }>
   deleteHistory: (id: string) => Promise<void>
 
   // Actions
@@ -162,6 +167,7 @@ export const useScanStore = create<ScanState>((set, get) => ({
   previous: null,
   siteSeen: null,
   viewingHistory: false,
+  siteOrigin: null,
 
   loadHistory: async () => {
     try {
@@ -228,10 +234,35 @@ export const useScanStore = create<ScanState>((set, get) => ({
       dismissedIds: [],
       caseInfo: { ...entry.case },
       viewingHistory: true,
+      siteOrigin: null,
       previous: null
     })
     void get().refreshPrevious()
     return true
+  },
+
+  openSiteCheck: async (id) => {
+    if (get().status === 'scanning') return { ok: false, error: 'busy' }
+    const res = await window.electronAPI.getSiteCheck(id).catch(() => null)
+    if (!res?.ok || !res.report) return { ok: false, error: res?.error ?? 'failed' }
+    void flushCaseSync(get, set)
+    const results = resultsFromReport(res.report)
+    set({
+      status: 'completed',
+      progress: null,
+      error: null,
+      results,
+      ...computeDerivedValues(results),
+      report: res.report,
+      _evidenceCount: evidenceFindings(res.report).length,
+      dismissedIds: [],
+      caseInfo: { player: res.case?.player ?? '', notes: res.case?.notes ?? '' },
+      viewingHistory: true,
+      siteOrigin: { uploader: res.uploader ?? null, anonymous: !!res.anonymous, hashVerified: !!res.hashVerified },
+      previous: null,
+      siteSeen: null
+    })
+    return { ok: true }
   },
 
   deleteHistory: async (id) => {
@@ -287,7 +318,8 @@ export const useScanStore = create<ScanState>((set, get) => ({
     caseInfo: { player: '', notes: '' },
     previous: null,
     siteSeen: null,
-    viewingHistory: false
+    viewingHistory: false,
+    siteOrigin: null
   }),
 
   startScan: async (gameId) => {

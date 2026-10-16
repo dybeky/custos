@@ -4,7 +4,7 @@ import { parseCallback } from './callback-parser'
 import { UpdateRequiredError, type AuthClient, type DevicePollResult, type UploadCase } from './auth-client'
 import type { TokenStore } from './token-store'
 import type { AuthConfig } from '../services/config-service'
-import type { AuthState, AuthProvider, PublicUser, DeviceProgress, SiteUploadResult, SitePlayerResult, SitePreviousResult, ScanReport } from '../../shared/types'
+import type { AuthState, AuthProvider, PublicUser, DeviceProgress, SiteUploadResult, SitePlayerResult, SitePreviousResult, SiteChecksPage, SiteCheckOpened, ScanReport } from '../../shared/types'
 
 const PENDING_TIMEOUT_MS = 90_000
 const DEVICE_MAX_DURATION_MS = 5 * 60_000
@@ -316,6 +316,18 @@ export class AuthService {
   async playerChecks(key: string): Promise<SitePlayerResult> {
     const res = await this.withToken((t) => this.client.getPlayerChecks(t, key))
     return res.ok ? { ok: true, checks: res.value } : { ok: false, error: res.error }
+  }
+
+  /** Every check on the site, a page at a time (staff with the right only). */
+  async siteChecks(page: number, q: string): Promise<SiteChecksPage> {
+    const res = await this.withToken((t) => this.client.listChecks(t, { page, q }))
+    return res.ok ? { ok: true, ...res.value } : { ok: false, error: res.error }
+  }
+
+  /** One check from the site, to open in the app (staff with the right only). */
+  async siteCheck(id: string): Promise<SiteCheckOpened> {
+    const res = await this.withToken((t) => this.client.getCheck(t, id))
+    return res.ok ? { ok: true, ...res.value, report: res.value.report as unknown as ScanReport } : { ok: false, error: res.error }
   }
 
   /** The check of one player just before `before` (staff with the right only). */

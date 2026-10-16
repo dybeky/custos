@@ -1,0 +1,32 @@
+import { describe, it, expect } from 'vitest'
+import type { ScanReport } from '../../shared/types'
+import { resultsFromReport } from './site-check'
+
+const report = {
+  id: 'r1',
+  meta: { scannedAt: '2026-09-01T10:00:00.000Z' },
+  findings: [
+    { scannerId: 'steam', value: 'a' },
+    { scannerId: 'steam', value: 'b' },
+    { scannerId: 'prefetch', value: 'c' }
+  ],
+  scanners: [
+    { id: 'steam', name: 'Steam', success: true, durationMs: 120, count: 2 },
+    { id: 'prefetch', name: 'Prefetch', success: true, durationMs: 5, count: 1 },
+    { id: 'browser', name: 'Browser', success: false, error: 'locked', partial: 'half', durationMs: 9, count: 0 }
+  ]
+} as unknown as ScanReport
+
+describe('resultsFromReport', () => {
+  it('groups the findings under their scanner and keeps its outcome', () => {
+    const r = resultsFromReport(report)
+    expect(r.map((x) => x.scannerName)).toEqual(['Steam', 'Prefetch', 'Browser'])
+    expect(r[0]).toMatchObject({ findings: ['a', 'b'], hasFindings: true, success: true, duration: 120, count: 2 })
+    expect(r[1].findings).toEqual(['c'])
+    expect(r[2]).toMatchObject({ success: false, error: 'locked', partial: 'half', findings: [], hasFindings: false })
+  })
+
+  it('handles a report with no scanners', () => {
+    expect(resultsFromReport({ ...report, scanners: [] } as unknown as ScanReport)).toEqual([])
+  })
+})

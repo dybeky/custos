@@ -19,7 +19,8 @@ export function SitePanel() {
   const { t, i18n } = useTranslation()
   const { status, capabilities, updateRequired } = useAuthStore()
   const { report, caseInfo } = useScanStore()
-  const { reportId: syncedId, uploading: syncing, result, upload: doUpload } = useSiteSync()
+  const { reportId: syncedId, uploading: syncing, result } = useSiteSync()
+  const fromSite = useScanStore((s) => s.siteOrigin !== null)
   const [checks, setChecks] = useState<SiteCheck[] | null>(null)
   const [checksError, setChecksError] = useState('')
   const [loadingChecks, setLoadingChecks] = useState(false)
@@ -63,24 +64,24 @@ export function SitePanel() {
         <p className="mt-2 text-xs text-amber">{t('site.updateRequired', { version: updateRequired })}</p>
       ) : (
         <>
-          <div className="mt-2 flex flex-wrap items-center gap-2">
-            <button onClick={() => void doUpload()} disabled={uploading} className={`${BTN} bg-scan/15 text-scan hover:bg-scan/25`}>
-              {uploading ? t('site.uploading') : upload?.ok ? t('site.reupload') : t('site.upload')}
-            </button>
-            {upload?.ok && (
-              <>
-                <span className={`text-xs ${upload.hashVerified ? 'text-scan' : 'text-amber'}`}>
-                  {upload.hashVerified ? t('site.uploadedIntact') : t('site.uploadedUnverified')}
-                </span>
-                {uploadedId && canView && (
-                  <button onClick={() => void window.electronAPI.openOnSite({ checkId: uploadedId })} className="text-xs text-scan hover:underline">
-                    {t('site.openCheck')}
-                  </button>
-                )}
-              </>
-            )}
-            {upload && !upload.ok && <span className="text-xs text-alert">{errorText(upload.error)}</span>}
-          </div>
+          {!fromSite && (
+            <div className="mt-2 flex flex-wrap items-center gap-2">
+              {uploading && <span className="text-xs text-ink-dim">{t('site.uploading')}</span>}
+              {upload?.ok && (
+                <>
+                  <span className={`text-xs ${upload.hashVerified ? 'text-scan' : 'text-amber'}`}>
+                    {upload.hashVerified ? t('site.uploadedIntact') : t('site.uploadedUnverified')}
+                  </span>
+                  {uploadedId && canView && (
+                    <button onClick={() => void window.electronAPI.openOnSite({ checkId: uploadedId })} className="text-xs text-scan hover:underline">
+                      {t('site.openCheck')}
+                    </button>
+                  )}
+                </>
+              )}
+              {upload && !upload.ok && <span className="text-xs text-alert">{errorText(upload.error)}</span>}
+            </div>
+          )}
           {caseInfo.player.trim() && !canView && (
             <p className="mt-1.5 text-[11px] text-ink-dim">{t('site.seenBeforeSignIn')}</p>
           )}

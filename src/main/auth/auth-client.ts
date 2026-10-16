@@ -38,6 +38,38 @@ const PlayerChecksSchema = z.object({
     hashVerified: z.boolean()
   })).max(200)
 })
+const ChecksPageSchema = z.object({
+  page: z.number(),
+  pageSize: z.number(),
+  total: z.number(),
+  checks: z.array(z.object({
+    id: z.string().regex(/^[A-Za-z0-9_-]{1,64}$/),
+    scannedAt: z.string(),
+    band: z.enum(['clean', 'low', 'medium', 'high', 'critical']),
+    score: z.number(),
+    leads: z.number(),
+    gameId: z.string().nullable(),
+    player: z.string().nullable(),
+    uploader: z.string().nullable(),
+    hashVerified: z.boolean(),
+    anonymous: z.boolean()
+  })).max(200)
+})
+// The stored report is the app's own ScanReport; only what opening it relies on is checked.
+const OpenedCheckSchema = z.object({
+  uploader: z.string().nullable(),
+  anonymous: z.boolean(),
+  hashVerified: z.boolean(),
+  case: z.object({ player: z.string().max(200), notes: z.string().max(5000) }),
+  report: z.object({
+    id: z.string(),
+    meta: z.object({ scannedAt: z.string() }).passthrough(),
+    verdict: z.object({ score: z.number(), band: z.enum(['clean', 'low', 'medium', 'high', 'critical']) }).passthrough(),
+    findings: z.array(z.object({ scannerId: z.string(), value: z.string() }).passthrough()),
+    correlations: z.array(z.unknown()),
+    scanners: z.array(z.unknown())
+  }).passthrough()
+})
 const PreviousSchema = z.object({
   previous: z.object({
     id: z.string(),
@@ -294,6 +326,28 @@ export class AuthClient {
     const body = (await res.json().catch(() => ({}))) as { error?: string }
     if (!res.ok) throw new Error(body?.error ?? `player failed: ${res.status}`)
     return PlayerChecksSchema.parse(body).checks
+  }
+
+  /** A page of every check on the site, by every checker, newest first (staff only). */
+  async listChecks(token: string, opts: { page: number; q: string }): Promise<z.infer<typeof ChecksPageSchema>> {
+    const qs = new URLSearchParams({ page: String(opts.page) })
+    if (opts.q) qs.set('q', opts.q)
+    const res = await this.request(`/api/desktop/reports?${qs}`, { headers: { Authorization: `Bearer ${token}` } })
+    await checkUpdateRequired(res)
+    const body = (await res.json().catch(() => ({}))) as { error?: string }
+    if (!res.ok) throw new Error(body?.error ?? `checks failed: ${res.status}`)
+    return ChecksPageSchema.parse(body)
+  }
+
+  /** One check from the site with its full report (staff only). */
+  async getCheck(token: string, id: string): Promise<z.infer<typeof OpenedCheckSchema>> {
+    const res = await this.request(`/api/desktop/reports/${encodeURIComponent(id)}`, {
+      headers: { Authorization: `Bearer ${token}` }
+    })
+    await checkUpdateRequired(res)
+    const body = (await res.json().catch(() => ({}))) as { error?: string }
+    if (!res.ok) throw new Error(body?.error ?? `check failed: ${res.status}`)
+    return OpenedCheckSchema.parse(body)
   }
 
   /** The check of this player just before `before`, with its evidence (staff only). */
