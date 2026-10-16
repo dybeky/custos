@@ -36,7 +36,8 @@ export const WHATS_NEW_RU: Record<string, ChangelogGroup[]> = {
         'Даты читаются как день, месяц, год и 24-часовое время, а не в американском формате',
         'У находки по хэшу файла теперь полный SHA-256, поэтому подтверждённый чит можно добавить в базу',
         'Читы находятся при любом написании: «Cheat Engine», «cheat_engine», «spoofer_v2», «esp-setup»',
-        'В базу добавлены SharpMonoInjector, kdmapper и форумы unknowncheats.me и mpgh.net'
+        'В базу добавлены SharpMonoInjector, kdmapper и форумы unknowncheats.me и mpgh.net',
+        'В базу добавлены читы для Unturned, известные по открытому коду: MSZ Reborn, CryEye, Tsunami, Uranus и другие'
       )
     }
   ],
