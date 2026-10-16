@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { Card, CardContent } from '../components/ui/Card'
 import { Button } from '../components/ui/Button'
 import { CircularProgress } from '../components/ui/Progress'
+import { useSmoothProgress } from '../stores/smooth-progress'
 import { InfoTip } from '../components/ui/InfoTip'
 import { useScanStore, shownFindingCount } from '../stores/scan-store'
 import { useGameStore } from '../stores/game-store'
@@ -34,9 +35,11 @@ export function Scan() {
   const handleStartScan = () => startScan(selectedGame ?? undefined)
   const handleCancelScan = () => cancelScan()
 
-  const overallProgress = progress && scanners.length > 0
-    ? (results.length / scanners.length) * 100
-    : 0
+  // The ring and the percent glide (see smooth-progress) and stay on screen
+  // until they have filled up, so a fast scan never leaps from 0 to the end.
+  const smooth = useSmoothProgress()
+  const overallProgress = smooth.value
+  const showScanning = status === 'scanning' || smooth.active
 
   return (
     <div className="flex-1 p-6 overflow-y-auto">
@@ -46,12 +49,13 @@ export function Scan() {
           <CardContent className="text-center py-12">
             {/* Scan Status Icon */}
             <div className="relative w-32 h-32 mx-auto mb-6">
-              {status === 'scanning' ? (
+              {showScanning ? (
                 <CircularProgress
                   value={overallProgress}
                   size={128}
                   strokeWidth={6}
                   variant="default"
+                  instant
                 />
               ) : (
                 <div className={`w-full h-full rounded-full flex items-center justify-center ${
@@ -77,7 +81,7 @@ export function Scan() {
                 </div>
               )}
 
-              {status === 'scanning' && (
+              {showScanning && (
                 <div className="absolute inset-0 flex items-center justify-center">
                   <span className="text-2xl font-bold text-scan font-display">
                     {Math.round(overallProgress)}%
@@ -88,7 +92,7 @@ export function Scan() {
 
             {/* Status Text */}
             <h2 className="text-xl font-semibold text-ink font-display mb-2 inline-flex items-center gap-2">
-              {status === 'scanning'
+              {showScanning
                 ? t('scan.scanning')
                 : status === 'completed'
                 ? t('scan.scanComplete')
@@ -97,7 +101,7 @@ export function Scan() {
                 : t('scan.readyToScan')}
               <InfoTip title={t('scan.title')} text={t('help.scanPage')} />
             </h2>
-            {status === 'scanning' && progress ? (
+            {showScanning && progress ? (
               <ScanPathLine scanner={progress.scannerName} path={progress.currentPath} />
             ) : status === 'error' ? (
               <p className="text-alert text-sm mb-6 break-words">{error ?? t('scan.scanFailed')}</p>
@@ -123,7 +127,7 @@ export function Scan() {
         </Card>
 
         {/* Scanner Progress List - no animations */}
-        {status === 'scanning' && (
+        {showScanning && (
           <Card>
             <CardContent>
               <div className="space-y-3">

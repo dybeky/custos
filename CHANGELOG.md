@@ -29,6 +29,7 @@ Keep each entry to one line of about 100 characters so the dialog stays tidy.
 - The "Upload to site" button is gone: every check is saved to the site automatically
 
 ### Improvements
+- The scan's progress bar glides smoothly and never jumps, even when a scan is over in seconds
 - Dates read day, month, year with a 24-hour clock instead of the American format
 - A file-hash lead carries its full SHA-256, so a confirmed cheat file can be added to the base
 - Cheats are found under any spelling: "Cheat Engine", "cheat_engine", "spoofer_v2", "esp-setup"

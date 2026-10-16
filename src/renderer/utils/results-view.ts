@@ -28,6 +28,8 @@ export interface BandTone {
   text: string
   /** Stroke colour of the risk ring. */
   stroke: string
+  /** A soft glow in the band's colour for the ring (not the theme's accent). */
+  glow: string
   /** Soft background wash of the hero. */
   wash: string
   /** Solid badge (band chip). */
@@ -38,11 +40,11 @@ export function bandTone(band: VerdictBand): BandTone {
   switch (band) {
     case 'critical':
     case 'high':
-      return { text: 'text-alert', stroke: 'stroke-alert', wash: 'from-alert/[0.14]', badge: 'bg-alert/15 text-alert' }
+      return { text: 'text-alert', stroke: 'stroke-alert', glow: 'drop-shadow-[0_0_7px_rgb(var(--alert-rgb)/0.5)]', wash: 'from-alert/[0.14]', badge: 'bg-alert/15 text-alert' }
     case 'medium':
-      return { text: 'text-amber', stroke: 'stroke-amber', wash: 'from-amber/[0.12]', badge: 'bg-amber/15 text-amber' }
+      return { text: 'text-amber', stroke: 'stroke-amber', glow: 'drop-shadow-[0_0_7px_rgb(var(--amber-rgb)/0.5)]', wash: 'from-amber/[0.12]', badge: 'bg-amber/15 text-amber' }
     default:
-      return { text: 'text-scan', stroke: 'stroke-scan', wash: 'from-scan/[0.10]', badge: 'bg-scan/10 text-scan' }
+      return { text: 'text-scan', stroke: 'stroke-scan', glow: 'drop-shadow-[0_0_7px_rgb(var(--scan-rgb)/0.45)]', wash: 'from-scan/[0.10]', badge: 'bg-scan/10 text-scan' }
   }
 }
 

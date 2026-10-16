@@ -76,6 +76,8 @@ interface CircularProgressProps {
   size?: number
   strokeWidth?: number
   variant?: 'default' | 'success' | 'warning' | 'danger'
+  /** The value already glides frame by frame: draw it as is, with no extra easing. */
+  instant?: boolean
 }
 
 const circularVariants = {
@@ -89,7 +91,8 @@ export function CircularProgress({
   value,
   size = 48,
   strokeWidth = 4,
-  variant = 'default'
+  variant = 'default',
+  instant = false
 }: CircularProgressProps) {
   const radius = (size - strokeWidth) / 2
   const circumference = radius * 2 * Math.PI
@@ -108,6 +111,18 @@ export function CircularProgress({
         cy={size / 2}
       />
       {/* Progress circle */}
+      {instant ? (
+        <circle
+          className={circularVariants[variant]}
+          fill="none"
+          strokeWidth={strokeWidth}
+          strokeLinecap="round"
+          r={radius}
+          cx={size / 2}
+          cy={size / 2}
+          style={{ strokeDasharray: circumference, strokeDashoffset: offset }}
+        />
+      ) : (
       <motion.circle
         className={cn('transition-all duration-300', circularVariants[variant])}
         fill="none"
@@ -122,6 +137,7 @@ export function CircularProgress({
           strokeDasharray: circumference
         }}
       />
+      )}
     </svg>
   )
 }

@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { AnimatePresence, motion } from 'framer-motion'
 import { useEffect, useState } from 'react'
 import { useScanStore, shownFindingCount } from '../../stores/scan-store'
+import { useSmoothProgress } from '../../stores/smooth-progress'
 import { CustosMark } from '../ui/CustosMark'
 import { playClick } from '../../utils/ui-sound'
 
@@ -150,7 +151,7 @@ export function Sidebar() {
   const { t } = useTranslation()
   const navigate = useNavigate()
   const { pathname } = useLocation()
-  const { status, results, scanners, _evidenceCount, _totalFindings } = useScanStore()
+  const { status, _evidenceCount, _totalFindings } = useScanStore()
   const [pinnedCollapsed, setPinnedCollapsed] = useState(readCollapsed)
   const [narrow, setNarrow] = useState(() => typeof window !== 'undefined' && window.innerWidth < AUTO_COLLAPSE_PX)
 
@@ -164,8 +165,10 @@ export function Sidebar() {
 
   const collapsed = pinnedCollapsed || narrow
   const totalFindings = shownFindingCount({ _evidenceCount, _totalFindings })
-  const scanning = status === 'scanning'
-  const progress = scanning && scanners.length > 0 ? Math.min(100, (results.length / scanners.length) * 100) : 0
+  const smooth = useSmoothProgress()
+  // Stays on until the bar has filled up, so a quick scan never jumps to the end.
+  const scanning = status === 'scanning' || smooth.active
+  const progress = scanning ? smooth.value : 0
 
   const toggle = () => {
     const next = !pinnedCollapsed
@@ -322,8 +325,7 @@ export function Sidebar() {
           <div className="mt-2 h-1 rounded-full bg-[color:var(--line)] overflow-hidden">
             <motion.div
               className="h-full rounded-full bg-gradient-to-r from-scan to-scan-2"
-              animate={{ width: scanning ? `${Math.max(4, progress)}%` : status === 'completed' ? '100%' : '0%' }}
-              transition={{ duration: 0.4, ease: 'easeOut' }}
+              style={{ width: scanning ? `${Math.max(3, progress)}%` : status === 'completed' ? '100%' : '0%' }}
             />
           </div>
         </button>
