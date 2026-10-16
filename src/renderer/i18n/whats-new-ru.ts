@@ -8,7 +8,7 @@ import type { ChangelogGroup } from '../../shared/types'
 const entries = (...texts: string[]) => texts.map((text) => ({ text, sha: '', date: '' }))
 
 export const WHATS_NEW_RU: Record<string, ChangelogGroup[]> = {
-  '3.3.0': [
+  '3.2.0': [
     {
       group: 'New',
       entries: entries(

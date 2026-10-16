@@ -5,7 +5,7 @@ shows it in the update dialog and under "What's new". Keep the `### New`,
 `### Fixes` and `### Improvements` headings — the app groups entries by them.
 Keep each entry to one line of about 100 characters so the dialog stays tidy.
 
-## Unreleased
+## 3.2.0
 
 ### New
 - Russian interface: switch the language in Settings; every screen, hint and scanner name is translated
