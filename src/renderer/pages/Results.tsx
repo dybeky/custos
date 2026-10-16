@@ -15,6 +15,7 @@ import { FindingRow } from '../components/report/FindingRow'
 import { CaseCard } from '../components/report/CaseCard'
 import { RecheckCard } from '../components/history/RecheckCard'
 import { SeenBeforeCard } from '../components/history/SeenBeforeCard'
+import { SteamBansCard } from '../components/SteamBansCard'
 import { SitePanel } from '../components/site/SitePanel'
 import { HistoryBanner } from '../components/history/HistoryBanner'
 import { useNavigate } from 'react-router-dom'
@@ -93,6 +94,7 @@ export function Results() {
             </CardContent>
           </Card>
         )}
+        <SteamBansCard />
         {siteSeen ? <SeenBeforeCard /> : <RecheckCard />}
         <SitePanel />
         {correlations.length > 0 && report && (

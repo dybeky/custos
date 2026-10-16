@@ -23,6 +23,8 @@ import { detectSteamPlayer } from './services/player-detect'
 import { HistoryStore } from './services/history-store'
 import { NewsService } from './services/news-service'
 import { reportCrash } from './services/crash-reporter'
+import { SteamBansService } from './services/steam-bans-service'
+import type { SteamBansResult } from '../shared/types'
 import { scannerIdFromDisplayName } from '../shared/scanners-meta'
 import { configService } from './services/config-service'
 import { COLOR_THEMES, DEFAULT_THEME, isColorTheme } from '../shared/themes'
@@ -157,6 +159,15 @@ export function setupIpcHandlers(mainWindow: BrowserWindow): void {
     appVersion: app.getVersion()
   })
   ipcMain.handle(IPC_CHANNELS.NEWS_GET, (): Promise<NewsFeed> => news.get())
+
+  // VAC and game bans of the Steam accounts on the checked PC (asked from the site).
+  const steamBans = new SteamBansService({ baseUrl: configService.loadAuthConfig().webBaseUrl })
+  const SteamIdsSchema = z.array(z.string().regex(/^\d{17}$/)).max(10)
+  ipcMain.handle(IPC_CHANNELS.STEAM_BANS, async (_event, ids: unknown): Promise<SteamBansResult> => {
+    const parsed = SteamIdsSchema.safeParse(ids)
+    if (!parsed.success) return { ok: false, exact: false, bans: [] }
+    return steamBans.get(parsed.data)
+  })
 
   // Errors from the window (error screen, window.onerror): validated, then sent like any other.
   const CrashPayloadSchema = z.object({

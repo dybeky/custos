@@ -143,6 +143,25 @@ export interface SiteCheck {
   hashVerified: boolean
 }
 
+/** Bans of one Steam account, as Steam reports them (never which game). */
+export interface SteamBanInfo {
+  steamId: string
+  /** null = the site only knows banned or not (it has no Steam key). */
+  vacBans: number | null
+  gameBans: number | null
+  daysSinceLastBan: number | null
+  vacBanned: boolean
+  communityBanned: boolean | null
+  economyBan: string | null
+}
+
+export interface SteamBansResult {
+  ok: boolean
+  /** False when only "VAC banned or not" is known, without counts. */
+  exact: boolean
+  bans: SteamBanInfo[]
+}
+
 /** The evidence of an earlier check, as the site sends it for a comparison. */
 export interface SitePreviousFinding {
   id: string
@@ -396,6 +415,7 @@ export const IPC_CHANNELS = {
   SITE_UPLOAD_CHECK: 'site:upload-check',
   SITE_PLAYER_CHECKS: 'site:player-checks',
   SITE_PREVIOUS_CHECK: 'site:previous-check',
+  STEAM_BANS: 'steam:bans',
   SITE_OPEN: 'site:open',
 
   // Signatures downloaded from the site

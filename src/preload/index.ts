@@ -1,5 +1,6 @@
 import { contextBridge, ipcRenderer } from 'electron'
 import { IPC_CHANNELS, ScanResult, ScanProgress, UserSettings, ScannerInfo, OsInfo, ScannerCapability, ScannerName, LiveFinding, LiveScanStatus, ScanReport } from '../shared/types'
+import type { SteamBansResult } from '../shared/types'
 import type { ChangelogGroup, UpdateInfo, UpdateProgress, AuthState, AuthProvider, SuppressionState, TriageSettings, SiteUploadResult, SitePlayerResult, NewsFeed, SitePreviousResult } from '../shared/types'
 import type { GameId } from '../shared/games'
 import type { HistoryEntry, HistorySummary } from '../shared/history'
@@ -266,6 +267,9 @@ const api = {
   /** Open a site check (`{ checkId }`) or player card (`{ player }`); main builds the URL. */
   openOnSite: (target: { checkId: string } | { player: string }): Promise<void> =>
     ipcRenderer.invoke(IPC_CHANNELS.SITE_OPEN, target),
+
+  /** VAC and game bans of Steam accounts (SteamID64), asked from the site. */
+  getSteamBans: (ids: string[]): Promise<SteamBansResult> => ipcRenderer.invoke(IPC_CHANNELS.STEAM_BANS, ids),
 
   /** An error shown by the window, sent to the site so it can be fixed (see crash-reporter). */
   reportError: (payload: { message: string; stack?: string }): void => {

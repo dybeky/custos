@@ -801,5 +801,23 @@
   },
   "brand": {
     "tagline": "anti-cheat"
+  },
+  "steamBans": {
+    "title": "Steam bans",
+    "checking": "Checking the Steam accounts…",
+    "failed": "Could not check Steam bans (the site did not answer).",
+    "hint": "Steam shows how many bans an account has and how long ago the last one was, but not which game it was for.",
+    "approx": "Right now only whether an account has a VAC ban is known, not how many.",
+    "noData": "no data",
+    "clean": "No bans",
+    "vacBanned": "VAC ban on record",
+    "vac_one": "{{count}} VAC ban",
+    "vac_other": "{{count}} VAC bans",
+    "game_one": "{{count}} game ban",
+    "game_other": "{{count}} game bans",
+    "lastBan_one": "last ban {{count}} day ago",
+    "lastBan_other": "last ban {{count}} days ago",
+    "community": "Community ban",
+    "trade": "Trade ban"
   }
 }
