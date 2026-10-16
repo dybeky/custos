@@ -30,6 +30,18 @@ function contextAround(text: string, index: number, length: number): string {
   return own === last ? own : `${own} ${last}`
 }
 
+/** Version, build or package words a renamed cheat tacks on: "spoofer_v2", "esp-setup". */
+const NAME_SUFFIX = /[-_ .]+(v?\d+([._]\d+)*|x64|x86|win64|win32|setup|installer|loader|crack(ed)?|free|new|final)$/
+
+/** A keyword is spelled with or without its separators: "cheat engine", "cheat-engine", "cheatengine". */
+const squash = (s: string): string => s.replace(/[-_ ]/g, '')
+
+/** Where the account name sits in `C:\Users\<name>`: a person's name, not a lead. */
+function profileSpan(textLower: string): [number, number] | null {
+  const m = /[a-z]:\\users\\([^\\/]+)/.exec(textLower)
+  return m ? [m.index + m[0].length - m[1].length, m.index + m[0].length] : null
+}
+
 export class KeywordMatcher {
   private patterns: string[]
   private patternsLower: string[]
@@ -51,10 +63,10 @@ export class KeywordMatcher {
     if (this.patternsLower.length > 0) {
       // Escape regex special characters in patterns
       const escaped = this.patternsLower.map(p =>
-        p.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+        p.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/[-_ ]+/g, '[-_ ]?')
       )
-      // Build pattern index map for findKeyword
-      escaped.forEach((p, i) => this.patternIndexMap.set(p, i))
+      // Build pattern index map for findKeyword, keyed without separators
+      this.patternsLower.forEach((p, i) => this.patternIndexMap.set(squash(p), i))
 
       // Word boundaries: a keyword must start after a non-alphanumeric char and
       // end before one — so "cheater" / "TitaniumBackup" do not match. A run of
@@ -111,14 +123,22 @@ export class KeywordMatcher {
     if (this.exactMatch.has(baseName)) {
       return baseName
     }
+    // "spoofer_v2.exe", "esp-setup.exe": the exact name plus a version or package word.
+    let stem = baseName
+    for (let i = 0; i < 3 && NAME_SUFFIX.test(stem); i++) {
+      stem = stem.replace(NAME_SUFFIX, '')
+      if (this.exactMatch.has(stem)) return stem
+    }
+    const profile = profileSpan(textLower)
 
     if (this.compiledPattern) {
       for (const match of textLower.matchAll(this.compiledPattern)) {
         const matchedLower = match[1]
+        // C:\Users\Mason\…: the account's name is not a cheat name.
+        if (profile && (match.index ?? 0) >= profile[0] && (match.index ?? 0) < profile[1]) continue
         if (!this.qualifies(matchedLower, textLower, baseName, match.index ?? 0)) continue
         // Use O(1) lookup with patternIndexMap instead of O(n) loop
-        const escapedMatch = matchedLower.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-        const index = this.patternIndexMap.get(escapedMatch)
+        const index = this.patternIndexMap.get(squash(matchedLower))
         return index !== undefined ? this.patterns[index] : match[1]
       }
     }
