@@ -8,6 +8,7 @@ import { AppConfig } from '../services/config-service'
 import { VdfParser } from '../services/vdf-parser'
 import { getAvailableDrives } from '../utils/drive-utils'
 import { findSteamRoot } from '../utils/steam-locator'
+import { launchOptionFindings } from './steam-launch-options'
 
 export class SteamScanner extends BaseScanner {
   readonly name = 'Steam Scanner'
@@ -99,6 +100,9 @@ export class SteamScanner extends BaseScanner {
         } catch {
           // Error parsing VDF file
         }
+
+        // Launch options that turn a game's protection off (CS2: -insecure)
+        results.push(...(await launchOptionFindings(steamPath, this.game)))
 
         // Scan Steam folder for suspicious files using configured depth
         const steamFindings = await this.scanFolder(

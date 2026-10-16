@@ -7,8 +7,15 @@ describe('games registry', () => {
     expect(GAMES.unturned.processNames).toContain('Unturned.exe')
   })
 
-  it('marks CS2 as not yet available (coming soon)', () => {
-    expect(GAMES.cs2.available).toBe(false)
+  it('marks CS2 as available, with its process and Steam app', () => {
+    expect(GAMES.cs2.available).toBe(true)
+    expect(GAMES.cs2.processNames).toContain('cs2.exe')
+    expect(GAMES.cs2.steamAppId).toBe(730)
+  })
+
+  it('offers Live Scan only for the Unity game', () => {
+    expect(GAMES.unturned.liveScan).toBe(true)
+    expect(GAMES.cs2.liveScan).toBe(false)
   })
 
   it('exposes a stable id list matching the record keys', () => {

@@ -122,6 +122,12 @@ export function Manual() {
       showHint: true,
       items: [
         { label: 'Unturned', hint: 'Steam\\steamapps\\common\\Unturned', target: 'Unturned', action: 'steam' },
+        {
+          label: 'Counter-Strike 2',
+          hint: 'Steam\\steamapps\\common\\Counter-Strike Global Offensive',
+          target: 'Counter-Strike Global Offensive',
+          action: 'steam'
+        },
         { label: 'Steam', hint: 'Steam', target: '', action: 'steam' }
       ]
     },

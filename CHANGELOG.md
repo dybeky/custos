@@ -17,6 +17,8 @@ Keep each entry to one line of about 100 characters so the dialog stays tidy.
 - The Dashboard shows the website's 3D Custos sword, turning inside its rings in the theme colour
 - Export HTML: a single printable report file you can open in a browser or send to a server owner
 - Settings → About links to Custos Pro, the invite-only generation that continues Custos
+- Counter-Strike 2: pick it in the game list; it has its own base of cheats, loaders and forums
+- CS2 check reports the Steam launch options -insecure and -allow_third_party_software
 
 ### Fixes
 - A Windows account named like a cheat (e.g. C:\Users\Mason) is no longer reported as a lead
@@ -28,6 +30,7 @@ Keep each entry to one line of about 100 characters so the dialog stays tidy.
 - Cheats are found under any spelling: "Cheat Engine", "cheat_engine", "spoofer_v2", "esp-setup"
 - Added SharpMonoInjector and kdmapper, and the unknowncheats.me and mpgh.net forums, to the base
 - Added Unturned cheats known from public source code: MSZ Reborn, CryEye, Tsunami, Uranus and others
+- A check uses the base of the chosen game (plus the shared list), so a CS2 name never flags an Unturned player
 
 ## 3.1.1
 

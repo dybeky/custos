@@ -194,7 +194,7 @@ export function setupIpcHandlers(mainWindow: BrowserWindow): void {
     }
 
     logger.info('Scan started', { scannerIds: scannerIds || 'all' })
-    scannerFactory.resetAll()
+    scannerFactory.resetAll(gameId ?? null)
     // The signatures this scan runs with: a site bundle that arrives mid-scan
     // only applies to the next one, so the version must not be read at the end.
     const signatureVersion = scannerFactory.getSignatureVersion()
