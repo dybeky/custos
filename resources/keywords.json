@@ -67,7 +67,8 @@
     "fatality",
     "thanking",
     "titanium",
-    "naim"
+    "naim",
+    "rift-7"
   ],
   "games": {
     "unturned": {
@@ -181,7 +182,21 @@
         "pcileech",
         "leechcore",
         "memprocfs",
-        "kmbox"
+        "kmbox",
+        "iniuria",
+        "anyx",
+        "satan-5",
+        "phantom-overlay",
+        "vapor-cheats",
+        "vredux",
+        "pellix",
+        "rift-7",
+        "420-cheats",
+        "clutch-solution",
+        "ekknod",
+        "ec-cs2",
+        "oxide-cs2",
+        "oxide-cheat"
       ],
       "exactMatch": [],
       "domains": [
@@ -205,7 +220,10 @@
         "fatality.win",
         "unknowncheats.me",
         "mpgh.net",
-        "iniquus.io"
+        "iniquus.io",
+        "invision.gg",
+        "fantasy.cat",
+        "novo.win"
       ]
     }
   }

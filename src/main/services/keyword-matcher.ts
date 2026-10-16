@@ -57,7 +57,7 @@ export class KeywordMatcher {
     this.exactMatch = new Set(
       (settings.exactMatch || []).map(e => e.toLowerCase())
     )
-    this.ambiguous = new Set((settings.ambiguous || []).map(e => e.toLowerCase()))
+    this.ambiguous = new Set((settings.ambiguous || []).map(e => squash(e.toLowerCase())))
 
     // Compile all patterns into a single regex for O(1) matching
     if (this.patternsLower.length > 0) {
@@ -110,7 +110,7 @@ export class KeywordMatcher {
    * in the file name: a folder named after the game being checked ("…\\Unturned\\Maps\\Midnight\\…") says nothing about the item.
    */
   private qualifies(keywordLower: string, textLower: string, baseName: string, index: number): boolean {
-    if (!this.ambiguous.has(keywordLower)) return true
+    if (!this.ambiguous.has(squash(keywordLower))) return true
     if (new RegExp(`^${keywordLower.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\d*$`).test(baseName)) return true
     return CHEAT_CONTEXT.test(contextAround(textLower, index, keywordLower.length))
   }
