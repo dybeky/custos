@@ -167,7 +167,51 @@
     "contextOnly": "Only system information — no cheat evidence",
     "contextItems": "{{count}} informational",
     "checkFailed": "Check did not complete",
-    "noCheckYet": "No check yet"
+    "noCheckYet": "No check yet",
+    "unnamedPlayer": "Player not named yet",
+    "tookSeconds": "took {{count}} s",
+    "severityMix": "Findings by severity",
+    "statLeads": "Leads",
+    "statKey": "Key evidence",
+    "statRecent": "Last 24 h",
+    "statScanners": "Scanners ran",
+    "export": "Export",
+    "exportHtmlHint": "One printable file for a browser or a server owner",
+    "exportTextHint": "Plain text report",
+    "exportJsonHint": "Machine-readable, with a SHA-256",
+    "copy": "Copy",
+    "copied": "Copied",
+    "searchEvidence": "Search paths, matches, scanners…",
+    "groupBy": "Group by",
+    "group": {
+      "severity": "Severity",
+      "scanner": "Scanner",
+      "flat": "List"
+    },
+    "showInfo": "Show information",
+    "showDismissed": "Dismissed ({{count}})",
+    "clearFilters": "Clear filters",
+    "noEvidence": "No findings to show.",
+    "noEvidenceMatch": "No findings match these filters.",
+    "scannerState": {
+      "failed": "Did not complete",
+      "partial": "Read only part",
+      "hit": "Evidence found",
+      "info": "System information only",
+      "clean": "Nothing found"
+    },
+    "goScan": "Start a scan",
+    "openHistory": "Open history",
+    "scanning": "Scan in progress…",
+    "topEvidence": "Most serious findings",
+    "seeAll": "See all {{count}}",
+    "tab": {
+      "overview": "Overview",
+      "evidence": "Evidence",
+      "scanners": "Scanners",
+      "timeline": "Timeline",
+      "case": "Case"
+    }
   },
   "header": {
     "allSystemsOk": "All systems OK",

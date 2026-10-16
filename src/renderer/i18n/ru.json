@@ -167,7 +167,51 @@
     "contextOnly": "Только сведения о системе — улик читов нет",
     "contextItems": "справочных: {{count}}",
     "checkFailed": "Проверка не завершилась",
-    "noCheckYet": "Проверок ещё не было"
+    "noCheckYet": "Проверок ещё не было",
+    "unnamedPlayer": "Игрок ещё не назван",
+    "tookSeconds": "заняло {{count}} с",
+    "severityMix": "Находки по серьёзности",
+    "statLeads": "Зацепки",
+    "statKey": "Ключевые улики",
+    "statRecent": "За 24 часа",
+    "statScanners": "Сканеров отработало",
+    "export": "Экспорт",
+    "exportHtmlHint": "Один печатный файл для браузера или владельца сервера",
+    "exportTextHint": "Отчёт простым текстом",
+    "exportJsonHint": "Для машин, с контрольной суммой SHA-256",
+    "copy": "Копировать",
+    "copied": "Скопировано",
+    "searchEvidence": "Поиск по путям, совпадениям, сканерам…",
+    "groupBy": "Группировать",
+    "group": {
+      "severity": "По серьёзности",
+      "scanner": "По сканеру",
+      "flat": "Списком"
+    },
+    "showInfo": "Показать справочное",
+    "showDismissed": "Отклонённые ({{count}})",
+    "clearFilters": "Сбросить фильтры",
+    "noEvidence": "Нечего показать.",
+    "noEvidenceMatch": "Под эти фильтры ничего не подходит.",
+    "scannerState": {
+      "failed": "Не завершился",
+      "partial": "Прочитал не всё",
+      "hit": "Есть улики",
+      "info": "Только сведения о системе",
+      "clean": "Ничего не найдено"
+    },
+    "goScan": "Начать сканирование",
+    "openHistory": "Открыть историю",
+    "scanning": "Идёт сканирование…",
+    "topEvidence": "Самые серьёзные находки",
+    "seeAll": "Показать все ({{count}})",
+    "tab": {
+      "overview": "Обзор",
+      "evidence": "Улики",
+      "scanners": "Сканеры",
+      "timeline": "Хронология",
+      "case": "Дело"
+    }
   },
   "header": {
     "allSystemsOk": "Всё в порядке",

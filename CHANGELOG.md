@@ -21,6 +21,7 @@ Keep each entry to one line of about 100 characters so the dialog stays tidy.
 - CS2 check reports the Steam launch options -insecure and -allow_third_party_software
 - History tab: every check on the site, who checked whom, opens in the app (staff)
 - Steam bans: each Steam account found on the PC shows its VAC and game bans
+- Results redesigned: risk ring, severity bar, tabs, searchable evidence list, scanner tiles
 
 ### Fixes
 - A Windows account named like a cheat (e.g. C:\Users\Mason) is no longer reported as a lead
