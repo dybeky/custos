@@ -53,7 +53,7 @@ export function ResultsHero(props: Props) {
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3 }}
-      className={`relative rounded-3xl bg-gradient-to-br ${tone.wash} via-panel/30 to-transparent p-6 mb-5 shadow-[inset_0_0_0_1px_rgb(var(--ink-rgb)/0.07)]`}
+      className={`relative rounded-2xl border border-[color:var(--line)] bg-panel/40 bg-gradient-to-br ${tone.wash} to-transparent p-6 mb-5`}
     >
       <div className="flex flex-wrap items-center gap-6">
         <RiskRing score={report.verdict.score} band={report.verdict.band} label={t('verdict.score')} />
