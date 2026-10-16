@@ -19,6 +19,6 @@ describe('authorship notices', () => {
     expect(read('electron-builder.yml')).toContain('dybeky')
     expect(read('src/renderer/pages/Settings.tsx')).toContain('<AboutCard />')
     expect(read('src/renderer/components/settings/AboutCard.tsx')).toContain('CREDITS.author')
-    expect(read('src/renderer/components/layout/LaunchSplash.tsx')).toContain('CREDITS.author')
+    expect(read('src/renderer/components/boot/LaunchSplash.tsx')).toContain('CREDITS.author')
   })
 })

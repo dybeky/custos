@@ -1,10 +1,11 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { HashRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { Header } from './components/layout/Header'
 import { Sidebar } from './components/layout/Sidebar'
 import { AnimatedBackground } from './components/layout/AnimatedBackground'
-import { LaunchSplash, SPLASH_MIN_MS } from './components/layout/LaunchSplash'
-import { AnimatePresence } from 'framer-motion'
+import { LaunchSplash } from './components/boot/LaunchSplash'
+import { BOOT_MAX_MS } from './components/boot/boot-sequence'
+import { startBootProbes, trackBootStep } from './components/boot/boot-state'
 import { Dashboard } from './pages/Dashboard'
 import { Scan } from './pages/Scan'
 import { Results } from './pages/Results'
@@ -36,12 +37,18 @@ export function App() {
   // brings it back — updating is always the user's choice.
   const [updateOpen, setUpdateOpen] = useState(false)
   const [checkFailed, setCheckFailed] = useState(false)
-  // The launch intro plays once, and leaves only when the app is ready too.
+  // The launch intro plays once and leaves when the real startup steps are done
+  // (and its short minimum has passed). Whatever goes wrong, it is gone by BOOT_MAX_MS.
   const [introDone, setIntroDone] = useState(false)
+  const endIntro = useCallback(() => setIntroDone(true), [])
   useEffect(() => {
-    const timer = setTimeout(() => setIntroDone(true), SPLASH_MIN_MS)
+    const timer = setTimeout(() => {
+      setIntroDone(true)
+      if (useSettingsStore.getState().isLoading) useSettingsStore.setState({ isLoading: false })
+    }, BOOT_MAX_MS)
     return () => clearTimeout(timer)
   }, [])
+  useEffect(() => startBootProbes(), [])
 
   useEffect(() => {
     if (!selectedGame) return
@@ -57,7 +64,7 @@ export function App() {
   }, [selectedGame])
 
   useEffect(() => {
-    loadSettings()
+    trackBootStep('settings', () => loadSettings())
   }, [loadSettings])
 
   // Keep the scan store in sync with main for the whole session, independent
@@ -70,18 +77,18 @@ export function App() {
 
   // Persisted signature whitelist, so triage state shows on the first scan.
   useEffect(() => {
-    void useScanStore.getState().loadTriage()
+    trackBootStep('signatures', () => useScanStore.getState().loadTriage())
   }, [])
 
   // Hydrate renderer auth-store from main and stay live via onAuthChanged.
   // No blocking gate — login is optional (PR-1); the scanner works while anon.
   useEffect(() => {
-    useAuthStore.getState().init()
+    trackBootStep('account', () => useAuthStore.getState().init())
   }, [])
 
   return (
     <ErrorBoundary>
-      <AnimatePresence>{(isLoading || !introDone) && <LaunchSplash key="splash" />}</AnimatePresence>
+      {!introDone && <LaunchSplash onDone={endIntro} />}
       {!isLoading && (
         <HashRouter>
           <div className="h-screen w-screen bg-background text-text-primary flex flex-col overflow-hidden relative">

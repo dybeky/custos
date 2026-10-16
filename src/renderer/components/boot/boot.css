@@ -1,0 +1,327 @@
+/* Launch intro. Everything animated is transform/opacity (plus a few tiny SVG
+   strokes), colors come from the theme tokens only. Hidden "before" states and
+   every animation live under no-preference, so with prefers-reduced-motion the
+   intro is simply the finished frame with a short fade. */
+
+.boot {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  overflow: hidden;
+  color: var(--ink);
+  user-select: none;
+  --mark: clamp(88px, 17vmin, 132px);
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-io: cubic-bezier(0.76, 0, 0.24, 1);
+}
+.boot[data-phase='out'] { pointer-events: none; }
+
+.boot-shutter {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 50.2%;
+  background: var(--bg);
+}
+.boot-shutter-top { top: 0; }
+.boot-shutter-bottom { bottom: 0; }
+
+.boot-seam {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  height: 2px;
+  margin-top: -1px;
+  background: linear-gradient(90deg, transparent, var(--scan) 25%, var(--scan-2) 50%, var(--scan) 75%, transparent);
+  box-shadow: 0 0 18px 1px rgb(var(--scan-rgb) / 0.55);
+  opacity: 0;
+  transform: scaleX(0);
+}
+
+.boot-stage { position: absolute; inset: 0; }
+
+.boot-grid {
+  position: absolute;
+  inset: 0;
+  opacity: 0.55;
+  background-image:
+    linear-gradient(var(--line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--line) 1px, transparent 1px);
+  background-size: 48px 48px;
+  background-position: center;
+  -webkit-mask-image: radial-gradient(ellipse 60% 55% at 50% 46%, black, transparent);
+  mask-image: radial-gradient(ellipse 60% 55% at 50% 46%, black, transparent);
+}
+
+.boot-streak {
+  position: absolute;
+  left: 0;
+  width: 38vw;
+  height: 1px;
+  opacity: 0;
+  background: linear-gradient(90deg, transparent, var(--scan), transparent);
+  box-shadow: 0 0 10px rgb(var(--scan-rgb) / 0.5);
+}
+.boot-streak:nth-child(1) { top: 33%; }
+.boot-streak:nth-child(2) { top: 47%; width: 52vw; }
+.boot-streak:nth-child(3) { top: 68%; width: 30vw; }
+
+.boot-corner {
+  position: absolute;
+  width: 16px;
+  height: 16px;
+  border: 0 solid var(--line-strong);
+}
+.boot-corner-tl { top: 22px; left: 22px; border-top-width: 1px; border-left-width: 1px; }
+.boot-corner-tr { top: 22px; right: 22px; border-top-width: 1px; border-right-width: 1px; }
+.boot-corner-bl { bottom: 22px; left: 22px; border-bottom-width: 1px; border-left-width: 1px; }
+.boot-corner-br { bottom: 22px; right: 22px; border-bottom-width: 1px; border-right-width: 1px; }
+
+.boot-center {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding-bottom: 7vh;
+}
+
+.boot-emblem { position: relative; width: var(--mark); height: var(--mark); }
+.boot-glow {
+  position: absolute;
+  inset: -150%;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgb(var(--scan-rgb) / 0.3), transparent 60%);
+  opacity: 0;
+}
+.boot-ring {
+  position: absolute;
+  inset: -14%;
+  border-radius: 50%;
+  border: 1px solid var(--scan);
+  opacity: 0;
+}
+.boot-mark { position: relative; width: 100%; height: 100%; overflow: visible; }
+.boot-fill { fill: var(--scan); fill-opacity: 0.14; }
+.boot-sweep { opacity: 0; }
+
+.boot-word {
+  display: flex;
+  margin-top: clamp(14px, 3.2vh, 28px);
+  font-family: 'Custos G', 'MuseoModerno', 'Inter', system-ui, sans-serif;
+  font-weight: 700;
+  font-size: clamp(2.6rem, 8.6vmin, 4.4rem);
+  line-height: 1;
+  letter-spacing: 0.06em;
+  text-indent: 0.06em;
+}
+.boot-letter { display: inline-block; overflow: hidden; padding: 0.08em 0.015em 0.12em; }
+.boot-ch { display: inline-block; }
+
+.boot-tag {
+  margin-top: clamp(10px, 2vh, 18px);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.5em;
+  text-indent: 0.5em;
+  text-transform: uppercase;
+  color: var(--ink-dim);
+}
+
+.boot-hud {
+  position: absolute;
+  left: 0;
+  right: 0;
+  margin: 0 auto;
+  bottom: clamp(52px, 12vh, 100px);
+  width: min(360px, 66vw);
+}
+.boot-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 9px;
+  font-family: 'JetBrains Mono', Consolas, 'Cascadia Mono', monospace;
+  font-size: 0.6875rem;
+  letter-spacing: 0.02em;
+  color: var(--ink-dim);
+  white-space: nowrap;
+}
+.boot-status { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.boot-prompt { color: var(--scan); margin-right: 6px; }
+.boot-pct { color: var(--ink); font-variant-numeric: tabular-nums; }
+
+.boot-track { position: relative; height: 2px; background: var(--line); }
+.boot-ticks { position: absolute; left: 0; right: 0; top: -5px; height: 4px; }
+.boot-tick {
+  position: absolute;
+  top: 0;
+  width: 1px;
+  height: 4px;
+  background: var(--line-strong);
+  transition: background-color 0.2s;
+}
+.boot-tick[data-on='true'] { background: var(--scan); }
+.boot-fill-bar {
+  position: absolute;
+  inset: 0;
+  transform-origin: 0 50%;
+  transform: scaleX(0);
+  background: linear-gradient(90deg, var(--scan-dim), var(--scan) 70%, var(--scan-2));
+}
+.boot-head {
+  position: absolute;
+  left: -40px;
+  top: -2px;
+  width: 40px;
+  height: 6px;
+  transform: translate3d(0, 0, 0);
+  background: linear-gradient(90deg, transparent, rgb(var(--scan-rgb) / 0.55) 70%, var(--scan-2) 96%, var(--ink));
+  border-radius: 0 3px 3px 0;
+  opacity: 0;
+}
+.boot[data-armed] .boot-head { opacity: 1; }
+.boot[data-phase='out'] .boot-head,
+.boot[data-ready] .boot-head { opacity: 0; transition: opacity 0.18s; }
+.boot-wait {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  opacity: 0;
+}
+.boot[data-waiting] .boot-wait { opacity: 1; }
+.boot-wait::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 30%;
+  background: linear-gradient(90deg, transparent, var(--ink), transparent);
+  opacity: 0.55;
+}
+
+.boot-credit {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 22px;
+  text-align: center;
+  font-size: 0.6875rem;
+  color: rgb(var(--ink-dim-rgb) / 0.7);
+}
+.boot-credit b { font-weight: 600; color: var(--ink); }
+
+/* A status line slides in as the step changes (the element is re-keyed). */
+.boot-line { display: inline-block; }
+
+@media (prefers-reduced-motion: no-preference) {
+  /* ---- before-states ---- */
+  .boot-grid, .boot-corner, .boot-tag, .boot-credit, .boot-row { opacity: 0; }
+  .boot-stroke { stroke-dasharray: 1 1.02; stroke-dashoffset: 1; opacity: 0; }
+  .boot-fill { fill-opacity: 0; }
+  .boot-emblem { transform: scale(0.88); opacity: 0; }
+  .boot-ch { transform: translateY(115%) skewY(9deg); }
+  .boot-track { transform: scaleX(0); }
+
+  /* ---- intro ---- */
+  .boot[data-armed] .boot-grid { animation: boot-grid-in 1.3s var(--ease-out) both; }
+  .boot[data-armed] .boot-corner { animation: boot-fade-in 0.5s ease-out 0.15s both; }
+  .boot[data-armed] .boot-streak { animation: boot-streak 0.95s cubic-bezier(0.5, 0, 0.1, 1) both; }
+  .boot[data-armed] .boot-streak:nth-child(1) { animation-delay: 0.1s; }
+  .boot[data-armed] .boot-streak:nth-child(2) { animation-delay: 0.2s; }
+  .boot[data-armed] .boot-streak:nth-child(3) { animation-delay: 0.32s; }
+
+  .boot[data-armed] .boot-emblem { animation: boot-emblem 0.75s var(--ease-out) 0.05s both; }
+  .boot[data-armed] .boot-stroke { animation: boot-draw 0.46s var(--ease-io) both; }
+  .boot[data-armed] .boot-stroke-0 { animation-delay: 0.1s; }
+  .boot[data-armed] .boot-stroke-1 { animation-delay: 0.3s; }
+  .boot[data-armed] .boot-stroke-2 { animation-delay: 0.42s; }
+  .boot[data-armed] .boot-stroke-3 { animation-delay: 0.54s; }
+  .boot[data-armed] .boot-fill { animation: boot-draw 0.46s var(--ease-io) both, boot-fill 0.5s ease-out 0.78s both; }
+  .boot[data-armed] .boot-stroke-0.boot-fill { animation-delay: 0.1s, 0.78s; }
+  .boot[data-armed] .boot-stroke-3.boot-fill { animation-delay: 0.54s, 0.78s; }
+  .boot[data-armed] .boot-sweep { animation: boot-sweep 0.7s cubic-bezier(0.5, 0, 0.2, 1) 0.9s both; }
+  .boot[data-armed] .boot-glow { animation: boot-glow 1.2s ease-out 0.5s both; }
+  .boot[data-armed] .boot-ring { animation: boot-ring 0.85s cubic-bezier(0.1, 0.6, 0.3, 1) 0.78s forwards; }
+  .boot[data-armed] .boot-ring + .boot-ring { animation-delay: 0.93s; }
+
+  .boot[data-armed] .boot-ch {
+    animation:
+      boot-rise 0.6s var(--ease-out) calc(0.36s + var(--i) * 45ms) both,
+      boot-shine 0.7s ease-in-out calc(0.98s + var(--i) * 55ms) both;
+  }
+  .boot[data-armed] .boot-tag { animation: boot-up 0.5s var(--ease-out) 0.78s both; }
+
+  .boot[data-armed] .boot-row { animation: boot-fade-in 0.4s ease-out 0.35s both; }
+  .boot[data-armed] .boot-track { animation: boot-track-in 0.5s var(--ease-out) 0.3s both; }
+  .boot[data-armed] .boot-credit { animation: boot-fade-in 0.6s ease-out 0.95s both; }
+  .boot[data-armed] .boot-wait::after { animation: boot-wait 1.5s cubic-bezier(0.5, 0, 0.2, 1) infinite; }
+  .boot-line { animation: boot-line 0.28s var(--ease-out) both; }
+
+  /* ---- exit: the content lifts away, then the two halves part on a bright seam ---- */
+  .boot[data-phase='out'] .boot-stage { animation: boot-stage-out 0.2s ease-in both; }
+  .boot[data-phase='out'] .boot-shutter-top { animation: boot-shutter-up 0.44s var(--ease-io) 0.1s both; }
+  .boot[data-phase='out'] .boot-shutter-bottom { animation: boot-shutter-down 0.44s var(--ease-io) 0.1s both; }
+  .boot[data-phase='out'] .boot-seam { animation: boot-seam 0.46s ease-out 0.04s both; }
+
+  /* ---- slow PC: only the essentials ---- */
+  .boot[data-lite] .boot-fx { display: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .boot-fx { display: none; }
+  .boot:not([data-armed]) .boot-stage { opacity: 0; }
+  .boot[data-armed] { animation: boot-fade-in 0.2s ease-out both; }
+  .boot[data-phase='out'] { animation: boot-fade-out 0.22s ease-in both; }
+  .boot-line { animation: none; }
+}
+
+@keyframes boot-fade-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes boot-fade-out { from { opacity: 1; } to { opacity: 0; } }
+@keyframes boot-up { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+@keyframes boot-grid-in { from { opacity: 0; transform: scale(1.12); } to { opacity: 0.55; transform: none; } }
+@keyframes boot-streak {
+  0% { opacity: 0; transform: translateX(-45vw); }
+  15% { opacity: 1; }
+  80% { opacity: 1; }
+  100% { opacity: 0; transform: translateX(110vw); }
+}
+@keyframes boot-emblem { from { opacity: 0; transform: scale(0.88); } to { opacity: 1; transform: none; } }
+@keyframes boot-draw {
+  0% { opacity: 0; stroke-dashoffset: 1; }
+  3% { opacity: 1; }
+  100% { opacity: 1; stroke-dashoffset: 0; }
+}
+@keyframes boot-fill { from { fill-opacity: 0; } to { fill-opacity: 0.14; } }
+@keyframes boot-sweep {
+  0% { opacity: 0; transform: translateX(0) skewX(-18deg); }
+  15% { opacity: 1; }
+  85% { opacity: 1; }
+  100% { opacity: 0; transform: translateX(40px) skewX(-18deg); }
+}
+@keyframes boot-glow {
+  0% { opacity: 0; transform: scale(0.4); }
+  45% { opacity: 1; transform: scale(1.1); }
+  100% { opacity: 0.6; transform: scale(1); }
+}
+@keyframes boot-ring {
+  0% { opacity: 0.85; transform: scale(0.7); }
+  100% { opacity: 0; transform: scale(2.1); }
+}
+@keyframes boot-rise { from { transform: translateY(115%) skewY(9deg); } to { transform: none; } }
+@keyframes boot-shine { 0%, 100% { color: var(--ink); } 40% { color: var(--scan); } }
+@keyframes boot-track-in { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+@keyframes boot-wait { from { transform: translateX(-100%); } to { transform: translateX(340%); } }
+@keyframes boot-line { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: none; } }
+@keyframes boot-stage-out { from { opacity: 1; transform: none; } to { opacity: 0; transform: scale(1.05); } }
+@keyframes boot-shutter-up { from { transform: none; } to { transform: translateY(-101%); } }
+@keyframes boot-shutter-down { from { transform: none; } to { transform: translateY(101%); } }
+@keyframes boot-seam {
+  0% { opacity: 1; transform: scaleX(0); }
+  35% { opacity: 1; transform: scaleX(1); }
+  100% { opacity: 0; transform: scaleX(1); }
+}

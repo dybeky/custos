@@ -1,17 +1,14 @@
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import type { TFunction } from 'i18next'
 import { Card, CardContent } from '../components/ui/Card'
-import { InfoTip } from '../components/ui/InfoTip'
 import { useAppHealthStore } from '../stores/app-health-store'
 import { useGameStore } from '../stores/game-store'
-import { GAMES } from '../../shared/games'
-import { featureName, featureDesc, featureHelp } from '../utils/feature-i18n'
-import type { CapabilityCategory, ScannerCapability, ChangelogGroup } from '../../shared/types'
+import type { ChangelogGroup } from '../../shared/types'
 import { alpha } from '../utils/color'
 import { SwordStage } from '../components/SwordStage'
 import { whatsNewRu } from '../i18n/whats-new-ru'
 import { NewsCard } from '../components/NewsCard'
+import { CompatibilityCard } from '../components/CompatibilityCard'
 
 // Accent color per changelog group — replaces emojis with quiet semantic color.
 const CHANGELOG_ACCENT: Record<string, string> = {
@@ -21,14 +18,6 @@ const CHANGELOG_ACCENT: Record<string, string> = {
   Improvements: 'var(--scan-dim)' // taupe
 }
 const CHANGELOG_ACCENT_DEFAULT = 'var(--scan)'
-
-// Render order + i18n label key for each app-area group.
-const CATEGORY_ORDER: { id: CapabilityCategory; labelKey: string }[] = [
-  { id: 'scan', labelKey: 'dashboard.categoryScan' },
-  { id: 'manual', labelKey: 'dashboard.categoryManual' },
-  { id: 'utilities', labelKey: 'dashboard.categoryUtilities' },
-  { id: 'export', labelKey: 'dashboard.categoryExport' }
-]
 
 export function Dashboard() {
   const { t, i18n } = useTranslation()
@@ -59,19 +48,6 @@ export function Dashboard() {
 
   // A Russian interface shows the Russian notes of this version when there are any.
   const notes = (i18n.language === 'ru' ? whatsNewRu(appVersion) : null) ?? changelog
-  const supported = capabilities.filter((c) => c.supported)
-  const total = capabilities.length
-  const ratio = total > 0 ? (supported.length / total) * 100 : 0
-  const allReady = total > 0 && supported.length === total
-
-  // Group capabilities by app area, preserving CATEGORY_ORDER and dropping
-  // empty groups. Inside each group, supported checks come first.
-  const groups = CATEGORY_ORDER.map(({ id, labelKey }) => {
-    const items = capabilities
-      .filter((c) => c.category === id)
-      .sort((a, b) => Number(b.supported) - Number(a.supported))
-    return { id, labelKey, items }
-  }).filter((g) => g.items.length > 0)
 
   return (
     <div className="flex-1 p-6 overflow-y-auto">
@@ -321,130 +297,9 @@ export function Dashboard() {
           </Card>
         )}
 
-        {/* System Compatibility Card */}
-        {total > 0 && (
-          <Card className="mt-4">
-            <CardContent>
-              {/* Header row */}
-              <div className="flex items-start justify-between gap-3 mb-4">
-                <div className="min-w-0">
-                  <h2 className="text-lg font-semibold text-ink font-display">
-                    {t('dashboard.compatibility')}
-                  </h2>
-                  <p className="text-xs text-ink-dim mt-0.5 truncate">
-                    {allReady
-                      ? t('dashboard.allChecksAvailable')
-                      : t('dashboard.someChecksUnavailable')}
-                    {' · '}
-                    {t('dashboard.autoDetected')}
-                    {osInfo ? ` · ${osInfo.displayName}` : ''}
-                    {selectedGame ? ` · ${GAMES[selectedGame].name}` : ''}
-                  </p>
-                </div>
-                <div
-                  className={`shrink-0 px-2.5 py-1 rounded-lg text-xs font-bold tabular-nums ${
-                    allReady ? 'bg-scan/10 text-scan' : 'bg-alert/10 text-alert'
-                  }`}
-                >
-                  {supported.length}/{total}
-                </div>
-              </div>
-
-              {/* Availability bar */}
-              <div className="h-1.5 w-full rounded-full bg-panel-2 overflow-hidden mb-4">
-                <div
-                  className="h-full rounded-full bg-scan transition-all duration-700 ease-out"
-                  style={{ width: `${ratio}%` }}
-                />
-              </div>
-
-              {/* Capability groups, one section per app area / tab */}
-              <div className="space-y-4">
-                {groups.map((group) => {
-                  const groupReady = group.items.filter((c) => c.supported).length
-                  return (
-                    <div key={group.id}>
-                      <div className="flex items-center gap-2 mb-2">
-                        <h3 className="text-2xs font-bold tracking-[0.18em] uppercase text-ink-dim font-display">
-                          {t(group.labelKey)}
-                        </h3>
-                        <span className="text-2xs font-semibold tabular-nums text-ink-dim/70">
-                          {groupReady}/{group.items.length}
-                        </span>
-                        <span className="flex-1 h-px bg-[color:var(--line)]" />
-                      </div>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                        {group.items.map((cap) => (
-                          <CapabilityChip key={cap.id} cap={cap} ready={cap.supported} t={t} />
-                        ))}
-                      </div>
-                    </div>
-                  )
-                })}
-              </div>
-            </CardContent>
-          </Card>
+        {capabilities.length > 0 && (
+          <CompatibilityCard osInfo={osInfo} capabilities={capabilities} gameId={selectedGame} />
         )}
-      </div>
-    </div>
-  )
-}
-
-interface CapabilityChipProps {
-  cap: ScannerCapability
-  ready: boolean
-  t: TFunction
-}
-
-function CapabilityChip({ cap, ready, t }: CapabilityChipProps) {
-  const name = featureName(t, cap.id, cap.name)
-  const desc = featureDesc(t, cap.id, cap.description)
-  const help = featureHelp(t, cap.id, cap.description)
-  const reason = cap.reasonKey
-    ? t(`capability.${cap.reasonKey}`, { ...cap.reasonParams, defaultValue: cap.reason ?? '' })
-    : cap.reason
-
-  return (
-    <div
-      className={`flex items-start gap-2.5 rounded-xl border px-3 py-2.5 transition-colors ${
-        ready ? 'border-scan/20 bg-scan/5' : 'border-[color:var(--line)] bg-panel-2/40'
-      }`}
-    >
-      <div
-        className={`mt-0.5 w-5 h-5 rounded-md flex items-center justify-center shrink-0 ${
-          ready ? 'bg-scan/15 text-scan' : 'bg-ink-dim/10 text-ink-dim'
-        }`}
-      >
-        {ready ? (
-          <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2.5}
-              d="M5 13l4 4L19 7"
-            />
-          </svg>
-        ) : (
-          <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
-            />
-          </svg>
-        )}
-      </div>
-      <div className="min-w-0 flex-1">
-        <div className="flex items-center gap-1.5">
-          <p className={`text-sm font-medium truncate ${ready ? 'text-ink' : 'text-ink-dim'}`}>
-            {name}
-          </p>
-          <InfoTip title={name} text={ready ? help : reason || help || desc} />
-        </div>
-        <p className="text-[11px] text-ink-dim truncate">
-          {ready ? t('dashboard.ready') : reason || t('dashboard.unavailable')}
-        </p>
       </div>
     </div>
   )

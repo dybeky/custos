@@ -156,6 +156,11 @@ function createWindow(): void {
   mainWindow.on('ready-to-show', () => {
     mainWindow?.show()
   })
+  // Failsafe: a window that never reports ready-to-show must not stay invisible.
+  const showFailsafe = setTimeout(() => {
+    if (mainWindow && !mainWindow.isDestroyed()) mainWindow.show()
+  }, 5000)
+  mainWindow.once('show', () => clearTimeout(showFailsafe))
 
   mainWindow.webContents.setWindowOpenHandler((details) => {
     safeOpenExternal(details.url)

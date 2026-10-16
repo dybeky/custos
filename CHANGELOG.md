@@ -21,6 +21,8 @@ Keep each entry to one line of about 100 characters so the dialog stays tidy.
 - CS2 check reports the Steam launch options -insecure and -allow_third_party_software
 - History tab: every check on the site, who checked whom, opens in the app (staff)
 - Steam bans: each Steam account found on the PC shows its VAC and game bans
+- New launch intro: the sword draws in, the name flies in, a live progress line follows the real startup steps
+- System Compatibility card redesigned: ring, system chips, grouped checks, clear reasons when something is unavailable
 - Results redesigned: risk ring, severity bar, tabs, searchable evidence list, scanner tiles
 
 ### Fixes

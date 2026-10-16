@@ -79,6 +79,12 @@
     "categoryExport": "Results & Export",
     "changelog": "What's new",
     "autoDetected": "Auto-detected for your system",
+    "chipBuild": "Build {{build}}",
+    "showAll": "Show all {{count}}",
+    "showLess": "Show less",
+    "unavailableTitle": "Unavailable on this system",
+    "hintPlatform": "Run Custos on a system that meets the requirement to use these checks.",
+    "hintBuild": "Update Windows to the required build to unlock the rest.",
     "emulatedTitle": "Running under emulation",
     "emulatedDesc": "This PC is {{arch}}, but you're running the {{appArch}} build. Download custos-{{arch}}.exe for full speed."
   },
@@ -971,6 +977,15 @@
   },
   "brand": {
     "tagline": "anti-cheat"
+  },
+  "boot": {
+    "settings": "Reading settings…",
+    "signatures": "Loading detection base…",
+    "scanners": "Starting scanners…",
+    "system": "Reading system profile…",
+    "account": "Checking account…",
+    "ready": "Ready",
+    "slow": "Taking longer than usual…"
   },
   "steamBans": {
     "title": "Steam bans",
