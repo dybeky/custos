@@ -202,7 +202,7 @@ export function Sidebar() {
               className="min-w-0"
             >
               <div className="text-[15px] font-bold tracking-wide text-ink font-display leading-none">custos</div>
-              <div className="mt-1 text-[10px] font-semibold tracking-[0.2em] uppercase text-ink-dim/70 leading-none">anti-cheat</div>
+              <div className="mt-1 text-[10px] font-semibold tracking-[0.2em] uppercase text-ink-dim/70 leading-none">{t('brand.tagline')}</div>
             </motion.div>
           )}
         </AnimatePresence>

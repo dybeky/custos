@@ -428,6 +428,8 @@ export interface NewsItem {
   pinned?: boolean
   title: string
   summary: string
+  /** The Russian version of the title and summary, when the site has one. */
+  ru?: { title: string; summary: string } | null
 }
 export interface NewsFeed {
   items: NewsItem[]

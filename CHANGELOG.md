@@ -8,6 +8,8 @@ Keep each entry to one line of about 100 characters so the dialog stays tidy.
 ## Unreleased
 
 ### New
+- Russian interface: switch the language in Settings; every screen, hint and scanner name is translated
+- News in the app and on the site can be read in English or Russian, with a switch
 - Case mode: all of a player's checks side by side, with what was cleaned between them
 - Case package: one zip with every check, a summary and a SHA-256 list that proves nothing was edited
 - Compare any two checks of a player, not only the last two

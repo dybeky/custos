@@ -9,7 +9,7 @@ import { useAuthStore } from '../stores/auth-store'
 // initReactI18next (a no-op i18n plugin) alongside the stubbed useTranslation,
 // or the real i18n bootstrap throws on import.
 vi.mock('react-i18next', () => ({
-  useTranslation: () => ({ t: (k: string) => k }),
+  useTranslation: () => ({ t: (k: string) => k, i18n: { language: 'en' } }),
   initReactI18next: { type: '3rdParty', init: () => {} }
 }))
 beforeEach(() => {
