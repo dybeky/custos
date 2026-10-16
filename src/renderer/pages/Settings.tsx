@@ -7,6 +7,7 @@ import { RoleName } from '../components/ui/RoleName'
 import { LoginModal } from '../components/auth/LoginModal'
 import { roleInfo } from '../utils/roles'
 import { ThemePicker } from '../components/settings/ThemePicker'
+import { LanguagePicker } from '../components/settings/LanguagePicker'
 import { SoundToggle } from '../components/settings/SoundToggle'
 import { AboutCard } from '../components/settings/AboutCard'
 import { SignatureStatusCard } from '../components/settings/SignatureStatusCard'
@@ -33,6 +34,16 @@ export function Settings() {
           <h1 className="text-2xl font-bold text-ink font-display">{t('settings.title')}</h1>
           <p className="text-ink-dim mt-1">{t('settings.subtitle')}</p>
         </div>
+
+        {/* Language — applies instantly */}
+        <Card className="mb-4">
+          <CardHeader>
+            <CardTitle>{t('settings.language.title')}</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <LanguagePicker />
+          </CardContent>
+        </Card>
 
         {/* Color theme — applies instantly */}
         <Card className="mb-4">

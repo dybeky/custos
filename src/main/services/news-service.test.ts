@@ -137,4 +137,27 @@ describe('NewsService', () => {
     expect(got[0].tagColor).toBeNull()
     expect(got[0].tagLabel).toBeNull()
   })
+
+  it('carries the Russian version when the site has one, and ignores a broken one', async () => {
+    const withRu = {
+      ...ITEM,
+      ru: { title: 'Custos Pro в закрытой бете', summary: 'Новое приложение.' }
+    }
+    const svc = new NewsService({
+      baseUrl: 'https://97437.dev',
+      appVersion: '3.3.0',
+      fetchImpl: site({ items: [withRu] })
+    })
+    expect((await svc.get()).items[0].ru).toEqual(withRu.ru)
+
+    const broken = { ...ITEM, ru: { title: 5 } }
+    const svc2 = new NewsService({
+      baseUrl: 'https://97437.dev',
+      appVersion: '3.3.0',
+      fetchImpl: site({ items: [broken] })
+    })
+    const got = (await svc2.get()).items
+    expect(got).toHaveLength(1)
+    expect(got[0].ru).toBeNull()
+  })
 })

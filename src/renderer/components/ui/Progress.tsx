@@ -1,5 +1,6 @@
 import { HTMLAttributes, forwardRef } from 'react'
 import { motion } from 'framer-motion'
+import { useTranslation } from 'react-i18next'
 import { cn } from '../../utils/cn'
 
 interface ProgressProps extends HTMLAttributes<HTMLDivElement> {
@@ -36,13 +37,14 @@ export const Progress = forwardRef<HTMLDivElement, ProgressProps>(
     },
     ref
   ) => {
+    const { t } = useTranslation()
     const percentage = Math.min(Math.max((value / max) * 100, 0), 100)
 
     return (
       <div ref={ref} className={cn('w-full', className)} {...props}>
         {showLabel && (
           <div className="flex justify-between items-center mb-1">
-            <span className="text-xs text-ink-dim">Progress</span>
+            <span className="text-xs text-ink-dim">{t('scan.progressLabel')}</span>
             <span className="text-xs text-ink font-medium">
               {Math.round(percentage)}%
             </span>

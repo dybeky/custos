@@ -18,6 +18,11 @@ const ItemSchema = z.object({
     .optional()
     .catch(null),
   pinned: z.boolean().optional().catch(false),
+  ru: z
+    .object({ title: z.string().min(1).max(200), summary: z.string().min(1).max(600) })
+    .nullable()
+    .optional()
+    .catch(null),
   title: z.string().max(200),
   summary: z.string().max(600)
 })

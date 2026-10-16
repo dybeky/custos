@@ -79,7 +79,7 @@ export function EvidenceMatrix({
                 {r.present.map((p, i) => (
                   <td key={i} className="py-2 px-1.5 text-center">
                     <span
-                      aria-label={p ? 'present' : 'absent'}
+                      aria-label={p ? t('casefile.present') : t('casefile.absent')}
                       className={`inline-block h-3 w-3 rounded-full ${p ? 'bg-ink' : 'border border-ink-dim/40'}`}
                     />
                   </td>

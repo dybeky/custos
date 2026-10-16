@@ -1,4 +1,5 @@
 import { motion, useReducedMotion } from 'framer-motion'
+import { useTranslation } from 'react-i18next'
 import { CustosMark } from '../ui/CustosMark'
 import { CREDITS } from '../../../shared/credits'
 
@@ -15,6 +16,7 @@ export const SPLASH_MIN_MS = 1500
  */
 export function LaunchSplash() {
   const reduce = useReducedMotion()
+  const { t } = useTranslation()
 
   return (
     <motion.div
@@ -96,7 +98,7 @@ export function LaunchSplash() {
           animate={{ opacity: 1 }}
           transition={{ duration: 0.5, delay: 0.95 }}
         >
-          anti-cheat
+          {t('brand.tagline')}
         </motion.p>
 
         <motion.p

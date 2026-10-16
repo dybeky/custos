@@ -10,6 +10,7 @@ import { featureName, featureDesc, featureHelp } from '../utils/feature-i18n'
 import type { CapabilityCategory, ScannerCapability, ChangelogGroup } from '../../shared/types'
 import { alpha } from '../utils/color'
 import { SwordStage } from '../components/SwordStage'
+import { whatsNewRu } from '../i18n/whats-new-ru'
 import { NewsCard } from '../components/NewsCard'
 
 // Accent color per changelog group — replaces emojis with quiet semantic color.
@@ -30,7 +31,7 @@ const CATEGORY_ORDER: { id: CapabilityCategory; labelKey: string }[] = [
 ]
 
 export function Dashboard() {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
   const [appVersion, setAppVersion] = useState<string>('')
   const [changelog, setChangelog] = useState<ChangelogGroup[]>([])
   const { osInfo, capabilities, initialize } = useAppHealthStore()
@@ -56,6 +57,8 @@ export function Dashboard() {
     }
   }
 
+  // A Russian interface shows the Russian notes of this version when there are any.
+  const notes = (i18n.language === 'ru' ? whatsNewRu(appVersion) : null) ?? changelog
   const supported = capabilities.filter((c) => c.supported)
   const total = capabilities.length
   const ratio = total > 0 ? (supported.length / total) * 100 : 0
@@ -235,14 +238,14 @@ export function Dashboard() {
 
         {/* What's new — this version's release notes; hidden when there are none
             (offline, or a build that was never released). */}
-        {changelog.length > 0 && (
+        {notes.length > 0 && (
           <Card className="mt-4">
             <CardContent>
               <h2 className="text-lg font-semibold text-ink font-display mb-3">
                 {t('dashboard.changelog')}
               </h2>
               <div className="space-y-5">
-                {changelog.map((group) => {
+                {notes.map((group) => {
                   const accent = CHANGELOG_ACCENT[group.group] ?? CHANGELOG_ACCENT_DEFAULT
                   return (
                     <div key={group.group}>
