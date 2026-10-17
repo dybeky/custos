@@ -538,3 +538,22 @@ body {
   -webkit-mask-image: linear-gradient(to bottom, black calc(100% - 36px), transparent);
   mask-image: linear-gradient(to bottom, black calc(100% - 36px), transparent);
 }
+
+/* ============================================
+   CLEAN RESULT BADGE (EmptyState)
+   ============================================ */
+@keyframes cleanDraw { to { stroke-dashoffset: 0; } }
+@keyframes cleanPulse {
+  0%   { transform: scale(.8); opacity: .55; }
+  100% { transform: scale(1.5); opacity: 0; }
+}
+@keyframes cleanOrbit { to { transform: rotate(360deg); } }
+.clean-shield { stroke-dasharray: 90; stroke-dashoffset: 90; animation: cleanDraw .9s ease-out .1s forwards; }
+.clean-check  { stroke-dasharray: 22; stroke-dashoffset: 22; animation: cleanDraw .5s ease-out .8s forwards; }
+.clean-pulse  { animation: cleanPulse 2.6s ease-out infinite; }
+.clean-orbit  { animation: cleanOrbit 9s linear infinite; }
+@media (prefers-reduced-motion: reduce) {
+  .clean-shield, .clean-check { animation: none; stroke-dashoffset: 0; }
+  .clean-pulse { animation: none; opacity: 0; }
+  .clean-orbit { animation: none; }
+}

@@ -24,6 +24,7 @@ import { ResultsTabs, type TabDef } from '../components/results/ResultsTabs'
 import { EvidencePanel } from '../components/results/EvidencePanel'
 import { ScannerGrid } from '../components/results/ScannerGrid'
 import { KeyEvidence } from '../components/results/KeyEvidence'
+import { NoEvidence } from '../components/results/EmptyState'
 
 type Tab = 'overview' | 'evidence' | 'scanners' | 'timeline' | 'case'
 
@@ -155,11 +156,7 @@ export function Results() {
                     )}
                   </div>
                   {topEvidence.length === 0 ? (
-                    <div className="rounded-2xl border border-scan/25 bg-scan/[0.06] p-6 text-center">
-                      <p className="text-sm font-medium text-scan">
-                        {_totalFindings > 0 ? t('results.contextOnly') : t('results.noThreatsFound')}
-                      </p>
-                    </div>
+                    <NoEvidence totalFindings={_totalFindings} t={t} />
                   ) : (
                     <div className="space-y-1.5">
                       {topEvidence.slice(0, PREVIEW_COUNT).map((f) => (

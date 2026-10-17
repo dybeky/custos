@@ -316,6 +316,8 @@
     "suspicious": "Suspicious",
     "filesScanned": "Files scanned",
     "noThreatsFound": "No threats found",
+    "cleanTitle": "All clear",
+    "cleanText": "The check found nothing suspicious on this PC.",
     "threatsFound": "threats found",
     "scanResults": "Scan Results",
     "exportResults": "EXPORT RESULTS",

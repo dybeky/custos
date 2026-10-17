@@ -3,6 +3,7 @@ import { HashRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { Header } from './components/layout/Header'
 import { Sidebar } from './components/layout/Sidebar'
 import { AnimatedBackground } from './components/layout/AnimatedBackground'
+import { AmbientBackground } from './components/layout/AmbientBackground'
 import { LaunchSplash } from './components/boot/LaunchSplash'
 import { BOOT_MAX_MS } from './components/boot/boot-sequence'
 import { startBootProbes, trackBootStep } from './components/boot/boot-state'
@@ -93,6 +94,7 @@ export function App() {
         <HashRouter>
           <div className="h-screen w-screen bg-background text-text-primary flex flex-col overflow-hidden relative">
             <AnimatedBackground />
+            <AmbientBackground />
             <GamePicker />
             {update && updateOpen && <UpdateModal info={update} onClose={() => setUpdateOpen(false)} />}
             {checkFailed && <UpdateCheckFailedToast onDone={() => setCheckFailed(false)} />}

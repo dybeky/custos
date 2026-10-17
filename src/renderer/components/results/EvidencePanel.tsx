@@ -8,6 +8,7 @@ import {
   SEVERITIES, filterFindings, groupFindings, severityCounts, type Grouping
 } from '../../utils/results-view'
 import { FindingRow } from '../report/FindingRow'
+import { EmptyState } from './EmptyState'
 
 const GROUPINGS: Grouping[] = ['severity', 'scanner', 'flat']
 
@@ -116,9 +117,11 @@ export function EvidencePanel({ report }: { report: ScanReport }) {
       </div>
 
       {shown.length === 0 ? (
-        <div className="rounded-2xl border border-[color:var(--line)] bg-panel/40 p-10 text-center text-sm text-ink-dim">
-          {report.findings.length === 0 || (!query && severities.size === 0) ? t('results.noEvidence') : t('results.noEvidenceMatch')}
-        </div>
+        <EmptyState
+          variant={report.findings.length === 0 ? 'clean' : 'plain'}
+          title={report.findings.length === 0 ? t('results.cleanTitle') : undefined}
+          text={report.findings.length === 0 ? t('results.cleanText') : (!query && severities.size === 0) ? t('results.noEvidence') : t('results.noEvidenceMatch')}
+        />
       ) : (
         <div className="space-y-5">
           {groups.map((g) => {
