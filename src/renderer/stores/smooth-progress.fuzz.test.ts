@@ -1,6 +1,5 @@
 import { describe, it, expect } from 'vitest'
 import { stepProgress, realProgress, MAX_SPEED } from './smooth-progress'
-import { envelopeAt, musicVolume, stepToggleFade, MUSIC_VOLUME } from '../utils/intro-music'
 import { useScanStore } from './scan-store'
 
 function rng(seed: number): () => number {
@@ -58,46 +57,6 @@ describe('smooth progress property tests', () => {
       expect(Number.isFinite(p.target), String(percentage)).toBe(true)
       expect(p.target).toBeGreaterThanOrEqual(0)
       expect(p.target).toBeLessThanOrEqual(100)
-    }
-  })
-})
-
-describe('intro music property tests', () => {
-  it('volume stays within 0..MUSIC_VOLUME for any position, duration and fade', () => {
-    const r = rng(32)
-    for (let i = 0; i < 20000; i++) {
-      const duration = [NaN, Infinity, -1, 0, 0.5, 4, 30, 200][Math.floor(r() * 8)]
-      const v = musicVolume((r() - 0.2) * 300, duration, r())
-      expect(v).toBeGreaterThanOrEqual(0)
-      expect(v).toBeLessThanOrEqual(MUSIC_VOLUME)
-      expect(Number.isFinite(v)).toBe(true)
-    }
-  })
-
-  it('the envelope rises at the start and falls at the end, with no jump', () => {
-    const d = 60
-    let prev = envelopeAt(0, d)
-    expect(prev).toBe(0)
-    for (let t = 0.05; t <= d; t += 0.05) {
-      const v = envelopeAt(t, d)
-      expect(Math.abs(v - prev)).toBeLessThan(0.05)
-      prev = v
-    }
-    expect(envelopeAt(d, d)).toBe(0)
-    expect(envelopeAt(30, d)).toBe(1)
-  })
-
-  it('the toggle fade is monotone towards its target and stays inside 0..1', () => {
-    const r = rng(33)
-    let fade = 1
-    for (let i = 0; i < 2000; i++) {
-      const target = r() < 0.5 ? 0 : 1
-      const next = stepToggleFade(fade, target, r() * 0.2)
-      expect(next).toBeGreaterThanOrEqual(0)
-      expect(next).toBeLessThanOrEqual(1)
-      if (target > fade) expect(next).toBeGreaterThanOrEqual(fade)
-      else expect(next).toBeLessThanOrEqual(fade)
-      fade = next
     }
   })
 })

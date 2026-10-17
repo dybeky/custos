@@ -5,7 +5,6 @@ import { useAppHealthStore } from '../../stores/app-health-store'
 import { useGameStore } from '../../stores/game-store'
 import { GAMES } from '../../../shared/games'
 import { UserMenu } from '../auth/UserMenu'
-import { MusicButton } from './MusicButton'
 import { alpha } from '../../utils/color'
 
 /**
@@ -83,8 +82,6 @@ export function Header({ updateVersion, onUpdateClick }: { updateVersion?: strin
             {t('update.available', { version: updateVersion })}
           </button>
         )}
-
-        <MusicButton />
 
         {/* Auth cluster — sign-in / avatar + dropdown (interactive: no-drag) */}
         <UserMenu />

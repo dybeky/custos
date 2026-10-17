@@ -134,7 +134,7 @@ export function Settings() {
               <ThemePicker />
             </SettingsSection>
 
-            {/* Menu click and launch music */}
+            {/* Menu click sound */}
             <SettingsSection
               id="settings-sound"
               icon="sound"

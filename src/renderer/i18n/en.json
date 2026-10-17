@@ -52,12 +52,8 @@
     },
     "sectionDesc": {
       "theme": "The whole window recolours at once. Pick the one that is easiest on your eyes.",
-      "sound": "Clicks and the launch music. Neither is kept on the PC.",
+      "sound": "The soft click when you switch pages. It is not kept on the PC.",
       "privacy": "What Custos may send to the site, and what it never sends."
-    },
-    "music": {
-      "title": "Launch music",
-      "desc": "Plays once when Custos starts, quietly, and fades out on its own."
     }
   },
   "news": {
@@ -1053,10 +1049,5 @@
     "lastBan_other": "last ban {{count}} days ago",
     "community": "Community ban",
     "trade": "Trade ban"
-  },
-  "music": {
-    "on": "Music on — click to turn off",
-    "off": "Music off — click to turn on",
-    "replay": "Play the music again"
   }
 }
