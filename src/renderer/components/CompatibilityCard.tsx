@@ -1,4 +1,4 @@
-import { memo, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { memo, useEffect, useMemo, useRef, useState, type ReactNode, type RefObject } from 'react'
 import { useTranslation } from 'react-i18next'
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
 import { Card, CardContent } from './ui/Card'
@@ -75,33 +75,44 @@ function Chip({ icon, children }: { icon: string; children: ReactNode }) {
 
 /**
  * The read-out played each time the card appears: the checks are read one after
- * another, the ring and the counters follow. Progress runs 0 → 1 on
- * requestAnimationFrame; with reduced motion it starts finished.
+ * another, the ring and the counters follow. Time runs on requestAnimationFrame,
+ * but React only re-renders when another check has been read (once per check);
+ * the scan line along the top edge is moved straight on the DOM node, so a frame
+ * costs no render and the page keeps scrolling smoothly. With reduced motion it
+ * starts finished.
  */
-function useReadout(count: number): number {
+function useReadout(count: number): { checked: number; barRef: RefObject<HTMLDivElement | null> } {
   const reduced = useReducedMotion()
-  const [progress, setProgress] = useState(() => (reduced ? 1 : 0))
+  const [checked, setChecked] = useState(() => (reduced ? count : 0))
+  const barRef = useRef<HTMLDivElement | null>(null)
   const countRef = useRef(count)
   countRef.current = count
   const has = count > 0
   useEffect(() => {
     if (!has) return
     if (reduced) {
-      setProgress(1)
+      setChecked(countRef.current)
       return
     }
-    const duration = readoutDurationMs(countRef.current)
+    const total = countRef.current
+    const duration = readoutDurationMs(total)
     const start = performance.now()
     let raf = 0
+    let last = -1
     const frame = (now: number): void => {
       const p = readoutProgress(now - start, duration)
-      setProgress(p)
+      if (barRef.current) barRef.current.style.transform = `scaleX(${p})`
+      const n = readoutChecked(p, total)
+      if (n !== last) {
+        last = n
+        setChecked(n)
+      }
       if (p < 1) raf = requestAnimationFrame(frame)
     }
     raf = requestAnimationFrame(frame)
     return () => cancelAnimationFrame(raf)
   }, [has, reduced])
-  return progress
+  return { checked: has ? Math.min(checked, count) : 0, barRef }
 }
 
 /** Circular availability meter: arc length is the share of checks that can run. */
@@ -236,9 +247,9 @@ export function CompatibilityCard({ osInfo, capabilities, gameId }: Compatibilit
 
   // The read-out: checks are read in the order the groups show them.
   const order = useMemo(() => readoutOrder(groups), [groups])
-  const progress = useReadout(order.length)
-  const playing = progress < 1
-  const checked = readoutChecked(progress, order.length)
+  const { checked, barRef } = useReadout(order.length)
+  const playing = order.length > 0 && checked < order.length
+  const percent = order.length > 0 ? Math.floor((checked / order.length) * 100) : 0
   const shownSupported = playing ? readoutAvailable(order, checked) : supported
   const stateOf = useMemo(() => {
     const m = new Map<string, number>()
@@ -269,8 +280,9 @@ export function CompatibilityCard({ osInfo, capabilities, gameId }: Compatibilit
       {playing && (
         <div className="pointer-events-none absolute inset-x-0 top-0 h-0.5 bg-scan/10" aria-hidden>
           <div
-            className="h-full origin-left bg-scan"
-            style={{ transform: `scaleX(${progress})`, boxShadow: '0 0 10px rgb(var(--scan-rgb) / 0.8)' }}
+            ref={barRef}
+            className="h-full origin-left bg-scan will-change-transform"
+            style={{ transform: 'scaleX(0)', boxShadow: '0 0 10px rgb(var(--scan-rgb) / 0.8)' }}
           />
         </div>
       )}
@@ -295,7 +307,7 @@ export function CompatibilityCard({ osInfo, capabilities, gameId }: Compatibilit
             <p className="mt-1 text-xs text-ink-dim" aria-live="off">
               {playing ? (
                 <span className="tabular-nums text-scan">
-                  {t('dashboard.readout', { done: checked, total, percent: Math.floor(progress * 100) })}
+                  {t('dashboard.readout', { done: checked, total, percent })}
                 </span>
               ) : (
                 <>
