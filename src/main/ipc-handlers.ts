@@ -34,6 +34,7 @@ import { playerKey, type HistoryEntry, type HistorySummary } from '../shared/his
 import { join } from 'path'
 import { randomBytes } from 'crypto'
 import {
+import { rememberRegeditLastKey } from './utils/regedit-state'
   AuthLoginPayloadSchema, AuthUploadAvatarPayloadSchema, SiteOpenPayloadSchema, SitePlayerPayloadSchema, SitePreviousPayloadSchema, SiteUploadPayloadSchema, SiteChecksPayloadSchema, SiteCheckPayloadSchema
 } from './auth/auth-ipc-schema'
 import type { AuthService } from './auth/auth-service'
@@ -406,7 +407,9 @@ export function setupIpcHandlers(mainWindow: BrowserWindow): void {
       .replace(/^HKCC\\/i, 'HKEY_CURRENT_CONFIG\\')
 
     try {
-      // Point regedit's "last opened key" at the target, then launch it.
+      // Remember what regedit had (it is put back on quit), point its "last
+      // opened key" at the target, then launch it.
+      await rememberRegeditLastKey()
       await execFileP(resolveSystemTool('reg'), [
         'add',
         'HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Applets\\Regedit',

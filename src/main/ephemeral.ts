@@ -6,6 +6,7 @@ import { dirname, join } from 'path'
 import { randomBytes } from 'crypto'
 import { LOCK_DIR_NAME, SESSION_PREFIX, isLauncherDirName, isLegacyLogName, isSessionDirName, isUpdateFileName } from './utils/session-names'
 import { cmdPath, systemCwd } from './utils/system-paths'
+import { restoreRegeditLastKey } from './utils/regedit-state'
 
 /**
  * Custos runs on the checked player's PC and must leave nothing behind.
@@ -153,5 +154,7 @@ app.on('will-quit', () => {
   } catch {
     // not registered
   }
+  // The Manual page's "open in regedit" changes regedit's last opened key.
+  restoreRegeditLastKey()
   wipeAfterExit(sessionDir, lockDir)
 })
