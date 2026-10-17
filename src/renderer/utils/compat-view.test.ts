@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import type { CapabilityCategory, ScannerCapability } from '../../shared/types'
 import {
-  compatTone, groupCapabilities, readoutAvailable, readoutChecked, readoutDurationMs, readoutOrder, readoutProgress, readoutState,
+  compatTone, groupCapabilities, readoutAvailable, readoutChecked, readoutDurationMs, readoutOrder, readoutProgress, readoutState, readoutTimeMs,
   unavailableReasons, visibleItems
 } from './compat-view'
 
@@ -116,5 +116,21 @@ describe('read-out timing', () => {
     expect(readoutAvailable(order, 0)).toBe(0)
     expect(readoutAvailable(order, 2)).toBe(1)
     expect(readoutAvailable(order, 99)).toBe(2)
+  })
+})
+
+describe('readoutTimeMs', () => {
+  it('is the inverse of the eased progress and monotonic', () => {
+    const n = 31
+    const d = readoutDurationMs(n)
+    let prev = -1
+    for (let i = 0; i < n; i++) {
+      const t = readoutTimeMs(i, n, d)
+      expect(t).toBeGreaterThanOrEqual(prev)
+      expect(t).toBeLessThanOrEqual(d)
+      expect(readoutChecked(readoutProgress(t + 0.5, d), n)).toBeGreaterThanOrEqual(i)
+      prev = t
+    }
+    expect(readoutTimeMs(0, n, d)).toBe(0)
   })
 })

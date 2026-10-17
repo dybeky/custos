@@ -89,6 +89,13 @@ export function readoutProgress(elapsedMs: number, durationMs: number): number {
   return 0.5 - Math.cos(Math.PI * x) / 2
 }
 
+/** When (ms from the start) the check at `index` is reached: the inverse of the eased progress. */
+export function readoutTimeMs(index: number, count: number, durationMs: number): number {
+  if (count <= 0 || !(durationMs > 0)) return 0
+  const x = Math.min(1, Math.max(0, index / count))
+  return (Math.acos(1 - 2 * x) / Math.PI) * durationMs
+}
+
 /** How many checks have been read at `progress`; all of them once it reaches 1. */
 export function readoutChecked(progress: number, count: number): number {
   if (count <= 0) return 0

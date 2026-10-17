@@ -485,25 +485,39 @@ body {
   0%   { box-shadow: 0 0 0 0 rgb(var(--alert-rgb) / .6); border-color: rgb(var(--alert-rgb) / .8); }
   100% { box-shadow: 0 0 0 9px rgb(var(--alert-rgb) / 0); }
 }
-.readout-flash {
-  animation: readoutFlash 0.7s ease-out both;
+/* Each tile appears at its own moment (--d) and a light passes over it: transform and opacity only. */
+@keyframes readoutTile {
+  from { opacity: 0.3; transform: translateY(5px) scale(0.985); }
+  to   { opacity: 1; transform: none; }
 }
-
-/* The light that sweeps across the check being read. */
-@keyframes readoutSweep {
-  from { transform: translateX(-100%); }
-  to   { transform: translateX(100%); }
+@keyframes readoutScan {
+  0%   { opacity: 0; transform: translateX(-100%); }
+  30%  { opacity: 1; }
+  100% { opacity: 0; transform: translateX(100%); }
 }
-.readout-sweep {
+.readout-tile {
+  animation: readoutTile 0.5s cubic-bezier(0.22, 0.8, 0.3, 1) both;
+  animation-delay: var(--d, 0ms);
+}
+.readout-tile::after {
+  content: '';
   position: absolute;
   inset: 0;
-  background: linear-gradient(100deg, transparent, rgb(var(--scan-rgb) / .28), transparent);
-  animation: readoutSweep 0.45s linear infinite;
+  pointer-events: none;
+  clip-path: inset(0 round 8px);
+  background: linear-gradient(100deg, transparent, rgb(var(--scan-rgb) / .22), transparent);
+  animation: readoutScan 0.6s ease-out both;
+  animation-delay: var(--d, 0ms);
+}
+.readout-tile-warn {
+  animation: readoutTile 0.5s cubic-bezier(0.22, 0.8, 0.3, 1) both, readoutFlash 0.8s ease-out both;
+  animation-delay: var(--d, 0ms), var(--d, 0ms);
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .readout-flash,
-  .readout-sweep {
+  .readout-tile,
+  .readout-tile::after,
+  .readout-tile-warn {
     animation: none;
   }
 }

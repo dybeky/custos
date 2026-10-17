@@ -1,5 +1,6 @@
-import { memo, useEffect, useMemo, useRef, useState, type ReactNode, type RefObject } from 'react'
+import { memo, useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode, type RefObject } from 'react'
 import { useTranslation } from 'react-i18next'
+import type { TFunction } from 'i18next'
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
 import { Card, CardContent } from './ui/Card'
 import { InfoTip } from './ui/InfoTip'
@@ -14,11 +15,10 @@ import {
   readoutDurationMs,
   readoutOrder,
   readoutProgress,
-  readoutState,
+  readoutTimeMs,
   unavailableReasons,
   visibleItems,
-  type CompatTone,
-  type ReadoutState
+  type CompatTone
 } from '../utils/compat-view'
 import type { CapabilityCategory, OsInfo, ScannerCapability } from '../../shared/types'
 
@@ -73,74 +73,110 @@ function Chip({ icon, children }: { icon: string; children: ReactNode }) {
   )
 }
 
+/** How long the last tile's own animation runs after it starts (see .readout-tile). */
+const TILE_TAIL_MS = 520
+
+interface ReadoutRefs {
+  bar: RefObject<HTMLDivElement | null>
+  ring: RefObject<SVGCircleElement | null>
+  num: RefObject<HTMLSpanElement | null>
+  text: RefObject<HTMLSpanElement | null>
+}
+
 /**
- * The read-out played each time the card appears: the checks are read one after
- * another, the ring and the counters follow. Time runs on requestAnimationFrame,
- * but React only re-renders when another check has been read (once per check);
- * the scan line along the top edge is moved straight on the DOM node, so a frame
- * costs no render and the page keeps scrolling smoothly. With reduced motion it
- * starts finished.
+ * The read-out played each time the card appears. Nothing here re-renders the
+ * card per frame: one requestAnimationFrame loop writes the scan line, the ring,
+ * the counter and the percentage straight to their DOM nodes, and the tiles
+ * animate themselves with CSS (transform and opacity, a delay each), so the
+ * page keeps scrolling smoothly. React renders twice: at the start and when the
+ * read-out ends. With reduced motion it starts finished.
  */
-function useReadout(count: number): { checked: number; barRef: RefObject<HTMLDivElement | null> } {
+function useReadout(
+  order: ScannerCapability[],
+  supported: number,
+  t: TFunction
+): { playing: boolean; durationMs: number; refs: ReadoutRefs } {
   const reduced = useReducedMotion()
-  const [checked, setChecked] = useState(() => (reduced ? count : 0))
-  const barRef = useRef<HTMLDivElement | null>(null)
-  const countRef = useRef(count)
-  countRef.current = count
-  const has = count > 0
+  const count = order.length
+  const durationMs = readoutDurationMs(count)
+  const [playing, setPlaying] = useState(() => !reduced && count > 0)
+  const refs: ReadoutRefs = {
+    bar: useRef<HTMLDivElement | null>(null),
+    ring: useRef<SVGCircleElement | null>(null),
+    num: useRef<HTMLSpanElement | null>(null),
+    text: useRef<HTMLSpanElement | null>(null)
+  }
+  const live = useRef({ order, supported, t })
+  live.current = { order, supported, t }
   useEffect(() => {
-    if (!has) return
+    if (count === 0) return
     if (reduced) {
-      setChecked(countRef.current)
+      setPlaying(false)
       return
     }
-    const total = countRef.current
-    const duration = readoutDurationMs(total)
+    setPlaying(true)
     const start = performance.now()
     let raf = 0
-    let last = -1
+    let timer = 0
+    let lastChecked = -1
+    let lastPercent = -1
     const frame = (now: number): void => {
-      const p = readoutProgress(now - start, duration)
-      if (barRef.current) barRef.current.style.transform = `scaleX(${p})`
-      const n = readoutChecked(p, total)
-      if (n !== last) {
-        last = n
-        setChecked(n)
+      const { order: cur, supported: ok, t: tr } = live.current
+      const p = readoutProgress(now - start, durationMs)
+      const checked = readoutChecked(p, count)
+      const percent = Math.floor(p * 100)
+      refs.bar.current?.style.setProperty('transform', `scaleX(${p})`)
+      refs.ring.current?.setAttribute('stroke-dasharray', `${(count > 0 ? ok / count : 0) * p} 1`)
+      if (checked !== lastChecked && refs.num.current) {
+        refs.num.current.textContent = String(readoutAvailable(cur, checked))
       }
+      if ((checked !== lastChecked || percent !== lastPercent) && refs.text.current) {
+        refs.text.current.textContent = tr('dashboard.readout', { done: checked, total: count, percent })
+      }
+      lastChecked = checked
+      lastPercent = percent
       if (p < 1) raf = requestAnimationFrame(frame)
+      else timer = window.setTimeout(() => setPlaying(false), TILE_TAIL_MS)
     }
     raf = requestAnimationFrame(frame)
-    return () => cancelAnimationFrame(raf)
-  }, [has, reduced])
-  return { checked: has ? Math.min(checked, count) : 0, barRef }
+    return () => {
+      cancelAnimationFrame(raf)
+      window.clearTimeout(timer)
+    }
+    // refs are stable objects; live holds the latest data.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [count, reduced, durationMs])
+  return { playing: playing && !reduced, durationMs, refs }
 }
 
 /** Circular availability meter: arc length is the share of checks that can run. */
 function CompatRing({
   supported,
   total,
-  tone
+  tone,
+  playing,
+  refs
 }: {
   supported: number
   total: number
   tone: CompatTone
+  playing: boolean
+  refs: ReadoutRefs
 }) {
   const ratio = total > 0 ? supported / total : 0
   return (
     <div className={`relative shrink-0 w-[84px] h-[84px] ${TONE_TEXT[tone]}`}>
-      {/* A round blurred disc behind the ring is the glow: a filter on the svg itself would be cut off into a square. */}
-      <span className="pointer-events-none absolute inset-2 rounded-full bg-current opacity-[0.16] blur-lg" aria-hidden />
+      {/* The glow is a soft radial gradient on a round element: a filter on the svg would be cut into a square, and a blur filter is costly to paint. */}
+      <span
+        className="pointer-events-none absolute -inset-3 rounded-full opacity-[0.22]"
+        style={{ background: 'radial-gradient(circle, currentColor 0%, transparent 68%)' }}
+        aria-hidden
+      />
       <svg viewBox="0 0 84 84" className="relative w-full h-full -rotate-90 overflow-visible" aria-hidden>
+        <circle cx="42" cy="42" r="35" fill="none" strokeWidth="6" className="stroke-ink-dim/15" />
+        {/* While reading, the read-out loop owns stroke-dasharray, frame by frame. */}
         <circle
-          cx="42"
-          cy="42"
-          r="35"
-          fill="none"
-          strokeWidth="6"
-          className="stroke-ink-dim/15"
-        />
-        {/* Follows the read-out frame by frame, so there is no transition of its own. */}
-        <circle
+          ref={refs.ring}
           cx="42"
           cy="42"
           r="35"
@@ -149,12 +185,18 @@ function CompatRing({
           strokeWidth="6"
           strokeLinecap="round"
           pathLength={1}
-          strokeDasharray={`${ratio} 1`}
+          strokeDasharray={playing ? '0 1' : `${ratio} 1`}
           style={{ opacity: ratio > 0 ? 1 : 0 }}
         />
       </svg>
       <div className="absolute inset-0 flex flex-col items-center justify-center leading-none">
-        <span className="text-2xl font-bold tabular-nums font-display">{supported}</span>
+        {playing ? (
+          <span key="live" ref={refs.num} className="text-2xl font-bold tabular-nums font-display" />
+        ) : (
+          <span key="done" className="text-2xl font-bold tabular-nums font-display">
+            {supported}
+          </span>
+        )}
         <span className="mt-1 text-2xs font-semibold tabular-nums text-ink-dim">/ {total}</span>
       </div>
     </div>
@@ -163,13 +205,11 @@ function CompatRing({
 
 const CapabilityTile = memo(function CapabilityTile({
   cap,
-  state,
-  playing
+  delay
 }: {
   cap: ScannerCapability
-  state: ReadoutState
-  /** The read-out is still running: an unavailable check flashes as it is read. */
-  playing: boolean
+  /** ms after the read-out starts when this check is read; null once the read-out is over. */
+  delay: number | null
 }) {
   const { t } = useTranslation()
   const ready = cap.supported
@@ -180,38 +220,19 @@ const CapabilityTile = memo(function CapabilityTile({
     ? t(`capability.${cap.reasonKey}`, { ...cap.reasonParams, defaultValue: cap.reason ?? '' })
     : cap.reason
 
-  const pending = state === 'pending'
-  const scanning = state === 'scanning'
+  const animated = delay !== null
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 4 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.2 }}
-      className={`relative flex items-center gap-2.5 rounded-lg border px-3 py-2 transition-[opacity,border-color,background-color] duration-200 ${
-        pending ? 'opacity-40' : ''
-      } ${
-        scanning
-          ? 'border-scan/60 bg-scan/10'
-          : ready
-            ? 'border-[color:var(--line)] bg-panel-2/30 hover:border-scan/30 hover:bg-panel-2/60'
-            : 'border-amber/25 bg-amber/5'
-      } ${state === 'checked' && !ready && playing ? 'readout-flash' : ''}`}
+    <div
+      style={animated ? ({ '--d': `${Math.round(delay)}ms` } as CSSProperties) : undefined}
+      className={`relative flex items-center gap-2.5 rounded-lg border px-3 py-2 ${
+        ready
+          ? 'border-[color:var(--line)] bg-panel-2/30 hover:border-scan/30 hover:bg-panel-2/60'
+          : 'border-amber/25 bg-amber/5'
+      } ${animated ? (ready ? 'readout-tile' : 'readout-tile readout-tile-warn') : ''}`}
     >
-      {scanning && (
-        <span className="pointer-events-none absolute inset-0 overflow-hidden rounded-lg" aria-hidden>
-          <span className="readout-sweep" />
-        </span>
-      )}
       <span
-        className={`shrink-0 w-2 h-2 rounded-full transition-colors ${
-          pending || scanning ? 'bg-ink-dim/50' : ready ? 'bg-ok' : 'bg-amber'
-        }`}
-        style={{
-          boxShadow:
-            pending || scanning
-              ? 'none'
-              : `0 0 7px rgb(var(${ready ? '--ok-rgb' : '--amber-rgb'}) / 0.55)`
-        }}
+        className={`shrink-0 w-2 h-2 rounded-full ${ready ? 'bg-ok' : 'bg-amber'}`}
+        style={{ boxShadow: `0 0 7px rgb(var(${ready ? '--ok-rgb' : '--amber-rgb'}) / 0.55)` }}
         title={ready ? t('dashboard.ready') : t('dashboard.unavailable')}
       >
         <span className="sr-only">{ready ? t('dashboard.ready') : t('dashboard.unavailable')}</span>
@@ -229,7 +250,7 @@ const CapabilityTile = memo(function CapabilityTile({
         )}
       </div>
       <InfoTip title={name} text={ready ? help : reason || help || desc} />
-    </motion.div>
+    </div>
   )
 })
 
@@ -247,15 +268,12 @@ export function CompatibilityCard({ osInfo, capabilities, gameId }: Compatibilit
 
   // The read-out: checks are read in the order the groups show them.
   const order = useMemo(() => readoutOrder(groups), [groups])
-  const { checked, barRef } = useReadout(order.length)
-  const playing = order.length > 0 && checked < order.length
-  const percent = order.length > 0 ? Math.floor((checked / order.length) * 100) : 0
-  const shownSupported = playing ? readoutAvailable(order, checked) : supported
-  const stateOf = useMemo(() => {
+  const { playing, durationMs, refs } = useReadout(order, supported, t)
+  const delayOf = useMemo(() => {
     const m = new Map<string, number>()
-    order.forEach((c, i) => m.set(c.id, i))
+    order.forEach((c, i) => m.set(c.id, readoutTimeMs(i, order.length, durationMs)))
     return m
-  }, [order])
+  }, [order, durationMs])
 
   const osLabel = osInfo ? [osInfo.name, osInfo.edition].filter(Boolean).join(' ') : ''
   const arch = osInfo && osInfo.arch !== 'unknown' ? osInfo.arch.toUpperCase() : ''
@@ -269,7 +287,7 @@ export function CompatibilityCard({ osInfo, capabilities, gameId }: Compatibilit
   return (
     <Card className="mt-4 relative overflow-hidden" transition={{ duration: 0.4, delay: 0.12 }}>
       <div
-        className="pointer-events-none absolute -top-16 -left-10 w-56 h-56 rounded-full blur-3xl opacity-25"
+        className="pointer-events-none absolute -top-16 -left-10 w-56 h-56 rounded-full opacity-25"
         style={{
           background: `radial-gradient(circle, rgb(var(${
             tone === 'ok' ? '--scan-rgb' : '--amber-rgb'
@@ -280,7 +298,7 @@ export function CompatibilityCard({ osInfo, capabilities, gameId }: Compatibilit
       {playing && (
         <div className="pointer-events-none absolute inset-x-0 top-0 h-0.5 bg-scan/10" aria-hidden>
           <div
-            ref={barRef}
+            ref={refs.bar}
             className="h-full origin-left bg-scan will-change-transform"
             style={{ transform: 'scaleX(0)', boxShadow: '0 0 10px rgb(var(--scan-rgb) / 0.8)' }}
           />
@@ -289,7 +307,7 @@ export function CompatibilityCard({ osInfo, capabilities, gameId }: Compatibilit
       <CardContent className="relative">
         {/* Header: ring, title + verdict, system chips */}
         <div className="flex items-center gap-5">
-          <CompatRing supported={shownSupported} total={total} tone={tone} />
+          <CompatRing supported={supported} total={total} tone={tone} playing={playing} refs={refs} />
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
               <h2 className="text-lg font-semibold text-ink font-display">
@@ -306,9 +324,7 @@ export function CompatibilityCard({ osInfo, capabilities, gameId }: Compatibilit
             </div>
             <p className="mt-1 text-xs text-ink-dim" aria-live="off">
               {playing ? (
-                <span className="tabular-nums text-scan">
-                  {t('dashboard.readout', { done: checked, total, percent })}
-                </span>
+                <span ref={refs.text} className="tabular-nums text-scan" />
               ) : (
                 <>
                   {t('dashboard.autoDetected')}
@@ -422,8 +438,7 @@ export function CompatibilityCard({ osInfo, capabilities, gameId }: Compatibilit
                           <CapabilityTile
                             key={cap.id}
                             cap={cap}
-                            state={readoutState(stateOf.get(cap.id) ?? 0, checked, order.length)}
-                            playing={playing}
+                            delay={playing ? (delayOf.get(cap.id) ?? 0) : null}
                           />
                         ))}
                       </div>
