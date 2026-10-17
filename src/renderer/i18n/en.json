@@ -2,8 +2,6 @@
   "settings": {
     "title": "Settings",
     "subtitle": "Configure custos preferences",
-    "appearance": "Appearance",
-    "paletteDesc": "Custos uses a single black-and-white palette with warm coffee accents throughout the interface.",
     "about": {
       "title": "About",
       "madeBy": "Made by",
@@ -12,9 +10,6 @@
       "pro": "Custos Pro",
       "notice": "Official builds come only from the dybeky/custos releases page. Modified or re-uploaded copies are not allowed and may not be safe."
     },
-    "version": "Version:",
-    "developer": "Developer:",
-    "viewOnGitHub": "VIEW ON GITHUB",
     "account": "Account",
     "accountAnon": "Sign in to show your 97437.dev identity in Custos.",
     "accountAuthed": "Signed in to 97437.dev",
@@ -68,14 +63,12 @@
     "showEn": "Show in EN"
   },
   "dashboard": {
-    "title": "Dashboard",
     "eyebrow": "ANTI-CHEAT TOOLKIT",
     "welcome": "Welcome",
     "welcomeMessage": "Detect third-party software, fast.",
     "version": "Version",
     "stable": "STABLE",
     "compatibility": "System Compatibility",
-    "compatibilitySubtitle": "Checks available on your system",
     "available": "available",
     "ready": "Ready",
     "unavailable": "Unavailable",
@@ -112,11 +105,9 @@
     "startScan": "START SCAN",
     "readyToScan": "Ready to scan",
     "scanning": "Scanning...",
-    "scanningSubtitle": "Please wait, checking your system...",
     "scanComplete": "Scan Complete",
     "scanFailed": "Scan failed",
     "cancelScan": "CANCEL SCAN",
-    "scanDescription": "Scan AppData, Registry, Processes, Prefetch, Steam and more",
     "scannersReady": "scanners ready",
     "progress": "Progress:",
     "complete": "Complete!",
@@ -142,7 +133,6 @@
     "registryKeyNotFound": "Registry key does not exist on this system",
     "steamFolderNotFound": "Not found — Steam or the game is not installed on this PC.",
     "traces": "Windows traces",
-    "tracesDesc": "Where Windows remembers what was run and opened",
     "item": {
       "installedApps": "Installed apps",
       "startupApps": "Startup apps",
@@ -282,7 +272,6 @@
     "groupProcessesDesc": "What is running right now and what is loaded into the game.",
     "whyLabel": "Why a checker uses it",
     "howLabel": "How to use it",
-    "officialSite": "Official site",
     "whyText": {
       "lastActivityView": "Shows what happened shortly before the check: a cheat that was started, a file that was opened, a program that was removed.",
       "shellbagAnalyzer": "Folders opened in Explorer stay in the registry even after the folder is deleted, so it can show where a cheat used to live.",
@@ -299,26 +288,15 @@
     }
   },
   "general": {
-    "home": "Home",
-    "checkUpdates": "Check Updates",
-    "noReleases": "No releases found on GitHub",
-    "error": "Error",
-    "networkUnavailable": "Network unavailable",
-    "timeout": "Timeout",
     "dismiss": "Dismiss",
     "close": "Close",
     "loading": "Loading",
     "moreInfo": "More info"
   },
   "results": {
-    "title": "Results",
     "clean": "Clean",
-    "suspicious": "Suspicious",
-    "filesScanned": "Files scanned",
-    "noThreatsFound": "No threats found",
     "cleanTitle": "All clear",
     "cleanText": "The check found nothing suspicious on this PC.",
-    "threatsFound": "threats found",
     "scanResults": "Scan Results",
     "exportResults": "EXPORT RESULTS",
     "exportJSON": "EXPORT JSON",
@@ -326,10 +304,7 @@
     "runScanToSee": "Run a scan to see results",
     "noResultsYet": "No results yet",
     "noFindings": "No findings",
-    "evidenceFound": "leads found",
     "contextOnly": "Only system information — no cheat evidence",
-    "contextItems": "{{count}} informational",
-    "checkFailed": "Check did not complete",
     "noCheckYet": "No check yet",
     "unnamedPlayer": "Player not named yet",
     "tookSeconds": "took {{count}} s",
@@ -388,7 +363,8 @@
     "title": "Something went wrong",
     "message": "An unexpected error occurred. Please try reloading the application.",
     "reload": "Reload Application",
-    "continue": "Continue"
+    "continue": "Continue",
+    "retry": "Try again"
   },
   "nav": {
     "dashboard": "Dashboard",
@@ -414,8 +390,7 @@
   "gamePicker": {
     "title": "Choose your game",
     "subtitle": "custos tailors its checks to the game you're playing.",
-    "comingSoon": "Coming soon",
-    "select": "Select"
+    "comingSoon": "Coming soon"
   },
   "update": {
     "title": "Update available",

@@ -59,7 +59,10 @@ export function Settings() {
 
   const jump = (id: string) => {
     setActive(id)
-    document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    document.getElementById(id)?.scrollIntoView({
+      behavior: window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth',
+      block: 'start'
+    })
   }
 
   const role = user ? roleInfo(user.role) : null
@@ -97,7 +100,7 @@ export function Settings() {
                     <button
                       type="button"
                       onClick={() => jump(s.id)}
-                      aria-current={on ? 'true' : undefined}
+                      aria-current={on ? 'location' : undefined}
                       className={`flex w-full items-center gap-2.5 rounded-xl border px-3 py-2 text-left text-sm outline-none transition-colors focus-visible:ring-1 focus-visible:ring-scan/60 ${
                         on
                           ? 'border-scan/30 bg-scan/10 font-semibold text-scan'

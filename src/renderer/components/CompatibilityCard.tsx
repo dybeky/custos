@@ -109,7 +109,10 @@ function useReadout(
   const live = useRef({ order, supported, t })
   live.current = { order, supported, t }
   useEffect(() => {
-    if (count === 0) return
+    if (count === 0) {
+      setPlaying(false)
+      return
+    }
     if (reduced) {
       setPlaying(false)
       return

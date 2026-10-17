@@ -52,7 +52,7 @@ export function Header({ updateVersion, onUpdateClick }: { updateVersion?: strin
   const handleClose = () => window.electronAPI.close()
 
   return (
-    <header className="h-10 flex items-center justify-between px-4 bg-panel/70 backdrop-blur-xl border-b border-[color:var(--line)] select-none"
+    <header className="h-10 flex items-center justify-between px-4 bg-panel/85 border-b border-[color:var(--line)] select-none"
       style={{ WebkitAppRegion: 'drag' } as React.CSSProperties}>
       {/* Current page (the brand lives in the menu) */}
       <div className="flex items-center gap-2 pl-1">
@@ -88,7 +88,7 @@ export function Header({ updateVersion, onUpdateClick }: { updateVersion?: strin
 
         {/* Status + OS indicator — glass pill */}
         <div
-          className="flex items-center gap-1.5 mr-2 h-6 px-2.5 rounded-full bg-panel-2/60 border border-[color:var(--line)] backdrop-blur-sm"
+          className="flex items-center gap-1.5 mr-2 h-6 px-2.5 rounded-full bg-panel-2/60 border border-[color:var(--line)]"
           title={statusTitles[status]}
         >
           {/* Status dot with expanding radar ring */}

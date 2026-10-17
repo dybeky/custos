@@ -1,5 +1,6 @@
-import { useCallback, useEffect, useState } from 'react'
-import { HashRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { useCallback, useEffect, useState, type ReactNode } from 'react'
+import { MotionConfig } from 'framer-motion'
+import { HashRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import { Header } from './components/layout/Header'
 import { Sidebar } from './components/layout/Sidebar'
 import { AnimatedBackground } from './components/layout/AnimatedBackground'
@@ -29,6 +30,16 @@ import { UpdateCheckFailedToast } from './components/UpdateCheckFailedToast'
 import { useGameStore } from './stores/game-store'
 import type { UpdateInfo } from '../shared/types'
 import './i18n'
+
+/** A page that throws (e.g. a malformed site report) shows a retry card instead of blanking the window; leaving the page resets it. */
+function PageBoundary({ children }: { children: ReactNode }) {
+  const { pathname } = useLocation()
+  return (
+    <ErrorBoundary compact key={pathname}>
+      {children}
+    </ErrorBoundary>
+  )
+}
 
 export function App() {
   const { loadSettings, isLoading } = useSettingsStore()
@@ -89,6 +100,8 @@ export function App() {
 
   return (
     <ErrorBoundary>
+      {/* Windows "animation effects off" / prefers-reduced-motion switches off every framer-motion transform animation. */}
+      <MotionConfig reducedMotion="user">
       {!introDone && <LaunchSplash onDone={endIntro} />}
       {!isLoading && (
         <HashRouter>
@@ -105,6 +118,7 @@ export function App() {
                 <Sidebar />
   
                 <main className="flex-1 overflow-hidden flex flex-col">
+                  <PageBoundary>
                   <Routes>
                     <Route path="/" element={<Dashboard />} />
                     <Route path="/scan" element={<Scan />} />
@@ -118,12 +132,14 @@ export function App() {
                     <Route path="/profile" element={<Profile />} />
                     <Route path="*" element={<Navigate to="/" replace />} />
                   </Routes>
+                  </PageBoundary>
                 </main>
               </div>
             </div>
           </div>
         </HashRouter>
       )}
+      </MotionConfig>
     </ErrorBoundary>
   )
 }

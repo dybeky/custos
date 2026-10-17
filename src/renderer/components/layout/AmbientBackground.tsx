@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react'
 import { useLocation } from 'react-router-dom'
 import { useSettingsStore } from '../../stores/settings-store'
+import { useScanStore } from '../../stores/scan-store'
 import { AMBIENT_PALETTE, initialQuality, parseRgbChannels, stepQuality, type Rgb } from '../../../shared/ambient'
 
 /**
@@ -32,6 +33,12 @@ export function AmbientBackground() {
   const back = useRef<HTMLCanvasElement>(null)
   const goal = useRef<Rgb>([200, 255, 46])
   const ink = useRef<Rgb>([240, 240, 240])
+  // While a scan runs the layer is frozen so it never steals frames from the progress page.
+  const scanning = useScanStore((s) => s.status === 'scanning')
+  const paused = useRef(false)
+  const sync = useRef<() => void>(() => {})
+  paused.current = scanning
+  useEffect(() => sync.current(), [scanning])
 
   // Re-read the accent when the theme changes (after the data-theme attribute landed).
   useEffect(() => {
@@ -305,7 +312,7 @@ export function AmbientBackground() {
       raf = requestAnimationFrame(loop)
     }
     const start = () => {
-      if (running || reduced) return
+      if (running || reduced || paused.current || document.hidden) return
       running = true
       last = performance.now()
       raf = requestAnimationFrame(loop)
@@ -324,17 +331,23 @@ export function AmbientBackground() {
       mx = my = -9999
     }
     const onDown = (e: PointerEvent) => {
-      if (reduced || sparks.length > 60) return
+      if (reduced || !running || sparks.length > 60) return
       for (let i = 0; i < 14; i++) {
         const a = rand(0, TAU)
         const v = rand(60, 260)
         sparks.push({ x: e.clientX, y: e.clientY, vx: Math.cos(a) * v, vy: Math.sin(a) * v, life: 1 })
       }
     }
-    const onVisible = () => (document.hidden ? stop() : start())
+    const onVisible = () => (document.hidden || paused.current ? stop() : start())
+    sync.current = onVisible
 
     window.addEventListener('pointermove', onMove, { passive: true })
-    window.addEventListener('resize', resize)
+    // Resizing clears a canvas: repaint one still frame when the loop is not running.
+    const onResize = () => {
+      resize()
+      if (!running) draw(0.016, performance.now() / 1000)
+    }
+    window.addEventListener('resize', onResize)
     window.addEventListener('pointerdown', onDown, { passive: true })
     document.documentElement.addEventListener('pointerleave', onLeave)
     document.addEventListener('visibilitychange', onVisible)
@@ -343,8 +356,9 @@ export function AmbientBackground() {
 
     return () => {
       stop()
+      sync.current = () => {}
       window.removeEventListener('pointermove', onMove)
-      window.removeEventListener('resize', resize)
+      window.removeEventListener('resize', onResize)
       window.removeEventListener('pointerdown', onDown)
       document.documentElement.removeEventListener('pointerleave', onLeave)
       document.removeEventListener('visibilitychange', onVisible)

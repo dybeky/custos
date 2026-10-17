@@ -1,4 +1,5 @@
 import { motion } from 'framer-motion'
+import { radioGroupKeys } from '../../utils/radio-keys'
 
 export interface TabDef<K extends string> {
   key: K
@@ -19,8 +20,14 @@ export function ResultsTabs<K extends string>({
   active: K
   onChange: (key: K) => void
 }) {
+  const keys = radioGroupKeys(
+    tabs.map((x) => x.key),
+    active,
+    onChange,
+    'tab'
+  )
   return (
-    <div role="tablist" className="mb-5 flex flex-wrap gap-1 rounded-2xl border border-[color:var(--line)] bg-panel/40 p-1 backdrop-blur-xl">
+    <div role="tablist" onKeyDown={keys.onKeyDown} className="mb-5 flex flex-wrap gap-1 rounded-2xl border border-[color:var(--line)] bg-panel/60 p-1">
       {tabs.map((tab) => {
         const on = tab.key === active
         return (
@@ -28,8 +35,9 @@ export function ResultsTabs<K extends string>({
             key={tab.key}
             role="tab"
             aria-selected={on}
+            tabIndex={keys.tabIndexOf(tab.key)}
             onClick={() => onChange(tab.key)}
-            className={`relative flex shrink-0 items-center gap-2 rounded-xl px-3 py-2 text-sm font-medium transition-colors ${
+            className={`relative flex shrink-0 items-center gap-2 rounded-xl px-3 py-2 text-sm font-medium outline-none transition-colors focus-visible:ring-1 focus-visible:ring-scan/60 ${
               on ? 'text-scan' : 'text-ink-dim hover:text-ink'
             }`}
           >

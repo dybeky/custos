@@ -47,6 +47,7 @@ export function HistoryView({ onOpened }: { onOpened: () => void }) {
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder={t('history.search')}
+            aria-label={t('history.search')}
             className="h-9 w-64 max-w-full px-3 rounded-xl bg-panel border border-[color:var(--line)] text-sm text-ink placeholder:text-ink-dim/60 focus:outline-none focus:border-scan/50"
           />
         </div>
@@ -58,6 +59,7 @@ export function HistoryView({ onOpened }: { onOpened: () => void }) {
               <button
                 key={k}
                 onClick={() => setTab(k)}
+                aria-pressed={active}
                 className={`px-3 h-8 rounded-lg text-xs font-medium transition-colors ${active ? 'bg-scan/15 text-scan' : 'bg-panel text-ink-dim hover:text-ink'}`}
               >
                 {t(`history.tab.${k}`)}

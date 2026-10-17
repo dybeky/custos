@@ -189,7 +189,7 @@ export function Sidebar() {
       initial={false}
       animate={{ width: collapsed ? 68 : 220 }}
       transition={{ type: 'spring', stiffness: 380, damping: 36 }}
-      className="relative shrink-0 flex flex-col bg-panel/60 backdrop-blur-xl border-r border-[color:var(--line)] overflow-hidden select-none"
+      className="relative shrink-0 flex flex-col bg-panel/80 border-r border-[color:var(--line)] overflow-hidden select-none"
       aria-label={t('nav.menu')}
     >
       {/* Brand */}

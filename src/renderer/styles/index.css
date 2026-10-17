@@ -25,27 +25,6 @@
 @font-face {
   font-family: 'MuseoModerno';
   font-style: normal;
-  font-weight: 100;
-  font-display: swap;
-  src: url('../assets/fonts/MuseoModerno-Thin.ttf') format('truetype');
-}
-@font-face {
-  font-family: 'MuseoModerno';
-  font-style: normal;
-  font-weight: 200;
-  font-display: swap;
-  src: url('../assets/fonts/MuseoModerno-ExtraLight.ttf') format('truetype');
-}
-@font-face {
-  font-family: 'MuseoModerno';
-  font-style: normal;
-  font-weight: 300;
-  font-display: swap;
-  src: url('../assets/fonts/MuseoModerno-Light.ttf') format('truetype');
-}
-@font-face {
-  font-family: 'MuseoModerno';
-  font-style: normal;
   font-weight: 400;
   font-display: swap;
   src: url('../assets/fonts/MuseoModerno-Regular.ttf') format('truetype');
@@ -397,41 +376,6 @@ body {
 }
 .animate-fade-in {
   animation: fade-in 0.3s ease both;
-}
-
-/* ============================================
-   GLASS EFFECTS
-   ============================================ */
-
-.glass {
-  background: rgb(var(--panel-rgb) / .55);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-}
-
-/* ============================================
-   FLOATING ANIMATIONS
-   ============================================ */
-
-@keyframes float-particle {
-  0% {
-    transform: translateY(100vh) translateX(0);
-    opacity: 0;
-  }
-  10% {
-    opacity: 1;
-  }
-  90% {
-    opacity: 1;
-  }
-  100% {
-    transform: translateY(-100vh) translateX(50px);
-    opacity: 0;
-  }
-}
-
-.animate-float-particle {
-  animation: float-particle linear infinite;
 }
 
 @keyframes badgeBreathe {

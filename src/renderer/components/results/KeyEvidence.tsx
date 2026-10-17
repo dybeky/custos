@@ -24,7 +24,7 @@ export function KeyEvidence({ report }: { report: ScanReport }) {
         {correlations.map((c) => (
           <div
             key={c.id}
-            className="relative overflow-hidden rounded-2xl border border-[color:var(--line)] bg-panel/50 py-3.5 pl-5 pr-4 backdrop-blur-xl"
+            className="relative overflow-hidden rounded-2xl border border-[color:var(--line)] bg-panel/70 py-3.5 pl-5 pr-4"
           >
             <span className={`absolute inset-y-0 left-0 w-1.5 ${severityStripe(c.severity)}`} />
             <div className="flex items-center gap-2">

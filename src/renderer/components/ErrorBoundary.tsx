@@ -6,6 +6,8 @@ interface Props {
   children: ReactNode
   fallback?: ReactNode
   onReset?: () => void
+  /** Inside the app shell (one page): fills the page, not the window, and offers a retry. */
+  compact?: boolean
 }
 
 interface State {
@@ -44,7 +46,7 @@ export class ErrorBoundary extends Component<Props, State> {
       }
 
       return (
-        <div className="h-screen w-screen bg-bg flex items-center justify-center p-4">
+        <div className={`${this.props.compact ? 'flex-1 h-full w-full overflow-y-auto' : 'h-screen w-screen bg-bg'} flex items-center justify-center p-4`}>
           <div className="bg-panel border border-[color:var(--line)] glow-scan rounded-2xl p-8 max-w-md w-full text-center">
             <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-alert/10 flex items-center justify-center">
               <svg className="w-8 h-8 text-alert" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -69,12 +71,12 @@ export class ErrorBoundary extends Component<Props, State> {
             )}
 
             <div className="flex gap-3">
-              {this.props.onReset && (
+              {(this.props.onReset || this.props.compact) && (
                 <button
                   onClick={this.handleContinue}
                   className="flex-1 py-3 px-4 bg-panel-2 hover:bg-panel-2/70 text-ink-dim hover:text-ink rounded-xl transition-colors font-medium"
                 >
-                  {i18next.t('errorBoundary.continue')}
+                  {i18next.t(this.props.compact ? 'errorBoundary.retry' : 'errorBoundary.continue')}
                 </button>
               )}
               <button

@@ -1,6 +1,7 @@
 import { useTranslation } from 'react-i18next'
 import { COLOR_THEMES, THEME_SWATCHES } from '../../../shared/themes'
 import { useSettingsStore } from '../../stores/settings-store'
+import { radioGroupKeys } from '../../utils/radio-keys'
 
 /**
  * Theme tiles, each a miniature of the app in that theme (background,
@@ -9,9 +10,10 @@ import { useSettingsStore } from '../../stores/settings-store'
 export function ThemePicker() {
   const { t } = useTranslation()
   const { colorTheme, setColorTheme } = useSettingsStore()
+  const keys = radioGroupKeys(COLOR_THEMES, colorTheme, setColorTheme)
 
   return (
-    <div className="grid grid-cols-2 xl:grid-cols-3 gap-3" role="radiogroup" aria-label={t('settings.theme.title')}>
+    <div className="grid grid-cols-2 xl:grid-cols-3 gap-3" role="radiogroup" aria-label={t('settings.theme.title')} onKeyDown={keys.onKeyDown}>
       {COLOR_THEMES.map((id) => {
         const sw = THEME_SWATCHES[id]
         const active = colorTheme === id
@@ -20,6 +22,7 @@ export function ThemePicker() {
             key={id}
             role="radio"
             aria-checked={active}
+            tabIndex={keys.tabIndexOf(id)}
             onClick={() => setColorTheme(id)}
             className={`group relative text-left rounded-2xl p-2 border outline-none transition-all duration-200 focus-visible:ring-1 focus-visible:ring-scan/60 ${
               active
