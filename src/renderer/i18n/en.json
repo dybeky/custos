@@ -78,6 +78,7 @@
     "categoryUtilities": "Utilities",
     "categoryExport": "Results & Export",
     "changelog": "What's new",
+    "readout": "Reading checks {{done}} / {{total}} · {{percent}}%",
     "autoDetected": "Auto-detected for your system",
     "chipBuild": "Build {{build}}",
     "showAll": "Show all {{count}}",
@@ -232,7 +233,7 @@
         "steam": "Steam’s settings: active user, auto-login account, install path."
       }
     },
-    "search": "Search places, keys, what they show…",
+    "search": "Search places and keys…",
     "searchHint": "Press / to search",
     "tabAll": "All",
     "tabSystem": "System",
@@ -256,7 +257,38 @@
     "usbDeviewDesc": "Lists all USB devices that were ever connected to your computer.",
     "everythingDesc": "Instant file-name search for Windows.",
     "systemInformerDesc": "Free, powerful, multi-purpose tool that helps you monitor system resources and debug software.",
-    "shellbagAnalyzerDesc": "Analyzes and cleans Windows ShellBag entries left by folder browsing activity."
+    "shellbagAnalyzerDesc": "Analyzes and cleans Windows ShellBag entries left by folder browsing activity.",
+    "search": "Search tools, what they show…",
+    "searchHint": "Press / to search",
+    "noMatches": "Nothing matches this search.",
+    "tip": "These are free programs from their authors' own sites. Custos only opens the site in your browser: it never downloads or starts them for you.",
+    "tabAll": "All",
+    "tabTraces": "Activity and traces",
+    "tabDevices": "Devices and files",
+    "tabProcesses": "Processes",
+    "groupTraces": "Activity and traces",
+    "groupTracesDesc": "What the player did on the PC and which folders were opened.",
+    "groupDevices": "Devices and files",
+    "groupDevicesDesc": "Which USB devices were plugged in and where a file hides.",
+    "groupProcesses": "Processes",
+    "groupProcessesDesc": "What is running right now and what is loaded into the game.",
+    "whyLabel": "Why a checker uses it",
+    "howLabel": "How to use it",
+    "officialSite": "Official site",
+    "whyText": {
+      "lastActivityView": "Shows what happened shortly before the check: a cheat that was started, a file that was opened, a program that was removed.",
+      "shellbagAnalyzer": "Folders opened in Explorer stay in the registry even after the folder is deleted, so it can show where a cheat used to live.",
+      "usbDeview": "Shows flash drives and unknown devices, for example a second PC or a hardware cheat that was plugged in and removed.",
+      "everything": "Finds a file by a part of its name on every drive in a second, including a cheat that was renamed or moved.",
+      "systemInformer": "Shows what runs and what is loaded into the game process, so an injected library or a hidden program is easy to spot."
+    },
+    "howText": {
+      "lastActivityView": "Run it, sort by time and read the last hour before the check.",
+      "shellbagAnalyzer": "Only read the list of folders and their times. Do not use its cleaning function on the player's PC.",
+      "usbDeview": "Sort by the last connection time and look for devices the player cannot explain.",
+      "everything": "Type a word such as loader, esp or inject, then sort by Date Modified.",
+      "systemInformer": "Open the game process, then Properties and Modules, and look for libraries from user folders."
+    }
   },
   "general": {
     "home": "Home",

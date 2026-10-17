@@ -144,7 +144,8 @@ export function normalizeRevealPath(rawPath: string): string | null {
   return p
 }
 
-const REGISTRY_KEY_CHARS = /^[A-Za-z0-9\\_\-\s.(){}]+$/
+// A plain space only: tabs and line breaks never occur in a key name.
+const REGISTRY_KEY_CHARS = /^[A-Za-z0-9\\_\- .(){}]+$/
 const REGISTRY_HIVE = /^(HKCU|HKLM|HKU|HKCR|HKCC|HKEY_[A-Z_]+)\\/i
 
 /**

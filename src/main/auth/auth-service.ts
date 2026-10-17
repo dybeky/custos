@@ -347,7 +347,9 @@ export class AuthService {
       this.emit()
       return { ok: false, error: 'update_required' }
     }
-    return { ok: false, error: networkError((e as Error).message) }
+    // The site answered with something that is not a check list / report: a short code, not the schema's complaint.
+    if ((e as Error | undefined)?.name === 'ZodError') return { ok: false, error: 'invalid_report' }
+    return { ok: false, error: networkError((e as Error | undefined)?.message) }
   }
 
   /** The check of one player just before `before` (staff with the right only). */

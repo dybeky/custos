@@ -475,3 +475,52 @@ body {
   }
   .badge-sheen { display: none; }
 }
+
+/* ============================================
+   COMPATIBILITY READ-OUT (Dashboard)
+   ============================================ */
+
+/* An unavailable check lights up red as it is read, then settles to amber. */
+@keyframes readoutFlash {
+  0%   { box-shadow: 0 0 0 0 rgb(var(--alert-rgb) / .6); border-color: rgb(var(--alert-rgb) / .8); }
+  100% { box-shadow: 0 0 0 9px rgb(var(--alert-rgb) / 0); }
+}
+.readout-flash {
+  animation: readoutFlash 0.7s ease-out both;
+}
+
+/* The light that sweeps across the check being read. */
+@keyframes readoutSweep {
+  from { transform: translateX(-100%); }
+  to   { transform: translateX(100%); }
+}
+.readout-sweep {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(100deg, transparent, rgb(var(--scan-rgb) / .28), transparent);
+  animation: readoutSweep 0.45s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .readout-flash,
+  .readout-sweep {
+    animation: none;
+  }
+}
+
+/* ============================================
+   NEWS LIST (Dashboard): scrolls inside its card
+   ============================================ */
+
+.news-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: rgb(var(--scan-rgb) / .45) transparent;
+}
+.news-scroll::-webkit-scrollbar { width: 4px; }
+.news-scroll::-webkit-scrollbar-thumb { background: rgb(var(--scan-rgb) / .45); }
+.news-scroll::-webkit-scrollbar-thumb:hover { background: rgb(var(--scan-rgb) / .75); }
+/* A soft fade at the bottom edge while more news is below. */
+.news-fade-bottom {
+  -webkit-mask-image: linear-gradient(to bottom, black calc(100% - 36px), transparent);
+  mask-image: linear-gradient(to bottom, black calc(100% - 36px), transparent);
+}

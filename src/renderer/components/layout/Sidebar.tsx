@@ -324,7 +324,10 @@ export function Sidebar() {
               {scanning && <span className="absolute inset-0 rounded-full bg-scan animate-ping opacity-70" />}
               <span className={`relative w-2 h-2 rounded-full ${scanning ? 'bg-scan' : totalFindings > 0 ? 'bg-alert' : 'bg-ok'}`} />
             </span>
-            <span className="text-[11px] font-semibold text-ink whitespace-nowrap">
+            <span
+              className="min-w-0 truncate text-[11px] font-semibold text-ink"
+              title={scanning ? t('nav.scanning') : completed ? t('nav.lastScanDone') : t('nav.ready')}
+            >
               {scanning ? t('nav.scanning') : completed ? t('nav.lastScanDone') : t('nav.ready')}
             </span>
             {scanning && <span className="ml-auto text-[10px] font-mono text-ink-dim">{Math.round(progress)}%</span>}

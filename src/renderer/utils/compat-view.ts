@@ -74,3 +74,44 @@ export function unavailableReasons(capabilities: ScannerCapability[]): Unavailab
   }
   return [...byKey.values()].sort((a, b) => b.count - a.count)
 }
+
+// ---- The read-out played when the card appears: the checks are "read" one after another.
+
+/** The whole pass lasts 1.5-2.5 s; more checks take a little longer, never more. */
+export function readoutDurationMs(count: number): number {
+  return Math.min(2500, Math.max(1500, 1000 + Math.max(0, count) * 40))
+}
+
+/** Eased progress (0-1, monotonic) after `elapsedMs` of a pass lasting `durationMs`. */
+export function readoutProgress(elapsedMs: number, durationMs: number): number {
+  if (!Number.isFinite(elapsedMs) || !(durationMs > 0)) return 1
+  const x = Math.min(1, Math.max(0, elapsedMs / durationMs))
+  return 0.5 - Math.cos(Math.PI * x) / 2
+}
+
+/** How many checks have been read at `progress`; all of them once it reaches 1. */
+export function readoutChecked(progress: number, count: number): number {
+  if (count <= 0) return 0
+  if (progress >= 1) return count
+  return Math.min(count, Math.max(0, Math.floor(progress * count)))
+}
+
+export type ReadoutState = 'pending' | 'scanning' | 'checked'
+
+/** A check's state during the pass: the one being read right now is "scanning". */
+export function readoutState(index: number, checked: number, count: number): ReadoutState {
+  if (index < checked) return 'checked'
+  return index === checked && checked < count ? 'scanning' : 'pending'
+}
+
+/** The checks in the order the groups show them. */
+export function readoutOrder(groups: CapabilityGroup[]): ScannerCapability[] {
+  return groups.flatMap((g) => g.items)
+}
+
+/** Available checks among the first `checked` ones: what the ring shows while it fills. */
+export function readoutAvailable(order: ScannerCapability[], checked: number): number {
+  let n = 0
+  for (let i = 0; i < Math.min(checked, order.length); i++) if (order[i].supported) n++
+  return n
+}

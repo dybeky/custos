@@ -131,8 +131,10 @@ export class KeywordMatcher {
       return baseName
     }
     // "spoofer_v2.exe", "esp-setup.exe": the exact name plus a version or package word.
+    // A file name is at most 255 characters; longer text is a title or a blob,
+    // and the suffix pattern is quadratic on a long run of separators.
     let stem = baseName
-    for (let i = 0; i < 3 && NAME_SUFFIX.test(stem); i++) {
+    for (let i = 0; i < 3 && stem.length <= 300 && NAME_SUFFIX.test(stem); i++) {
       stem = stem.replace(NAME_SUFFIX, '').replace(/[-_ .]+$/, '')
       if (this.exactMatch.has(stem)) return stem
     }
@@ -173,6 +175,8 @@ export class KeywordMatcher {
       // ".pf" (SPOOFER.EXE-1A2B3C4D.pf names spoofer.exe).
       .map((p) => p.replace(/^(?:\[[^\]]*\]\s*|\{[^}]*\}\s*|[a-z]+:\s+)+/i, '').replace(/\.pf$/i, '').trim())
       .filter((p) => p && p !== text)
+      // a finding is a line or a few; a blob of thousands of parts is not worth a pass each
+      .slice(0, 500)
     for (const part of parts) {
       const keyword = this.findKeyword(part)
       if (keyword) return keyword

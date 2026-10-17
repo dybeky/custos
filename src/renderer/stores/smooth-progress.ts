@@ -60,7 +60,7 @@ export function realProgress(s: ReturnType<typeof useScanStore.getState>): { tar
   const n = s.scanners.length
   if (n === 0) return { target: 0, slot: 12 }
   const running = s.progress && !s.results.some((r) => r.scannerName === s.progress!.scannerName)
-    ? Math.min(1, Math.max(0, s.progress.percentage / 100))
+    ? Math.min(1, Math.max(0, Number.isFinite(s.progress.percentage) ? s.progress.percentage / 100 : 0))
     : 0
   return { target: Math.min(100, ((s.results.length + running) / n) * 100), slot: 100 / n }
 }

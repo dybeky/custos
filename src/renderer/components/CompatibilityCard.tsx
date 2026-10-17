@@ -1,6 +1,6 @@
-import { useMemo, useState, type ReactNode } from 'react'
+import { memo, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
-import { AnimatePresence, motion } from 'framer-motion'
+import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
 import { Card, CardContent } from './ui/Card'
 import { InfoTip } from './ui/InfoTip'
 import { GAMES } from '../../shared/games'
@@ -9,9 +9,16 @@ import {
   PREVIEW_LIMIT,
   compatTone,
   groupCapabilities,
+  readoutAvailable,
+  readoutChecked,
+  readoutDurationMs,
+  readoutOrder,
+  readoutProgress,
+  readoutState,
   unavailableReasons,
   visibleItems,
-  type CompatTone
+  type CompatTone,
+  type ReadoutState
 } from '../utils/compat-view'
 import type { CapabilityCategory, OsInfo, ScannerCapability } from '../../shared/types'
 
@@ -66,6 +73,37 @@ function Chip({ icon, children }: { icon: string; children: ReactNode }) {
   )
 }
 
+/**
+ * The read-out played each time the card appears: the checks are read one after
+ * another, the ring and the counters follow. Progress runs 0 → 1 on
+ * requestAnimationFrame; with reduced motion it starts finished.
+ */
+function useReadout(count: number): number {
+  const reduced = useReducedMotion()
+  const [progress, setProgress] = useState(() => (reduced ? 1 : 0))
+  const countRef = useRef(count)
+  countRef.current = count
+  const has = count > 0
+  useEffect(() => {
+    if (!has) return
+    if (reduced) {
+      setProgress(1)
+      return
+    }
+    const duration = readoutDurationMs(countRef.current)
+    const start = performance.now()
+    let raf = 0
+    const frame = (now: number): void => {
+      const p = readoutProgress(now - start, duration)
+      setProgress(p)
+      if (p < 1) raf = requestAnimationFrame(frame)
+    }
+    raf = requestAnimationFrame(frame)
+    return () => cancelAnimationFrame(raf)
+  }, [has, reduced])
+  return progress
+}
+
 /** Circular availability meter: arc length is the share of checks that can run. */
 function CompatRing({
   supported,
@@ -90,7 +128,8 @@ function CompatRing({
           strokeWidth="6"
           className="stroke-ink-dim/15"
         />
-        <motion.circle
+        {/* Follows the read-out frame by frame, so there is no transition of its own. */}
+        <circle
           cx="42"
           cy="42"
           r="35"
@@ -98,9 +137,9 @@ function CompatRing({
           stroke="currentColor"
           strokeWidth="6"
           strokeLinecap="round"
-          initial={{ pathLength: 0 }}
-          animate={{ pathLength: ratio }}
-          transition={{ duration: 0.9, ease: 'easeOut', delay: 0.15 }}
+          pathLength={1}
+          strokeDasharray={`${ratio} 1`}
+          style={{ opacity: ratio > 0 ? 1 : 0 }}
         />
       </svg>
       <div className="absolute inset-0 flex flex-col items-center justify-center leading-none">
@@ -111,7 +150,16 @@ function CompatRing({
   )
 }
 
-function CapabilityTile({ cap, index }: { cap: ScannerCapability; index: number }) {
+const CapabilityTile = memo(function CapabilityTile({
+  cap,
+  state,
+  playing
+}: {
+  cap: ScannerCapability
+  state: ReadoutState
+  /** The read-out is still running: an unavailable check flashes as it is read. */
+  playing: boolean
+}) {
   const { t } = useTranslation()
   const ready = cap.supported
   const name = featureName(t, cap.id, cap.name)
@@ -121,23 +169,37 @@ function CapabilityTile({ cap, index }: { cap: ScannerCapability; index: number 
     ? t(`capability.${cap.reasonKey}`, { ...cap.reasonParams, defaultValue: cap.reason ?? '' })
     : cap.reason
 
+  const pending = state === 'pending'
+  const scanning = state === 'scanning'
   return (
     <motion.div
       initial={{ opacity: 0, y: 4 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.25, delay: Math.min(index, 14) * 0.02 }}
-      className={`flex items-center gap-2.5 rounded-lg border px-3 py-2 transition-colors ${
-        ready
-          ? 'border-[color:var(--line)] bg-panel-2/30 hover:border-scan/30 hover:bg-panel-2/60'
-          : 'border-amber/25 bg-amber/5'
-      }`}
+      transition={{ duration: 0.2 }}
+      className={`relative flex items-center gap-2.5 rounded-lg border px-3 py-2 transition-[opacity,border-color,background-color] duration-200 ${
+        pending ? 'opacity-40' : ''
+      } ${
+        scanning
+          ? 'border-scan/60 bg-scan/10'
+          : ready
+            ? 'border-[color:var(--line)] bg-panel-2/30 hover:border-scan/30 hover:bg-panel-2/60'
+            : 'border-amber/25 bg-amber/5'
+      } ${state === 'checked' && !ready && playing ? 'readout-flash' : ''}`}
     >
+      {scanning && (
+        <span className="pointer-events-none absolute inset-0 overflow-hidden rounded-lg" aria-hidden>
+          <span className="readout-sweep" />
+        </span>
+      )}
       <span
-        className={`shrink-0 w-2 h-2 rounded-full ${
-          ready ? 'bg-ok' : 'bg-amber'
+        className={`shrink-0 w-2 h-2 rounded-full transition-colors ${
+          pending || scanning ? 'bg-ink-dim/50' : ready ? 'bg-ok' : 'bg-amber'
         }`}
         style={{
-          boxShadow: `0 0 7px rgb(var(${ready ? '--ok-rgb' : '--amber-rgb'}) / 0.55)`
+          boxShadow:
+            pending || scanning
+              ? 'none'
+              : `0 0 7px rgb(var(${ready ? '--ok-rgb' : '--amber-rgb'}) / 0.55)`
         }}
         title={ready ? t('dashboard.ready') : t('dashboard.unavailable')}
       >
@@ -158,7 +220,7 @@ function CapabilityTile({ cap, index }: { cap: ScannerCapability; index: number 
       <InfoTip title={name} text={ready ? help : reason || help || desc} />
     </motion.div>
   )
-}
+})
 
 export function CompatibilityCard({ osInfo, capabilities, gameId }: CompatibilityCardProps) {
   const { t } = useTranslation()
@@ -171,6 +233,18 @@ export function CompatibilityCard({ osInfo, capabilities, gameId }: Compatibilit
   const groups = useMemo(() => groupCapabilities(capabilities), [capabilities])
   const reasons = useMemo(() => unavailableReasons(capabilities), [capabilities])
   const unavailable = total - supported
+
+  // The read-out: checks are read in the order the groups show them.
+  const order = useMemo(() => readoutOrder(groups), [groups])
+  const progress = useReadout(order.length)
+  const playing = progress < 1
+  const checked = readoutChecked(progress, order.length)
+  const shownSupported = playing ? readoutAvailable(order, checked) : supported
+  const stateOf = useMemo(() => {
+    const m = new Map<string, number>()
+    order.forEach((c, i) => m.set(c.id, i))
+    return m
+  }, [order])
 
   const osLabel = osInfo ? [osInfo.name, osInfo.edition].filter(Boolean).join(' ') : ''
   const arch = osInfo && osInfo.arch !== 'unknown' ? osInfo.arch.toUpperCase() : ''
@@ -191,30 +265,47 @@ export function CompatibilityCard({ osInfo, capabilities, gameId }: Compatibilit
           }) / 0.28), transparent 70%)`
         }}
       />
+      {/* The scan line: a thin bar along the top edge that grows with the read-out. */}
+      {playing && (
+        <div className="pointer-events-none absolute inset-x-0 top-0 h-0.5 bg-scan/10" aria-hidden>
+          <div
+            className="h-full origin-left bg-scan"
+            style={{ transform: `scaleX(${progress})`, boxShadow: '0 0 10px rgb(var(--scan-rgb) / 0.8)' }}
+          />
+        </div>
+      )}
       <CardContent className="relative">
         {/* Header: ring, title + verdict, system chips */}
         <div className="flex items-center gap-5">
-          <CompatRing supported={supported} total={total} tone={tone} />
+          <CompatRing supported={shownSupported} total={total} tone={tone} />
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
               <h2 className="text-lg font-semibold text-ink font-display">
                 {t('dashboard.compatibility')}
               </h2>
               <span
-                className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-semibold ${
+                className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-semibold transition-opacity duration-300 ${
                   tone === 'ok' ? 'bg-ok/10 text-ok' : 'bg-amber/10 text-amber'
-                }`}
+                } ${playing ? 'opacity-0' : 'opacity-100'}`}
               >
                 <span className={`w-1.5 h-1.5 rounded-full ${tone === 'ok' ? 'bg-ok' : 'bg-amber'}`} />
                 {tone === 'ok' ? t('dashboard.allChecksAvailable') : t('dashboard.someChecksUnavailable')}
               </span>
             </div>
-            <p className="mt-1 text-xs text-ink-dim">
-              {t('dashboard.autoDetected')}
-              <span className="mx-1.5 text-ink-dim/40">·</span>
-              <span className="tabular-nums">
-                {supported} {t('dashboard.available')}
-              </span>
+            <p className="mt-1 text-xs text-ink-dim" aria-live="off">
+              {playing ? (
+                <span className="tabular-nums text-scan">
+                  {t('dashboard.readout', { done: checked, total, percent: Math.floor(progress * 100) })}
+                </span>
+              ) : (
+                <>
+                  {t('dashboard.autoDetected')}
+                  <span className="mx-1.5 text-ink-dim/40">·</span>
+                  <span className="tabular-nums">
+                    {supported} {t('dashboard.available')}
+                  </span>
+                </>
+              )}
             </p>
             <div className="mt-2.5 flex flex-wrap gap-2">
               {osLabel && <Chip icon={ICON_OS}>{osLabel}</Chip>}
@@ -315,8 +406,13 @@ export function CompatibilityCard({ osInfo, capabilities, gameId }: Compatibilit
                       className="overflow-hidden"
                     >
                       <div className="grid gap-2 pt-2.5 grid-cols-[repeat(auto-fill,minmax(220px,1fr))]">
-                        {items.map((cap, i) => (
-                          <CapabilityTile key={cap.id} cap={cap} index={i} />
+                        {items.map((cap) => (
+                          <CapabilityTile
+                            key={cap.id}
+                            cap={cap}
+                            state={readoutState(stateOf.get(cap.id) ?? 0, checked, order.length)}
+                            playing={playing}
+                          />
                         ))}
                       </div>
                       {canToggle && (

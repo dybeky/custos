@@ -1,10 +1,9 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { useTranslation } from 'react-i18next'
 import type { NewsFeed } from '../../shared/types'
 import { Card, CardContent } from './ui/Card'
 
-const SHOWN = 3
 type Lang = 'en' | 'ru'
 
 /** The look of a chip in the author's own colour (#rrggbb). */
@@ -82,6 +81,19 @@ export function NewsCard() {
   const [feed, setFeed] = useState<NewsFeed | null>(null)
   // null = follow the app's language until the reader picks one here.
   const [picked, setPicked] = useState<Lang | null>(null)
+  // The list scrolls inside the card; a fade at the bottom edge says there is more below.
+  const listRef = useRef<HTMLUListElement>(null)
+  const [moreBelow, setMoreBelow] = useState(false)
+  const measure = useCallback(() => {
+    const el = listRef.current
+    if (el) setMoreBelow(el.scrollHeight - el.scrollTop - el.clientHeight > 4)
+  }, [])
+
+  useEffect(() => {
+    measure()
+    window.addEventListener('resize', measure)
+    return () => window.removeEventListener('resize', measure)
+  }, [measure, feed, picked, i18n.language])
 
   useEffect(() => {
     let alive = true
@@ -117,8 +129,16 @@ export function NewsCard() {
             </button>
           </div>
         </div>
-        <ul className="mt-3 space-y-3">
-          {feed.items.slice(0, SHOWN).map((n) => {
+        <ul
+          ref={listRef}
+          onScroll={measure}
+          tabIndex={0}
+          aria-label={t('news.title')}
+          className={`news-scroll mt-3 max-h-80 space-y-3 overflow-y-auto pr-2 outline-none focus-visible:ring-1 focus-visible:ring-scan/50 ${
+            moreBelow ? 'news-fade-bottom' : ''
+          }`}
+        >
+          {feed.items.map((n) => {
             const text = lang === 'ru' && n.ru ? n.ru : n
             return (
               <motion.li

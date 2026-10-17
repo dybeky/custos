@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest'
 import type { CapabilityCategory, ScannerCapability } from '../../shared/types'
-import { compatTone, groupCapabilities, unavailableReasons, visibleItems } from './compat-view'
+import {
+  compatTone, groupCapabilities, readoutAvailable, readoutChecked, readoutDurationMs, readoutOrder, readoutProgress, readoutState,
+  unavailableReasons, visibleItems
+} from './compat-view'
 
 function cap(
   id: string,
@@ -66,5 +69,52 @@ describe('unavailableReasons', () => {
 
   it('is empty when everything is available', () => {
     expect(unavailableReasons([cap('a', 'scan')])).toEqual([])
+  })
+})
+
+describe('read-out timing', () => {
+  it('lasts between 1.5 and 2.5 seconds and grows with the number of checks', () => {
+    expect(readoutDurationMs(0)).toBe(1500)
+    expect(readoutDurationMs(20)).toBeGreaterThan(1500)
+    expect(readoutDurationMs(1000)).toBe(2500)
+    for (let n = 1; n < 100; n++) expect(readoutDurationMs(n + 1)).toBeGreaterThanOrEqual(readoutDurationMs(n))
+  })
+
+  it('progress is monotonic, bounded and ends at exactly 1', () => {
+    let prev = 0
+    for (let t = 0; t <= 3000; t += 16) {
+      const p = readoutProgress(t, 2000)
+      expect(p).toBeGreaterThanOrEqual(prev)
+      expect(p).toBeLessThanOrEqual(1)
+      prev = p
+    }
+    expect(readoutProgress(0, 2000)).toBe(0)
+    expect(readoutProgress(2000, 2000)).toBe(1)
+    expect(readoutProgress(NaN, 2000)).toBe(1)
+    expect(readoutProgress(-5, 2000)).toBe(0)
+  })
+
+  it('counts the checks read, one by one up to the total', () => {
+    expect(readoutChecked(0, 40)).toBe(0)
+    expect(readoutChecked(0.5, 40)).toBe(20)
+    expect(readoutChecked(1, 40)).toBe(40)
+    expect(readoutChecked(0.5, 0)).toBe(0)
+    const seen = new Set<number>()
+    for (let t = 0; t <= 2000; t += 8) seen.add(readoutChecked(readoutProgress(t, 2000), 41))
+    expect(seen.size).toBe(42)
+  })
+
+  it('marks one check as being read and the rest as pending or checked', () => {
+    expect([0, 1, 2, 3].map((i) => readoutState(i, 2, 4))).toEqual(['checked', 'checked', 'scanning', 'pending'])
+    expect([0, 1].map((i) => readoutState(i, 2, 2))).toEqual(['checked', 'checked'])
+  })
+
+  it('counts only the real available checks among those read', () => {
+    const groups = groupCapabilities([cap('a', 'scan'), cap('b', 'scan', false), cap('c', 'manual'), cap('d', 'export', false)])
+    const order = readoutOrder(groups)
+    expect(order.map((c) => c.id)).toEqual(['a', 'b', 'c', 'd'])
+    expect(readoutAvailable(order, 0)).toBe(0)
+    expect(readoutAvailable(order, 2)).toBe(1)
+    expect(readoutAvailable(order, 99)).toBe(2)
   })
 })
