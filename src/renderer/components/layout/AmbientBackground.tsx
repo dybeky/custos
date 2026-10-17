@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react'
+import { useLocation } from 'react-router-dom'
 import { useSettingsStore } from '../../stores/settings-store'
 import { AMBIENT_PALETTE, initialQuality, parseRgbChannels, stepQuality, type Rgb } from '../../../shared/ambient'
 
@@ -350,8 +351,16 @@ export function AmbientBackground() {
     }
   }, [])
 
+  // Full strength only on the Dashboard; on every other page (Settings, Utilities,
+  // Manual, Results…) the layer is turned down so it never competes with the content.
+  const calm = useLocation().pathname !== '/'
+
   return (
-    <div className="pointer-events-none fixed inset-0 z-0 overflow-hidden" aria-hidden="true">
+    <div
+      className="pointer-events-none fixed inset-0 z-0 overflow-hidden"
+      style={{ opacity: calm ? 0.2 : 0.7, transition: 'opacity 600ms ease' }}
+      aria-hidden="true"
+    >
       <canvas ref={back} className="absolute left-0 top-0" style={{ filter: 'blur(3px)' }} />
       <canvas ref={canvas} className="absolute left-0 top-0" />
     </div>
