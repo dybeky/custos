@@ -1,4 +1,5 @@
 import { redactSecrets } from '../utils/redact'
+import { hideProfileNames } from '../../shared/profile-names'
 
 /**
  * Sends errors and crashes to the site (97437.dev → Crashes in the admin panel)
@@ -44,7 +45,7 @@ const BEARER = /\bBearer\s+\S+/gi
 
 /** Strips what identifies a person from text that is about to leave the PC. */
 export function redactForReport(text: string): string {
-  return redactSecrets(text)
+  return hideProfileNames(redactSecrets(text))
     .replace(USER_PATH, (m) => (/^[A-Za-z]:/.test(m) ? 'C:\\Users\\<user>' : '\\Users\\<user>'))
     .replace(EMAIL, '<email>')
     .replace(BEARER, 'Bearer <hidden>')

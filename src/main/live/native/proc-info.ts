@@ -11,7 +11,7 @@ export async function getProcessCommandLine(pid: number): Promise<string> {
   try {
     const { stdout } = await execFileAsync(
       'powershell.exe',
-      ['-NoProfile', '-Command', `(Get-CimInstance Win32_Process -Filter "ProcessId=${pid}").CommandLine`],
+      ['-NoProfile', '-NonInteractive', '-Command', `(Get-CimInstance Win32_Process -Filter "ProcessId=${pid}").CommandLine`],
       { timeoutMs: 5000 }
     )
     return stdout.trim()

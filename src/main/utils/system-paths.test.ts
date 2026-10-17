@@ -28,7 +28,7 @@ describe.runIf(process.platform === 'win32')('resolveSystemTool (Windows)', () =
 
   it('rewrites only a leading powershell in a shell command', () => {
     const cmd = withSystemPowershell('powershell -NoProfile -Command "Get-Date"')
-    expect(cmd).toMatch(/^"[^"]+\\powershell\.exe" -NoProfile -Command "Get-Date"$/i)
+    expect(cmd).toMatch(/^"[^"]+\\powershell\.exe" -NonInteractive -NoProfile -Command "Get-Date"$/i)
     expect(withSystemPowershell('tasklist /FO CSV')).toBe('tasklist /FO CSV')
     expect(withSystemPowershell('powershellx -a')).toBe('powershellx -a')
   })

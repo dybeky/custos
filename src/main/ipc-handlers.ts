@@ -1,4 +1,6 @@
-import { ipcMain, app, BrowserWindow, shell } from 'electron'
+import { app, BrowserWindow, shell } from 'electron'
+import { secureIpc } from './utils/ipc-guard'
+import { killRunningCommands } from './utils/async-exec'
 import { existsSync } from 'fs'
 import { IPC_CHANNELS, ScanResult, UserSettings, ScannerInfo, OsInfo, ScannerCapability } from '../shared/types'
 import type { ScanReport, TriageSettings, NewsFeed, SiteUploadResult, SitePlayerResult, SitePreviousResult, SiteChecksPage, SiteCheckOpened } from '../shared/types'
@@ -112,9 +114,9 @@ export function setupIpcHandlers(mainWindow: BrowserWindow): void {
   setupLiveIpcHandlers(mainWindow)
 
   // "What's new" = the notes of the release this build was published as.
-  ipcMain.handle(IPC_CHANNELS.GITHUB_GET_CHANGELOG, () => currentReleaseNotes())
+  secureIpc.handle(IPC_CHANNELS.GITHUB_GET_CHANGELOG, () => currentReleaseNotes())
 
-  ipcMain.handle(IPC_CHANNELS.UPDATE_CHECK, () => checkForUpdate())
+  secureIpc.handle(IPC_CHANNELS.UPDATE_CHECK, () => checkForUpdate())
 
   const scannerFactory = getScannerFactory()
 
@@ -126,7 +128,7 @@ export function setupIpcHandlers(mainWindow: BrowserWindow): void {
   }
 
   // Progress is throttled to whole percents so a fast link doesn't flood IPC.
-  ipcMain.handle(IPC_CHANNELS.UPDATE_INSTALL, () => {
+  secureIpc.handle(IPC_CHANNELS.UPDATE_INSTALL, () => {
     let lastPct = -1
     return installUpdate((p) => {
       const pct = Math.floor((p.received / p.total) * 100)
@@ -138,7 +140,7 @@ export function setupIpcHandlers(mainWindow: BrowserWindow): void {
   })
 
   // Get scanner info — only scanners that can actually run on this OS
-  ipcMain.handle(IPC_CHANNELS.GET_SCANNERS, (): ScannerInfo[] => {
+  secureIpc.handle(IPC_CHANNELS.GET_SCANNERS, (): ScannerInfo[] => {
     return getScannerCapabilities()
       .filter((c) => c.supported)
       .map(({ id, name, description }) => ({ id, name, description }))
@@ -146,7 +148,7 @@ export function setupIpcHandlers(mainWindow: BrowserWindow): void {
 
   // Get full capability matrix across every app area (supported + unsupported,
   // with reasons), grouped by category.
-  ipcMain.handle(IPC_CHANNELS.SYSTEM_GET_CAPABILITIES, (): ScannerCapability[] => {
+  secureIpc.handle(IPC_CHANNELS.SYSTEM_GET_CAPABILITIES, (): ScannerCapability[] => {
     return getAllCapabilities()
   })
 
@@ -158,11 +160,11 @@ export function setupIpcHandlers(mainWindow: BrowserWindow): void {
     baseUrl: configService.loadAuthConfig().webBaseUrl,
     appVersion: app.getVersion()
   })
-  ipcMain.handle(IPC_CHANNELS.NEWS_GET, (): Promise<NewsFeed> => news.get())
+  secureIpc.handle(IPC_CHANNELS.NEWS_GET, (): Promise<NewsFeed> => news.get())
 
   // VAC and game bans of the Steam accounts on the checked PC (asked from the site).
   const steamBans = new SteamBansService({ baseUrl: configService.loadAuthConfig().webBaseUrl })
-  ipcMain.handle(IPC_CHANNELS.STEAM_BANS, async (_event, ids: unknown): Promise<SteamBansResult> => {
+  secureIpc.handle(IPC_CHANNELS.STEAM_BANS, async (_event, ids: unknown): Promise<SteamBansResult> => {
     const parsed = SteamIdsSchema.safeParse(ids)
     if (!parsed.success) return { ok: false, exact: false, bans: [] }
     return steamBans.get(parsed.data)
@@ -173,14 +175,14 @@ export function setupIpcHandlers(mainWindow: BrowserWindow): void {
     message: z.string().min(1).max(4000),
     stack: z.string().max(16000).optional()
   }).strict()
-  ipcMain.on(IPC_CHANNELS.CRASH_REPORT, (_event, payload: unknown) => {
+  secureIpc.on(IPC_CHANNELS.CRASH_REPORT, (_event, payload: unknown) => {
     const parsed = CrashPayloadSchema.safeParse(payload)
     if (!parsed.success) return
     void reportCrash('renderer_error', parsed.data, { process: 'renderer' })
   })
 
   // Start scan
-  ipcMain.handle(IPC_CHANNELS.SCAN_START, async (_event, scannerIds?: ScannerName[], gameId?: GameId): Promise<ScanResult[]> => {
+  secureIpc.handle(IPC_CHANNELS.SCAN_START, async (_event, scannerIds?: ScannerName[], gameId?: GameId): Promise<ScanResult[]> => {
     // Runtime shape validation — TypeScript types are erased at the IPC boundary.
     if (scannerIds !== undefined && (!Array.isArray(scannerIds) || scannerIds.some(id => typeof id !== 'string'))) {
       throw new Error('Invalid scannerIds: expected an array of strings')
@@ -283,12 +285,12 @@ export function setupIpcHandlers(mainWindow: BrowserWindow): void {
   })
 
   // Persisted triage (signature whitelist) for the renderer to display/edit.
-  ipcMain.handle(IPC_CHANNELS.TRIAGE_GET, (): TriageSettings => loadTriage())
+  secureIpc.handle(IPC_CHANNELS.TRIAGE_GET, (): TriageSettings => loadTriage())
 
   // Re-score the last scan after the checker dismissed a finding or changed
   // the whitelist. Pure re-analysis of the kept results — nothing is rescanned.
   // The whitelist is persisted for future scans; dismissals are per-scan.
-  ipcMain.handle(IPC_CHANNELS.SCAN_REANALYZE, async (_event, payload: unknown): Promise<ScanReport | null> => {
+  secureIpc.handle(IPC_CHANNELS.SCAN_REANALYZE, async (_event, payload: unknown): Promise<ScanReport | null> => {
     const parsed = SuppressionSchema.safeParse(payload)
     if (!parsed.success) throw new Error(`Invalid triage payload: ${parsed.error.message}`)
     const whitelistedSignatures = [...new Set(parsed.data.whitelistedSignatures.map(s => s.trim()).filter(Boolean))]
@@ -303,46 +305,49 @@ export function setupIpcHandlers(mainWindow: BrowserWindow): void {
   })
 
   // ── Check history ─────────────────────────────────────────────────────
-  ipcMain.handle(IPC_CHANNELS.HISTORY_LIST, (): Promise<HistorySummary[]> => history().list())
+  secureIpc.handle(IPC_CHANNELS.HISTORY_LIST, (): Promise<HistorySummary[]> => history().list())
 
-  ipcMain.handle(IPC_CHANNELS.HISTORY_GET, (_e, id: unknown): Promise<HistoryEntry | null> => {
+  secureIpc.handle(IPC_CHANNELS.HISTORY_GET, (_e, id: unknown): Promise<HistoryEntry | null> => {
     const parsed = HistoryIdSchema.safeParse(id)
     return parsed.success ? history().get(parsed.data) : Promise.resolve(null)
   })
 
-  ipcMain.handle(IPC_CHANNELS.HISTORY_DELETE, (_e, id: unknown): Promise<HistorySummary[]> => {
+  secureIpc.handle(IPC_CHANNELS.HISTORY_DELETE, (_e, id: unknown): Promise<HistorySummary[]> => {
     const parsed = HistoryIdSchema.safeParse(id)
     if (!parsed.success) throw new Error('Invalid history id')
     return history().remove(parsed.data)
   })
 
-  ipcMain.handle(IPC_CHANNELS.HISTORY_SET_CASE, (_e, payload: unknown): Promise<HistorySummary[]> => {
+  secureIpc.handle(IPC_CHANNELS.HISTORY_SET_CASE, (_e, payload: unknown): Promise<HistorySummary[]> => {
     const parsed = HistoryCaseSchema.safeParse(payload)
     if (!parsed.success) throw new Error(`Invalid case payload: ${parsed.error.message}`)
     return history().setCase(parsed.data.id, { player: parsed.data.player, notes: parsed.data.notes })
   })
 
   // Cancel scan
-  ipcMain.handle(IPC_CHANNELS.SCAN_CANCEL, async (): Promise<void> => {
+  secureIpc.handle(IPC_CHANNELS.SCAN_CANCEL, async (): Promise<void> => {
     // Abort + cooperatively cancel, but do NOT clear the running flag here: the
     // in-flight runScan owns that and clears it in its finally once the
     // already-started scanners actually unwind. Clearing it now would let an
     // immediate SCAN_START run concurrently over the shared scanner instances.
     scanSession.cancel()
     scannerFactory.cancelAll()
+    // Commands already running (PowerShell, tasklist, reg) are stopped now,
+    // not left to run out their timeouts.
+    killRunningCommands()
   })
 
   // Get settings — migrate persisted data on read so a legacy `{ language, theme }`
   // blob is normalized (theme stripped) and re-persisted, keeping it valid for the
   // strict partial schema on the next SETTINGS_SET.
-  ipcMain.handle(IPC_CHANNELS.SETTINGS_GET, (): UserSettings => {
+  secureIpc.handle(IPC_CHANNELS.SETTINGS_GET, (): UserSettings => {
     const migrated = migrateSettings(appStore.get('settings'))
     appStore.set('settings', migrated)
     return migrated
   })
 
   // Set settings (validated with Zod to reject unknown properties)
-  ipcMain.handle(IPC_CHANNELS.SETTINGS_SET, (_event, settings: Partial<UserSettings>): UserSettings => {
+  secureIpc.handle(IPC_CHANNELS.SETTINGS_SET, (_event, settings: Partial<UserSettings>): UserSettings => {
     const parsed = UserSettingsPartialSchema.safeParse(settings)
     if (!parsed.success) {
       throw new Error(`Invalid settings: ${parsed.error.message}`)
@@ -356,26 +361,28 @@ export function setupIpcHandlers(mainWindow: BrowserWindow): void {
   })
 
   // Get cross-platform OS info (auto-detected: Windows / macOS / Linux)
-  ipcMain.handle(IPC_CHANNELS.SYSTEM_GET_OS_INFO, (): OsInfo => getOsInfo())
+  secureIpc.handle(IPC_CHANNELS.SYSTEM_GET_OS_INFO, (): OsInfo => getOsInfo())
 
   // Get app version
-  ipcMain.handle(IPC_CHANNELS.APP_VERSION, (): string => {
+  secureIpc.handle(IPC_CHANNELS.APP_VERSION, (): string => {
     return app.getVersion()
   })
 
   // Open external URL - validated against the scheme allowlist
-  ipcMain.handle(IPC_CHANNELS.APP_OPEN_EXTERNAL, (_event, url: string): void => {
+  secureIpc.handle(IPC_CHANNELS.APP_OPEN_EXTERNAL, (_event, url: unknown): void => {
+    if (typeof url !== 'string' || url.length > 4096) return
     safeOpenExternal(url)
   })
 
   // Open path in explorer - validated; %ENV% expansion + scheme routing live in safeOpenPath
-  ipcMain.handle(IPC_CHANNELS.APP_OPEN_PATH, (_event, path: string): void => {
+  secureIpc.handle(IPC_CHANNELS.APP_OPEN_PATH, (_event, path: unknown): void => {
+    if (typeof path !== 'string' || path.length > 32_767) return
     safeOpenPath(path)
   })
 
   // Steam and games can live on any drive; resolve through Steam's registry
   // key + libraryfolders.vdf instead of guessing a fixed path.
-  ipcMain.handle(IPC_CHANNELS.APP_OPEN_STEAM_FOLDER, async (_event, target: unknown): Promise<boolean> => {
+  secureIpc.handle(IPC_CHANNELS.APP_OPEN_STEAM_FOLDER, async (_event, target: unknown): Promise<boolean> => {
     if (typeof target !== 'string') return false
     const dir = await locateSteamTarget(target)
     if (!dir) return false
@@ -383,7 +390,8 @@ export function setupIpcHandlers(mainWindow: BrowserWindow): void {
     return err === ''
   })
 
-  ipcMain.handle(IPC_CHANNELS.APP_OPEN_REGISTRY, async (_event, keyPath: string): Promise<{ success: boolean; error?: string }> => {
+  secureIpc.handle(IPC_CHANNELS.APP_OPEN_REGISTRY, async (_event, rawKeyPath: unknown): Promise<{ success: boolean; error?: string }> => {
+    const keyPath = typeof rawKeyPath === 'string' ? rawKeyPath : ''
     // Validate keyPath. Reject leading/trailing backslashes — a path must be a
     // hive root followed by backslash-separated segments, never an empty segment.
     if (!isValidRegistryKey(keyPath)) {
@@ -428,7 +436,7 @@ export function setupIpcHandlers(mainWindow: BrowserWindow): void {
   // reveals — it never opens or executes the target — so, unlike openPath,
   // this is safe even for .exe/.dll findings. Still limited to plain local
   // absolute paths that exist.
-  ipcMain.handle(IPC_CHANNELS.APP_REVEAL_PATH, (_event, rawPath: unknown): boolean => {
+  secureIpc.handle(IPC_CHANNELS.APP_REVEAL_PATH, (_event, rawPath: unknown): boolean => {
     const path = typeof rawPath === 'string' ? normalizeRevealPath(rawPath) : null
     if (!path || !existsSync(path)) return false
     shell.showItemInFolder(path)
@@ -436,12 +444,12 @@ export function setupIpcHandlers(mainWindow: BrowserWindow): void {
   })
 
   // Quit app
-  ipcMain.handle(IPC_CHANNELS.APP_QUIT, (): void => {
+  secureIpc.handle(IPC_CHANNELS.APP_QUIT, (): void => {
     app.quit()
   })
 
   // Window controls with safety checks
-  ipcMain.handle(IPC_CHANNELS.WINDOW_MINIMIZE, (): void => {
+  secureIpc.handle(IPC_CHANNELS.WINDOW_MINIMIZE, (): void => {
     try {
       if (!mainWindow.isDestroyed()) {
         mainWindow.minimize()
@@ -451,7 +459,7 @@ export function setupIpcHandlers(mainWindow: BrowserWindow): void {
     }
   })
 
-  ipcMain.handle(IPC_CHANNELS.WINDOW_MAXIMIZE, (): void => {
+  secureIpc.handle(IPC_CHANNELS.WINDOW_MAXIMIZE, (): void => {
     try {
       if (!mainWindow.isDestroyed()) {
         if (mainWindow.isMaximized()) {
@@ -465,7 +473,7 @@ export function setupIpcHandlers(mainWindow: BrowserWindow): void {
     }
   })
 
-  ipcMain.handle(IPC_CHANNELS.WINDOW_CLOSE, (): void => {
+  secureIpc.handle(IPC_CHANNELS.WINDOW_CLOSE, (): void => {
     try {
       if (!mainWindow.isDestroyed()) {
         mainWindow.close()
@@ -498,25 +506,25 @@ function syncKeyFor(reportId: string): string {
 }
 
 export function setupAuthHandlers(_mainWindow: BrowserWindow, authService: AuthService): void {
-  ipcMain.handle(IPC_CHANNELS.AUTH_GET_STATE, (): AuthState => authService.getState())
+  secureIpc.handle(IPC_CHANNELS.AUTH_GET_STATE, (): AuthState => authService.getState())
 
-  ipcMain.handle(IPC_CHANNELS.AUTH_LOGIN, async (_e, payload: unknown): Promise<void> => {
+  secureIpc.handle(IPC_CHANNELS.AUTH_LOGIN, async (_e, payload: unknown): Promise<void> => {
     // TypeScript types are erased at the IPC boundary — validate the shape here.
     const parsed = AuthLoginPayloadSchema.safeParse(payload)
     if (!parsed.success) throw new Error(`Invalid login payload: ${parsed.error.message}`)
     await authService.login(parsed.data.provider)
   })
 
-  ipcMain.handle(IPC_CHANNELS.AUTH_CANCEL, async (): Promise<void> => authService.cancel())
-  ipcMain.handle(IPC_CHANNELS.AUTH_LOGOUT, async (): Promise<void> => authService.logout())
+  secureIpc.handle(IPC_CHANNELS.AUTH_CANCEL, async (): Promise<void> => authService.cancel())
+  secureIpc.handle(IPC_CHANNELS.AUTH_LOGOUT, async (): Promise<void> => authService.logout())
   // Open the current user's profile on the web. Main builds the canonical
   // /profile/id/<id> URL (allowlisted by isAllowedAuthUrl) — the renderer never
   // constructs a 97437.dev URL itself.
-  ipcMain.handle(IPC_CHANNELS.AUTH_OPEN_PROFILE, (): void => authService.openProfile())
+  secureIpc.handle(IPC_CHANNELS.AUTH_OPEN_PROFILE, (): void => authService.openProfile())
 
   // Change the avatar. The renderer sends the cropped image bytes; main holds the
   // bearer and does the upload. Validate the shape at the boundary (types erased).
-  ipcMain.handle(
+  secureIpc.handle(
     IPC_CHANNELS.AUTH_UPLOAD_AVATAR,
     async (_e, payload: unknown): Promise<{ ok: boolean; error?: string }> => {
       const parsed = AuthUploadAvatarPayloadSchema.safeParse(payload)
@@ -528,7 +536,7 @@ export function setupAuthHandlers(_mainWindow: BrowserWindow, authService: AuthS
   // Send a saved check to the site (with or without an account). The report
   // comes from this machine's history (by id), never from the renderer; the
   // case text is the checker's.
-  ipcMain.handle(IPC_CHANNELS.SITE_UPLOAD_CHECK, async (_e, payload: unknown): Promise<SiteUploadResult> => {
+  secureIpc.handle(IPC_CHANNELS.SITE_UPLOAD_CHECK, async (_e, payload: unknown): Promise<SiteUploadResult> => {
     const parsed = SiteUploadPayloadSchema.safeParse(payload)
     if (!parsed.success) return { ok: false, error: 'invalid_payload' }
     const entry = await history().get(parsed.data.historyId)
@@ -545,7 +553,7 @@ export function setupAuthHandlers(_mainWindow: BrowserWindow, authService: AuthS
     return result
   })
 
-  ipcMain.handle(IPC_CHANNELS.SITE_PLAYER_CHECKS, async (_e, payload: unknown): Promise<SitePlayerResult> => {
+  secureIpc.handle(IPC_CHANNELS.SITE_PLAYER_CHECKS, async (_e, payload: unknown): Promise<SitePlayerResult> => {
     const parsed = SitePlayerPayloadSchema.safeParse(payload)
     const key = parsed.success ? playerKey(parsed.data.player) : null
     if (!key) return { ok: false, error: 'invalid_payload' }
@@ -553,20 +561,20 @@ export function setupAuthHandlers(_mainWindow: BrowserWindow, authService: AuthS
   })
 
   // The History tab: every check on the site, and one of them opened.
-  ipcMain.handle(IPC_CHANNELS.SITE_CHECKS, async (_e, payload: unknown): Promise<SiteChecksPage> => {
+  secureIpc.handle(IPC_CHANNELS.SITE_CHECKS, async (_e, payload: unknown): Promise<SiteChecksPage> => {
     const parsed = SiteChecksPayloadSchema.safeParse(payload)
     if (!parsed.success) return { ok: false, error: 'invalid_payload' }
     return authService.siteChecks(parsed.data.page, parsed.data.q.trim())
   })
 
-  ipcMain.handle(IPC_CHANNELS.SITE_CHECK, async (_e, payload: unknown): Promise<SiteCheckOpened> => {
+  secureIpc.handle(IPC_CHANNELS.SITE_CHECK, async (_e, payload: unknown): Promise<SiteCheckOpened> => {
     const parsed = SiteCheckPayloadSchema.safeParse(payload)
     if (!parsed.success) return { ok: false, error: 'invalid_payload' }
     return authService.siteCheck(parsed.data.id)
   })
 
   // Was this player checked before? The check just before this one, with its evidence.
-  ipcMain.handle(IPC_CHANNELS.SITE_PREVIOUS_CHECK, async (_e, payload: unknown): Promise<SitePreviousResult> => {
+  secureIpc.handle(IPC_CHANNELS.SITE_PREVIOUS_CHECK, async (_e, payload: unknown): Promise<SitePreviousResult> => {
     const parsed = SitePreviousPayloadSchema.safeParse(payload)
     const key = parsed.success ? playerKey(parsed.data.player) : null
     if (!parsed.success || !key) return { ok: false, error: 'invalid_payload' }
@@ -575,7 +583,7 @@ export function setupAuthHandlers(_mainWindow: BrowserWindow, authService: AuthS
 
   // Open an uploaded check or a player card; main builds the URL, and
   // openExternal only lets allowlisted site paths through.
-  ipcMain.handle(IPC_CHANNELS.SITE_OPEN, (_e, payload: unknown): void => {
+  secureIpc.handle(IPC_CHANNELS.SITE_OPEN, (_e, payload: unknown): void => {
     const parsed = SiteOpenPayloadSchema.safeParse(payload)
     if (!parsed.success) return
     if ('checkId' in parsed.data) {

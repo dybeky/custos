@@ -5,7 +5,8 @@
  * safeSend / abort-controller patterns as the forensic scan handlers.
  */
 
-import { ipcMain, BrowserWindow } from 'electron'
+import type { BrowserWindow } from 'electron'
+import { secureIpc } from './utils/ipc-guard'
 import { IPC_CHANNELS, LiveScanStatus, LiveFinding } from '../shared/types'
 import { GAMES, allowsLiveScan, type GameId } from '../shared/games'
 import { logger } from './services/logger'
@@ -25,7 +26,7 @@ export function setupLiveIpcHandlers(mainWindow: BrowserWindow): void {
   }
 
   // ── live:get-status ──────────────────────────────────────────────────────
-  ipcMain.handle(IPC_CHANNELS.LIVE_GET_STATUS, (_e, gameId?: GameId): LiveScanStatus => {
+  secureIpc.handle(IPC_CHANNELS.LIVE_GET_STATUS, (_e, gameId?: GameId): LiveScanStatus => {
     if (gameId !== undefined && (typeof gameId !== 'string' || !Object.hasOwn(GAMES, gameId))) {
       throw new Error(`Invalid game ID: ${String(gameId)}`)
     }
@@ -47,7 +48,7 @@ export function setupLiveIpcHandlers(mainWindow: BrowserWindow): void {
   })
 
   // ── live:scan:start ──────────────────────────────────────────────────────
-  ipcMain.handle(IPC_CHANNELS.LIVE_SCAN_START, async (_e, gameId?: GameId): Promise<LiveFinding[]> => {
+  secureIpc.handle(IPC_CHANNELS.LIVE_SCAN_START, async (_e, gameId?: GameId): Promise<LiveFinding[]> => {
     if (gameId !== undefined && (typeof gameId !== 'string' || !Object.hasOwn(GAMES, gameId))) {
       throw new Error(`Invalid game ID: ${String(gameId)}`)
     }
@@ -91,7 +92,7 @@ export function setupLiveIpcHandlers(mainWindow: BrowserWindow): void {
   // ── live:scan:cancel ─────────────────────────────────────────────────────
   // Cooperative: the orchestrator stops before the next detector and still
   // closes the process handle. No-op when no live scan is running.
-  ipcMain.handle(IPC_CHANNELS.LIVE_SCAN_CANCEL, (): void => {
+  secureIpc.handle(IPC_CHANNELS.LIVE_SCAN_CANCEL, (): void => {
     liveAbortController?.abort()
   })
 }

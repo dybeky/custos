@@ -73,7 +73,7 @@ $results | ConvertTo-Json -Compress
       const encoded = Buffer.from(psScript, 'utf16le').toString('base64')
       const { stdout: output } = await execFileAsync(
         'powershell',
-        ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-EncodedCommand', encoded],
+        ['-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-EncodedCommand', encoded],
         { timeoutMs: 8000, input: encodeLnkPaths(lnkPaths) }
       )
 

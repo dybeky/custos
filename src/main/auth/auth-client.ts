@@ -56,6 +56,17 @@ const ChecksPageSchema = z.object({
   })).max(200)
 })
 // The stored report is the app's own ScanReport; only what opening it relies on is checked.
+// A schema-valid report can still hold odd entries (a number where a scanner
+// should be, a finding with no severity). Such entries are skipped, not passed
+// to the Results page, which reads them field by field.
+const SEVERITIES = ['critical', 'high', 'medium', 'low', 'info']
+const ReportScannerSchema = z.object({
+  id: z.string(), name: z.string(), success: z.boolean(), durationMs: z.number(), count: z.number()
+}).passthrough()
+const ReportFindingSchema = z.object({
+  scannerId: z.string(), value: z.string(), severity: z.string().refine((v) => SEVERITIES.includes(v)), category: z.string()
+}).passthrough()
+const keepValid = (schema: z.ZodType) => (items: unknown[]): unknown[] => items.filter((x) => schema.safeParse(x).success)
 const OpenedCheckSchema = z.object({
   uploader: z.string().nullable(),
   anonymous: z.boolean(),
@@ -65,9 +76,9 @@ const OpenedCheckSchema = z.object({
     id: z.string(),
     meta: z.object({ scannedAt: z.string() }).passthrough(),
     verdict: z.object({ score: z.number(), band: z.enum(['clean', 'low', 'medium', 'high', 'critical']), reasons: z.array(z.unknown()).default([]) }).passthrough(),
-    findings: z.array(z.object({ scannerId: z.string(), value: z.string() }).passthrough()),
-    correlations: z.array(z.unknown()),
-    scanners: z.array(z.unknown())
+    findings: z.array(z.unknown()).transform(keepValid(ReportFindingSchema)),
+    correlations: z.array(z.unknown()).transform((items) => items.filter((x) => x !== null && typeof x === 'object')),
+    scanners: z.array(z.unknown()).transform(keepValid(ReportScannerSchema))
   }).passthrough()
 })
 const PreviousSchema = z.object({

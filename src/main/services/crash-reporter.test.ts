@@ -26,6 +26,11 @@ describe('redactForReport', () => {
     expect(redactForReport('hash ' + 'a'.repeat(64))).toBe('hash <hex>')
     expect(redactForReport('76561198012345678')).toBe('<steamid>')
   })
+
+  it('hides account names behind network admin shares too (same rule as the site upload)', () => {
+    expect(redactForReport('ENOENT \\\\PC\\C$\\Users\\Ivan\\AppData\\x.js')).not.toContain('Ivan')
+    expect(redactForReport('at \\Device\\HarddiskVolume3\\Users\\Ivan\\x.js')).not.toContain('Ivan')
+  })
 })
 
 describe('describeError', () => {

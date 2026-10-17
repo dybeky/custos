@@ -2,9 +2,10 @@
 // quit (nothing is left on the checked PC). Must run before anything below
 // resolves userData.
 import { ownsInstanceLock } from './ephemeral'
-import { app, BrowserWindow, ipcMain, net, safeStorage, shell } from 'electron'
-import { join, resolve } from 'path'
-import { fileURLToPath } from 'url'
+import { app, BrowserWindow, net, safeStorage, shell } from 'electron'
+import { secureIpc, setTrustedRendererCheck } from './utils/ipc-guard'
+import { isTrustedRendererUrl } from './utils/renderer-url'
+import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import { setupIpcHandlers, setupAuthHandlers } from './ipc-handlers'
 import { safeOpenExternal } from './utils/safe-open'
@@ -67,7 +68,7 @@ try {
 // The language of the PC, for the first-run interface language. The window cannot
 // ask the browser: the program ships English Chromium strings only, so
 // navigator.language is always en-US. The first preferred language of Windows is used.
-ipcMain.on('system:locale', (event) => {
+secureIpc.on('system:locale', (event) => {
   try {
     event.returnValue = app.getPreferredSystemLanguages()[0] || app.getSystemLocale() || ''
   } catch {
@@ -143,6 +144,12 @@ function createWindow(): void {
       // imports — no Node built-ins or app modules — so it is sandbox-compatible.
       sandbox: true,
       contextIsolation: true,
+      nodeIntegration: false,
+      nodeIntegrationInWorker: false,
+      nodeIntegrationInSubFrames: false,
+      webSecurity: true,
+      allowRunningInsecureContent: false,
+      webviewTag: false,
     }
   })
 
@@ -195,23 +202,11 @@ const RENDERER_INDEX = join(__dirname, '../renderer/index.html')
 
 /** True for the dev server origin or the packaged renderer's index.html. */
 function isAllowedRendererUrl(url: string): boolean {
-  const devUrl = process.env['ELECTRON_RENDERER_URL']
-  if (is.dev && devUrl) {
-    try {
-      return new URL(url).origin === new URL(devUrl).origin
-    } catch {
-      return false
-    }
-  }
-  try {
-    const target = new URL(url)
-    if (target.protocol !== 'file:') return false
-    const norm = (p: string): string => (process.platform === 'win32' ? resolve(p).toLowerCase() : resolve(p))
-    return norm(fileURLToPath(target)) === norm(RENDERER_INDEX)
-  } catch {
-    return false
-  }
+  const devUrl = is.dev ? process.env['ELECTRON_RENDERER_URL'] : undefined
+  return isTrustedRendererUrl(url, { devUrl, rendererIndex: RENDERER_INDEX })
 }
+// The same rule gates every privileged IPC handler (sender frame check).
+setTrustedRendererCheck(isAllowedRendererUrl)
 
 /**
  * Register every IPC handler once. The handlers close over `win` for pushes;

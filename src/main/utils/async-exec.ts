@@ -1,4 +1,4 @@
-import { exec, execFile, spawn } from 'child_process'
+import { exec, execFile, spawn, type ChildProcess } from 'child_process'
 import { promisify } from 'util'
 import { logger } from '../services/logger'
 import { cmdPath, resolveSystemTool, systemCwd, withSystemPowershell } from './system-paths'
@@ -25,6 +25,41 @@ function releaseSlot(): void {
   } else {
     activeProcesses--
   }
+}
+
+// Every command still running, so a cancelled scan can stop them at once
+// instead of leaving PowerShell, tasklist or reg to run out their timeout.
+const running = new Set<ChildProcess>()
+
+function track(proc: ChildProcess): void {
+  running.add(proc)
+  const forget = (): void => { running.delete(proc) }
+  proc.once('exit', forget)
+  proc.once('error', forget)
+}
+
+/**
+ * Kill a process and everything it started. exec() runs commands through
+ * cmd.exe, and killing only cmd.exe leaves its PowerShell child running, so on
+ * Windows the whole tree goes (taskkill /T).
+ */
+export function killProcessTree(proc: ChildProcess): void {
+  const pid = proc.pid
+  if (!pid || proc.exitCode !== null) return
+  if (process.platform === 'win32') {
+    try {
+      execFile(resolveSystemTool('taskkill'), ['/pid', String(pid), '/t', '/f'], { windowsHide: true, cwd: systemCwd(), timeout: 5000 }, () => {
+        try { proc.kill('SIGKILL') } catch { /* already gone */ }
+      })
+      return
+    } catch { /* fall through to a plain kill */ }
+  }
+  try { proc.kill('SIGKILL') } catch { /* already gone */ }
+}
+
+/** Stop every command started through this module (scan cancelled). */
+export function killRunningCommands(): void {
+  for (const proc of [...running]) killProcessTree(proc)
 }
 
 export interface AsyncExecOptions {
@@ -87,7 +122,6 @@ export async function asyncExec(
       // is not UTF-8 on e.g. Russian Windows.
       encoding: 'buffer',
       maxBuffer,
-      timeout,
       killSignal: 'SIGKILL'
     }, (error, stdoutBytes) => {
       releaseSlot()
@@ -106,15 +140,10 @@ export async function asyncExec(
       decodeOutput(Buffer.isBuffer(stdoutBytes) ? stdoutBytes : Buffer.from(stdoutBytes ?? '')).then(resolve, () => resolve(''))
     })
 
-    // Extra safety: force kill after timeout + 1s
-    const killTimer = setTimeout(() => {
-      try {
-        proc.kill('SIGKILL')
-      } catch {
-        // Ignore
-      }
-    }, timeout + 1000)
-
+    // The timeout takes the whole process tree down (node's own timeout would
+    // kill cmd.exe only and leave its PowerShell child behind).
+    track(proc)
+    const killTimer = setTimeout(() => killProcessTree(proc), timeout)
     proc.on('close', () => {
       clearTimeout(killTimer)
     })
@@ -136,6 +165,7 @@ function execFileWithInput(
 ): Promise<{ stdout: string; stderr: string }> {
   return new Promise((resolve) => {
     const proc = spawn(resolveSystemTool(file), args, { windowsHide: true, cwd: systemCwd() })
+    track(proc)
     const out: Buffer[] = []
     const err: Buffer[] = []
     const finish = (): void => {
@@ -243,7 +273,7 @@ export async function execFileAsync(
     if (opts?.input !== undefined) {
       return await execFileWithInput(file, args, opts.input, opts.timeoutMs ?? 15000)
     }
-    const result = await execFilePromise(resolveSystemTool(file), args, {
+    const pending = execFilePromise(resolveSystemTool(file), args, {
       windowsHide: true,
       cwd: systemCwd(),
       encoding: 'buffer',
@@ -251,6 +281,8 @@ export async function execFileAsync(
       timeout: opts?.timeoutMs ?? 15000,
       killSignal: 'SIGKILL'
     })
+    track(pending.child)
+    const result = await pending
     return { stdout: await decodeOutput(result.stdout), stderr: await decodeOutput(result.stderr) }
   } catch (error) {
     // execFile rejects when the process exits with a non-zero code.

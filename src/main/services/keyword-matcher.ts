@@ -169,6 +169,16 @@ export class KeywordMatcher {
     if (launch) return launch[1].toLowerCase()
     const whole = this.findKeyword(text)
     if (whole) return whole
+    // The scanner that wrote the line already matched the FULL page title or
+    // value and tagged it "{keyword}" right after the source. The line only
+    // keeps the first 300 characters of a long title, so the context that made
+    // an everyday-word keyword count may be cut off: the tag is honoured (it
+    // must name a real keyword) instead of showing a lead with no keyword.
+    const tagged = /^\[[^\]]*\]\s*\{([^}]{1,80})\}\s/.exec(text)
+    if (tagged) {
+      const index = this.patternIndexMap.get(squash(tagged[1].toLowerCase()))
+      if (index !== undefined) return this.patterns[index]
+    }
     const parts = text
       .split(/\r?\n|\s+(?:\||→|—|->|=)\s+|\s{4,}/)
       // Leading "[source]" / "{keyword}" / "Path:" labels, and a prefetch file's

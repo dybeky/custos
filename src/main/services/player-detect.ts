@@ -1,4 +1,4 @@
-import { readFile } from 'fs/promises'
+import { readTextCapped } from '../utils/read-capped'
 import { join } from 'path'
 import { execFile } from 'child_process'
 import { promisify } from 'util'
@@ -67,7 +67,7 @@ async function readAccounts(): Promise<SteamAccount[]> {
   const root = await findSteamRoot()
   if (!root) return []
   try {
-    return new VdfParser().parseSteamAccounts(await readFile(join(root, 'config', 'loginusers.vdf'), 'utf-8'))
+    return new VdfParser().parseSteamAccounts(await readTextCapped(join(root, 'config', 'loginusers.vdf'), 4 * 1024 * 1024))
   } catch {
     return []
   }

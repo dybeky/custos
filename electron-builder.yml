@@ -31,6 +31,8 @@ files:
   - "!node_modules/**/*.txt"
   - "!node_modules/**/test/**"
   - "!node_modules/**/docs/**"
+  - "!**/*.map"
+  - "!out/**/*.test.*"
 
 win:
   target:

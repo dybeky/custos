@@ -1,4 +1,4 @@
-import { readFile } from 'fs/promises'
+import { readTextCapped } from '../utils/read-capped'
 import { join } from 'path'
 import { BaseScanner, ScannerEventEmitter } from './base-scanner'
 import { ScanResult } from '../../shared/types'
@@ -12,7 +12,8 @@ export const USBSTOR_KEY = 'HKLM\\SYSTEM\\CurrentControlSet\\Enum\\USBSTOR'
 export async function readSetupapiLog(): Promise<string> {
   const path = join(process.env.SystemRoot ?? 'C:\\Windows', 'INF', 'setupapi.dev.log')
   try {
-    return await readFile(path, 'utf8')
+    // the recent entries are at the end; a runaway log must not fill memory
+    return await readTextCapped(path, 64 * 1024 * 1024, 'tail')
   } catch {
     return ''
   }

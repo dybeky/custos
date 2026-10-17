@@ -24,6 +24,11 @@ Keep each entry to one line of about 100 characters so the dialog stays tidy.
 - New launch intro: the sword draws in, the name flies in, a live progress line follows the real startup steps
 - System Compatibility card redesigned: ring, system chips, grouped checks, clear reasons when something is unavailable
 - Results redesigned: risk ring, severity bar, tabs, searchable evidence list, scanner tiles
+- A clean check shows a clear "nothing found" state instead of an empty list
+- Settings redesigned: section rail, cards with icons, switch rows, refined language and theme pickers
+- Dashboard: the compatibility read-out animates check by check, and the news card is taller and scrolls
+- Utilities page redesigned
+- Ambient background: soft drifting shapes in the theme colour, calmer on pages with content
 
 ### Fixes
 - Cheat names written with a space, dash or underscore are found (Aim Bot, wall-hack, no_recoil, Speed Hack)
@@ -38,6 +43,10 @@ Keep each entry to one line of about 100 characters so the dialog stays tidy.
 - A Windows account named like a cheat (e.g. C:\Users\Mason) is no longer reported as a lead
 - A scheduled task's state is shown in English, whatever language Windows is set to
 - The "Upload to site" button is gone: every check is saved to the site automatically
+- Cancelling a scan stops the Windows tools it started at once
+- Account names in paths on network shares (admin shares like C$) are hidden in uploads and error reports
+- A browser lead whose keyword sat deep in a long page title keeps its keyword
+- A site check with malformed entries opens with those entries skipped instead of failing
 
 ### Improvements
 - Manual check redesigned: search, tabs, a card per place that says what it shows and why to look

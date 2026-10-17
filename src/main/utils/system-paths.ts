@@ -57,5 +57,5 @@ export function resolveSystemTool(file: string): string {
  */
 export function withSystemPowershell(command: string): string {
   if (process.platform !== 'win32') return command
-  return command.replace(/^\s*powershell(\.exe)?(?=\s|$)/i, `"${powershellPath()}"`)
+  return command.replace(/^\s*powershell(\.exe)?(?=\s|$)/i, `"${powershellPath()}" -NonInteractive`)
 }

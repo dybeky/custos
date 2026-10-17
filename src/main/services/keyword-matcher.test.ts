@@ -368,3 +368,18 @@ describe('findKeywordInFinding', () => {
     expect(m.findKeywordInFinding('[BAM] C:\\Games\\notes.exe | 12/10/2026, 10:00')).toBeNull()
   })
 })
+
+describe('findKeywordInFinding: scanner tags', () => {
+  const matcher = new KeywordMatcher({ patterns: ['fatality'], exactMatch: [], ambiguous: ['fatality'] })
+
+  it('keeps the keyword of a long chat title whose cheat context was cut off', () => {
+    const line = '[Chrome/History] {fatality} https://chatgpt.com/c/abc | "Help with a game ' + 'x '.repeat(100) + 'fatality"'
+    expect(matcher.findKeyword(line)).toBeNull() // no cheat context left in the line
+    expect(matcher.findKeywordInFinding(line)).toBe('fatality')
+  })
+
+  it('does not trust a tag that is not a keyword, or one inside the title', () => {
+    expect(matcher.findKeywordInFinding('[Chrome/History] {nothing} https://x.test | "a"')).toBeNull()
+    expect(matcher.findKeywordInFinding('[Chrome/History] https://x.test | "{fatality} movie" ')).toBeNull()
+  })
+})

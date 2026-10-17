@@ -1,5 +1,6 @@
 import { existsSync } from 'fs'
-import { readdir, readFile } from 'fs/promises'
+import { readdir } from 'fs/promises'
+import { readCapped } from '../utils/read-capped'
 import { join } from 'path'
 import { BaseScanner, ScannerEventEmitter } from './base-scanner'
 import { ScanResult } from '../../shared/types'
@@ -47,7 +48,7 @@ export class RecycleBinScanner extends BaseScanner {
           if (!/^\$I/i.test(name)) continue
           let entry
           try {
-            entry = parseRecycleInfo(await readFile(join(dir, name)))
+            entry = parseRecycleInfo(await readCapped(join(dir, name), 1024 * 1024))
           } catch {
             continue
           }

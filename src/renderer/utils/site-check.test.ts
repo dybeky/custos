@@ -44,3 +44,22 @@ describe('uploaderLabel', () => {
     expect(uploaderLabel(t, null)).toBe('—')
   })
 })
+
+describe('resultsFromReport: odd site data', () => {
+  it('skips scanner and finding entries of the wrong shape instead of crashing', () => {
+    const odd = {
+      id: 'r',
+      meta: { scannedAt: 'not a date' },
+      findings: [null, 7, { scannerId: 's', value: 5 }, { scannerId: 's', value: 'ok' }],
+      scanners: [1, null, 'x', { id: 's' }, { id: 's', name: 'S', success: true, durationMs: -3, count: 'many' }]
+    } as unknown as ScanReport
+    const r = resultsFromReport(odd)
+    expect(r).toHaveLength(1)
+    expect(r[0]).toMatchObject({ scannerName: 'S', findings: ['ok'], duration: 0, count: 0, hasFindings: true })
+    expect(Number.isNaN(r[0].startTime.getTime())).toBe(false)
+  })
+
+  it('survives missing lists', () => {
+    expect(resultsFromReport({ id: 'r' } as unknown as ScanReport)).toEqual([])
+  })
+})

@@ -1,4 +1,7 @@
-import { readdir, readFile } from 'fs/promises'
+import { readdir } from 'fs/promises'
+import { readTextCapped } from '../utils/read-capped'
+
+const VDF_MAX_BYTES = 16 * 1024 * 1024
 import { join } from 'path'
 import { GAMES, type GameId } from '../../shared/games'
 
@@ -65,7 +68,7 @@ export async function launchOptionFindings(steamRoot: string, game: GameId | nul
   for (const account of accounts) {
     let vdf: string
     try {
-      vdf = await readFile(join(userdata, account, 'config', 'localconfig.vdf'), 'utf-8')
+      vdf = await readTextCapped(join(userdata, account, 'config', 'localconfig.vdf'), VDF_MAX_BYTES)
     } catch {
       continue
     }
