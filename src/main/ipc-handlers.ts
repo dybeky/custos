@@ -33,8 +33,8 @@ import { COLOR_THEMES, DEFAULT_THEME, isColorTheme } from '../shared/themes'
 import { playerKey, type HistoryEntry, type HistorySummary } from '../shared/history'
 import { join } from 'path'
 import { randomBytes } from 'crypto'
-import {
 import { rememberRegeditLastKey } from './utils/regedit-state'
+import {
   AuthLoginPayloadSchema, AuthUploadAvatarPayloadSchema, SiteOpenPayloadSchema, SitePlayerPayloadSchema, SitePreviousPayloadSchema, SiteUploadPayloadSchema, SiteChecksPayloadSchema, SiteCheckPayloadSchema
 } from './auth/auth-ipc-schema'
 import type { AuthService } from './auth/auth-service'
