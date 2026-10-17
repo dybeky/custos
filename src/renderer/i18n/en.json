@@ -46,6 +46,18 @@
       "toggle": "Send errors to the site",
       "desc": "If Custos breaks, the error goes to 97437.dev so it can be fixed.",
       "details": "Only the error itself, the program version and the system are sent. Check results, player names and findings are never sent, and the Windows account name is cut out of paths. The choice lasts while the program is open (Custos keeps nothing on the PC). To turn it off for good, start it with --no-error-reports."
+    },
+    "sections": {
+      "sound": "Sound"
+    },
+    "sectionDesc": {
+      "theme": "The whole window recolours at once. Pick the one that is easiest on your eyes.",
+      "sound": "Clicks and the launch music. Neither is kept on the PC.",
+      "privacy": "What Custos may send to the site, and what it never sends."
+    },
+    "music": {
+      "title": "Launch music",
+      "desc": "Plays once when Custos starts, quietly, and fades out on its own."
     }
   },
   "news": {

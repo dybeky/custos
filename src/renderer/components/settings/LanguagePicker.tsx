@@ -11,33 +11,41 @@ export function LanguagePicker() {
   const current = isLanguage(i18n.language) ? i18n.language : 'en'
 
   return (
-    <div>
-      <p className="text-sm text-ink-dim mb-3">{t('settings.language.desc')}</p>
-      <div role="radiogroup" aria-label={t('settings.language.title')} className="inline-flex rounded-xl border border-[color:var(--line)] bg-panel-2 p-1">
-        {LANGUAGES.map((lang) => {
-          const active = lang === current
-          return (
-            <button
-              key={lang}
-              role="radio"
-              aria-checked={active}
-              onClick={() => setLanguage(lang)}
-              className={`relative min-w-32 rounded-lg px-4 py-2 text-sm font-semibold transition-colors ${
-                active ? 'text-scan' : 'text-ink-dim hover:text-ink'
+    <div
+      role="radiogroup"
+      aria-label={t('settings.language.title')}
+      className="grid grid-cols-2 gap-1 rounded-xl border border-[color:var(--line)] bg-panel-2 p-1"
+    >
+      {LANGUAGES.map((lang) => {
+        const active = lang === current
+        return (
+          <button
+            key={lang}
+            role="radio"
+            aria-checked={active}
+            onClick={() => setLanguage(lang)}
+            className={`relative flex items-center justify-center gap-2.5 rounded-lg px-4 py-2.5 text-sm font-semibold outline-none transition-colors focus-visible:ring-1 focus-visible:ring-scan/60 ${
+              active ? 'text-scan' : 'text-ink-dim hover:text-ink'
+            }`}
+          >
+            {active && (
+              <motion.span
+                layoutId="language-thumb"
+                className="absolute inset-0 rounded-lg border border-scan/40 bg-scan/10"
+                transition={{ type: 'spring', stiffness: 500, damping: 38 }}
+              />
+            )}
+            <span
+              className={`relative rounded-md px-1.5 py-px text-2xs font-bold uppercase tracking-wider ${
+                active ? 'bg-scan text-on-accent' : 'bg-ink-dim/15 text-ink-dim'
               }`}
             >
-              {active && (
-                <motion.span
-                  layoutId="language-thumb"
-                  className="absolute inset-0 rounded-lg border border-scan/40 bg-scan/10"
-                  transition={{ type: 'spring', stiffness: 500, damping: 38 }}
-                />
-              )}
-              <span className="relative">{t(`settings.language.${lang}`)}</span>
-            </button>
-          )
-        })}
-      </div>
+              {lang}
+            </span>
+            <span className="relative">{t(`settings.language.${lang}`)}</span>
+          </button>
+        )
+      })}
     </div>
   )
 }

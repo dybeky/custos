@@ -26,7 +26,7 @@ beforeEach(() => {
 describe('Settings Account card', () => {
   it('shows the account section and no palette swatches', () => {
     render(<Settings />)
-    expect(screen.getByText('settings.account')).toBeTruthy()
+    expect(screen.getAllByText('settings.account').length).toBeGreaterThan(0)
     expect(screen.queryByText('#C8A47E')).toBeNull()
   })
   it('has an error-reports switch that is on by default and turns off', async () => {

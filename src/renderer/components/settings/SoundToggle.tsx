@@ -1,29 +1,34 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { isUiSoundEnabled, setUiSoundEnabled } from '../../utils/ui-sound'
+import { toggleMusic, useMusicStore } from '../../stores/music-store'
+import { SwitchRow } from './SettingsParts'
 
-/** On/off switch for the menu click sound. */
+/** The menu click sound and the launch music: two switches. */
 export function SoundToggle() {
   const { t } = useTranslation()
   const [on, setOn] = useState(isUiSoundEnabled)
+  const musicEnabled = useMusicStore((s) => s.enabled)
+  const musicStatus = useMusicStore((s) => s.status)
+  const musicOn = musicEnabled && musicStatus !== 'ended'
 
   return (
-    <button
-      role="switch"
-      aria-checked={on}
-      onClick={() => {
-        setUiSoundEnabled(!on)
-        setOn(!on)
-      }}
-      className="mt-4 w-full flex items-center justify-between gap-4 rounded-xl border border-[color:var(--line)] px-4 py-3 text-left hover:border-[color:var(--line-strong)] transition-colors"
-    >
-      <span>
-        <span className="block text-sm font-medium text-ink">{t('settings.sound.title')}</span>
-        <span className="block mt-0.5 text-[11px] text-ink-dim">{t('settings.sound.desc')}</span>
-      </span>
-      <span className={`relative w-10 h-6 shrink-0 rounded-full transition-colors ${on ? 'bg-scan' : 'bg-panel-2 border border-[color:var(--line-strong)]'}`}>
-        <span className={`absolute top-1 w-4 h-4 rounded-full transition-all ${on ? 'left-5 bg-on-accent' : 'left-1 bg-ink-dim'}`} />
-      </span>
-    </button>
+    <div className="space-y-2.5">
+      <SwitchRow
+        checked={on}
+        onChange={(next) => {
+          setUiSoundEnabled(next)
+          setOn(next)
+        }}
+        title={t('settings.sound.title')}
+        desc={t('settings.sound.desc')}
+      />
+      <SwitchRow
+        checked={musicOn}
+        onChange={() => toggleMusic()}
+        title={t('settings.music.title')}
+        desc={musicStatus === 'ended' ? t('music.replay') : t('settings.music.desc')}
+      />
+    </div>
   )
 }
