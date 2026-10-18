@@ -59,7 +59,7 @@ export function FindingRow({ value, finding, hideSeverity = false, scannerLabel 
   return (
     <div
       className={`group relative flex items-start gap-3 overflow-hidden rounded-xl border border-[color:var(--line)] bg-panel-2/70 py-2.5 pl-4 pr-3 text-xs transition-colors hover:border-[color:var(--line-strong)] ${
-        suppressed ? 'opacity-50' : ''
+        suppressed ? 'bg-panel-2/40' : ''
       }`}
     >
       <span className={`absolute inset-y-0 left-0 w-1 ${finding ? severityStripe(finding.severity) : 'bg-ink-dim/20'}`} />
@@ -90,7 +90,12 @@ export function FindingRow({ value, finding, hideSeverity = false, scannerLabel 
 
       {/* Actions float over the row's right edge on hover/focus so they never
           steal width from the path — long paths wrap at the edge, not midway. */}
-      <div className="pointer-events-none absolute right-1.5 top-1.5 flex flex-wrap justify-end gap-1 bg-gradient-to-l from-[color:var(--panel-2)] from-70% to-transparent pl-8 font-sans opacity-0 transition-opacity focus-within:pointer-events-auto focus-within:opacity-100 group-hover:pointer-events-auto group-hover:opacity-100">
+      <div className={`absolute right-1.5 top-1.5 flex flex-wrap justify-end gap-1 bg-gradient-to-l from-[color:var(--panel-2)] from-70% to-transparent pl-8 font-sans transition-opacity ${
+        // An ignored row always shows its Restore button: an accidental ignore must be easy to undo.
+        suppressed && !viewingHistory
+          ? 'opacity-100'
+          : 'pointer-events-none opacity-0 focus-within:pointer-events-auto focus-within:opacity-100 group-hover:pointer-events-auto group-hover:opacity-100'
+      }`}>
         <button onClick={stop(copy)} className={`${ACTION} bg-panel text-ink-dim hover:text-ink`}>
           {copied ? t('results.copied') : t('results.copy')}
         </button>
