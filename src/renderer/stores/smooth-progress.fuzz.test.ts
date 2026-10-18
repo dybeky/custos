@@ -13,6 +13,7 @@ function rng(seed: number): () => number {
 describe('smooth progress property tests', () => {
   it('is monotonic, bounded to 0-100 and never faster than MAX_SPEED', () => {
     const r = rng(31)
+    const violations: string[] = []
     for (let run = 0; run < 300; run++) {
       let value = 0
       let target = 0
@@ -22,13 +23,14 @@ describe('smooth progress property tests', () => {
         if (r() < 0.05) target = Math.min(100, target + r() * 30)
         const dt = r() < 0.05 ? r() * 5 : r() * 0.05
         const next = stepProgress(value, { target, slot, finishing }, dt)
-        expect(next).toBeGreaterThanOrEqual(value)
-        expect(next).toBeLessThanOrEqual(100)
-        expect(next - value).toBeLessThanOrEqual(MAX_SPEED * Math.min(dt, 0.25) + 1e-9)
-        expect(Number.isFinite(next)).toBe(true)
+        // Plain comparisons: 120k steps with four expect() calls each time out on slow CI runners.
+        if (!(next >= value && next <= 100 && next - value <= MAX_SPEED * Math.min(dt, 0.25) + 1e-9 && Number.isFinite(next))) {
+          violations.push(`run ${run} step ${i}: ${value} -> ${next} (dt ${dt})`)
+        }
         value = next
       }
     }
+    expect(violations).toEqual([])
   })
 
   it('never creeps past the true target by more than the running slot, and reaches 100 when finishing', () => {
