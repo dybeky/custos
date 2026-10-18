@@ -17,8 +17,7 @@ Keep each entry to one line of about 100 characters so the dialog stays tidy.
 - The Dashboard shows the website's 3D Custos sword, turning inside its rings in the theme colour
 - Export HTML: a single printable report file you can open in a browser or send to a server owner
 - Settings → About links to Custos Pro, the invite-only generation that continues Custos
-- Counter-Strike 2: pick it in the game list; its own base holds cheats, loaders, forums and 80+ provider sites
-- CS2 check reports the Steam launch options -insecure and -allow_third_party_software
+- Counter-Strike 2: pick it in the game list; it has its own detection base and its own checks
 - History tab: every check on the site, who checked whom, opens in the app (staff)
 - Steam bans: each Steam account found on the PC shows its VAC and game bans
 - New launch intro: the sword draws in, the name flies in, a live progress line follows the real startup steps
@@ -29,10 +28,10 @@ Keep each entry to one line of about 100 characters so the dialog stays tidy.
 - Dashboard: the compatibility read-out animates check by check, and the news card is taller and scrolls
 - Utilities page redesigned
 - Ambient background: soft drifting shapes in the theme colour, calmer on pages with content
+- Error reports: errors and crashes go to the site so they can be fixed; never check results or names
 
 ### Fixes
-- Cheat names written with a space, dash or underscore are found (Aim Bot, wall-hack, no_recoil, Speed Hack)
-- Downloaded copies like "Spoofer (1).exe" and "esp (3).exe" are found
+- Detection fixes: some cheats were missed because of how their files and names were written
 - A cancelled scan no longer leaves half-finished results on the Results screen
 - A player name containing a percent sign no longer crashes the case page
 - Desktop, Documents, Downloads, Pictures and Videos open correctly when OneDrive moved them
@@ -40,13 +39,16 @@ Keep each entry to one line of about 100 characters so the dialog stays tidy.
 - The Steam bans card works on a PC with more than 10 Steam accounts
 - A Windows account name with spaces or brackets is hidden whole in uploads
 - A trick path ending in a dot segment can no longer pass as a folder when opening paths
-- A Windows account named like a cheat (e.g. C:\Users\Mason) is no longer reported as a lead
+- Fewer false alarms: a Windows account name is no longer reported as a lead
 - A scheduled task's state is shown in English, whatever language Windows is set to
 - The "Upload to site" button is gone: every check is saved to the site automatically
 - Cancelling a scan stops the Windows tools it started at once
 - Account names in paths on network shares (admin shares like C$) are hidden in uploads and error reports
-- A browser lead whose keyword sat deep in a long page title keeps its keyword
+- Browser leads are reported correctly for very long page titles
 - A site check with malformed entries opens with those entries skipped instead of failing
+- Regedit opens at the chosen key and gets its last-opened key back when Custos closes
+- The EN / RU switch on the Dashboard news no longer jumps around
+- A page that breaks shows an error with a Retry button instead of a blank window
 
 ### Improvements
 - Manual check redesigned: search, tabs, a card per place that says what it shows and why to look
@@ -54,10 +56,13 @@ Keep each entry to one line of about 100 characters so the dialog stays tidy.
 - The scan's progress bar glides smoothly and never jumps, even when a scan is over in seconds
 - Dates read day, month, year with a 24-hour clock instead of the American format
 - A file-hash lead carries its full SHA-256, so a confirmed cheat file can be added to the base
-- Cheats are found under any spelling: "Cheat Engine", "cheat_engine", "spoofer_v2", "esp-setup"
-- Added SharpMonoInjector and kdmapper, and the unknowncheats.me and mpgh.net forums, to the base
-- Added Unturned cheats known from public source code: MSZ Reborn, CryEye, Tsunami, Uranus and others
-- A check uses the base of the chosen game (plus the shared list), so a CS2 name never flags an Unturned player
+- Detection improved: more spellings and variants are recognised
+- Detection base expanded: new cheats, loaders and sites for Unturned and Counter-Strike 2
+- Each game is checked against its own base, so one game's names never flag a player of the other
+- Only Custos's own window can use its inner functions; one profile-name rule for uploads and reports
+- Arrow keys work in the language and theme pickers and in tabs; reduced motion is respected
+- The background animation pauses during a scan
+- Detection lists ship inside each release and no longer update from the site
 
 ## 3.1.1
 
