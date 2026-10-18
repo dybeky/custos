@@ -27,6 +27,7 @@ import { NewsService } from './services/news-service'
 import { reportCrash } from './services/crash-reporter'
 import { SteamBansService, SteamIdsSchema } from './services/steam-bans-service'
 import { ProblemReportService } from './services/problem-report-service'
+import { SuppressionClock } from './intel/suppression-time'
 import type { SteamBansResult, ProblemReportResult } from '../shared/types'
 import { scannerIdFromDisplayName } from '../shared/scanners-meta'
 import { configService } from './services/config-service'
@@ -67,6 +68,8 @@ export function migrateSettings(raw: unknown): UserSettings {
 // sync so cancellation can't prematurely free the guard and let a second scan
 // start over the still-running one (see ScanSession).
 const scanSession = new ScanSession()
+
+const suppressionClock = new SuppressionClock()
 
 // Raw results + analysis context of the most recent scan, kept so triage
 // (dismiss / whitelist) can re-score it without rescanning.
@@ -277,10 +280,11 @@ export function setupIpcHandlers(mainWindow: BrowserWindow): void {
           findKeyword: (value: string) => scannerFactory.getKeywordMatcher().findKeywordInFinding(value)
         }
         lastScan = { results, context }
-        const report = analyze(results, {
+        const whitelisted = loadTriage().whitelistedSignatures
+        const report = suppressionClock.stamp(analyze(results, {
           ...context,
-          suppression: { whitelistedSignatures: loadTriage().whitelistedSignatures, dismissedFindingIds: [] }
-        })
+          suppression: { whitelistedSignatures: whitelisted, dismissedFindingIds: [] }
+        }), whitelisted, [])
         await saveToHistory(report, results)
         safeSend(IPC_CHANNELS.SCAN_REPORT, report)
         safeSend(IPC_CHANNELS.SCAN_COMPLETE, results)
@@ -307,10 +311,10 @@ export function setupIpcHandlers(mainWindow: BrowserWindow): void {
     const whitelistedSignatures = [...new Set(parsed.data.whitelistedSignatures.map(s => s.trim()).filter(Boolean))]
     appStore.set('triage', { whitelistedSignatures })
     if (!lastScan) return null
-    const report = analyze(lastScan.results, {
+    const report = suppressionClock.stamp(analyze(lastScan.results, {
       ...lastScan.context,
       suppression: { whitelistedSignatures, dismissedFindingIds: parsed.data.dismissedFindingIds }
-    })
+    }), whitelistedSignatures, parsed.data.dismissedFindingIds)
     await saveToHistory(report, lastScan.results)
     return report
   })

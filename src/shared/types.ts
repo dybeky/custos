@@ -533,6 +533,8 @@ export interface AnalyzedFinding {
   observedAt?: string
   dismissed?: boolean
   whitelisted?: boolean
+  /** ISO time the checker ignored it (the signature or this finding), when it is ignored. */
+  suppressedAt?: string
 }
 
 export interface Correlation {
