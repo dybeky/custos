@@ -26,7 +26,8 @@ import { HistoryStore } from './services/history-store'
 import { NewsService } from './services/news-service'
 import { reportCrash } from './services/crash-reporter'
 import { SteamBansService, SteamIdsSchema } from './services/steam-bans-service'
-import type { SteamBansResult } from '../shared/types'
+import { ProblemReportService } from './services/problem-report-service'
+import type { SteamBansResult, ProblemReportResult } from '../shared/types'
 import { scannerIdFromDisplayName } from '../shared/scanners-meta'
 import { configService } from './services/config-service'
 import { COLOR_THEMES, DEFAULT_THEME, isColorTheme } from '../shared/themes'
@@ -168,6 +169,17 @@ export function setupIpcHandlers(mainWindow: BrowserWindow): void {
     if (!parsed.success) return { ok: false, exact: false, bans: [] }
     return steamBans.get(parsed.data)
   })
+
+  // "Report a problem": the person's own words, to the site's Reports tab.
+  const problems = new ProblemReportService({
+    baseUrl: configService.loadAuthConfig().webBaseUrl,
+    appVersion: app.getVersion(),
+    system: () => {
+      const os = getOsInfo()
+      return { os: `${os.name} ${os.edition}`.trim(), osBuild: String(os.build), arch: os.arch, locale: app.getLocale() }
+    }
+  })
+  secureIpc.handle(IPC_CHANNELS.PROBLEM_SEND, (_event, payload: unknown): Promise<ProblemReportResult> => problems.send(payload))
 
   // Errors from the window (error screen, window.onerror): validated, then sent like any other.
   const CrashPayloadSchema = z.object({

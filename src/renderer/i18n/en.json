@@ -349,6 +349,34 @@
       "case": "Case"
     }
   },
+  "problem": {
+    "button": "Report a problem",
+    "title": "Report a problem",
+    "kindLabel": "What kind of problem",
+    "kind": {
+      "app": "App",
+      "scanner": "Scanner",
+      "other": "Other"
+    },
+    "whatLabel": "What happened",
+    "whatPlaceholder": "A few words, e.g. “Registry scanner never finishes”",
+    "detailsLabel": "Details",
+    "detailsPlaceholder": "What you did, what you expected, what you saw instead, and why you think it happened.",
+    "contactLabel": "How to reach you (optional)",
+    "contactPlaceholder": "Discord, e-mail or anything else",
+    "privacy": "Sent: what you write here, the program version, your Windows version and, for a scanner problem, the names of the scanners that ran or failed. Check results, player names and findings are never sent, and Windows account names are cut out.",
+    "cancel": "Cancel",
+    "send": "Send report",
+    "sending": "Sending…",
+    "close": "Close",
+    "sentTitle": "Thank you, the report was sent",
+    "sentBody": "We read every report. If you left a way to reach you, we may write back.",
+    "errors": {
+      "failed": "Could not send the report. Check the connection and try again.",
+      "rate_limited": "Too many reports from this connection. Try again in a few minutes.",
+      "invalid": "Check the fields: the title needs at least 3 characters and the details at least 10."
+    }
+  },
   "header": {
     "allSystemsOk": "All systems OK",
     "warningDetected": "Warning detected",

@@ -153,6 +153,25 @@ export interface SteamBanInfo {
   economyBan: string | null
 }
 
+/** "Report a problem": what a person wrote; the system and version are added in main. */
+export interface ProblemReportPayload {
+  kind: 'app' | 'scanner' | 'other'
+  title: string
+  details: string
+  contact?: string
+  /** Where the window was when the button was pressed (e.g. 'scan'). */
+  page?: string
+  game?: string
+  /** Names of scanners only, never their results. */
+  failedScanners?: string[]
+  scanners?: string[]
+}
+
+export interface ProblemReportResult {
+  ok: boolean
+  error?: 'invalid' | 'rate_limited' | 'failed'
+}
+
 export interface SteamBansResult {
   ok: boolean
   /** False when only "VAC banned or not" is known, without counts. */
@@ -438,6 +457,7 @@ export const IPC_CHANNELS = {
   SITE_CHECKS: 'site:checks',
   SITE_CHECK: 'site:check',
   STEAM_BANS: 'steam:bans',
+  PROBLEM_SEND: 'problem:send',
   SITE_OPEN: 'site:open',
 
   // Signatures downloaded from the site
