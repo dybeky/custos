@@ -112,7 +112,9 @@ export function installCrashHandlers(): void {
 
   app.on('child-process-gone', (_event, details) => {
     if (details.reason !== 'clean-exit') {
-      void reportCrash('child_gone', `${details.type} process gone: ${details.reason} (exit ${details.exitCode})`, { process: details.type })
+      // `name` / `serviceName` say which helper it was (network, audio, …); without them all Utility crashes look alike.
+      const who = [details.name, details.serviceName].filter(Boolean).join(' / ')
+      void reportCrash('child_gone', `${details.type} process gone: ${details.reason} (exit ${details.exitCode})${who ? ` [${who}]` : ''}`, { process: details.type })
     }
     if (details.type !== 'GPU' || gpuReported) return
     void (async () => {
