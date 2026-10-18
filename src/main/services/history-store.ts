@@ -1,4 +1,4 @@
-import { mkdir, readFile, rename, rm, writeFile } from 'fs/promises'
+import { mkdir, readdir, readFile, rename, rm, writeFile } from 'fs/promises'
 import { join } from 'path'
 import {
   HISTORY_LIMIT, scanPlayerLabel, summarize, type HistoryCase, type HistoryEntry, type HistorySummary
@@ -37,12 +37,32 @@ export class HistoryStore {
   }
 
   async list(): Promise<HistorySummary[]> {
+    let raw: string
     try {
-      const parsed = JSON.parse(await readFile(join(this.dir, 'index.json'), 'utf8'))
-      return Array.isArray(parsed) ? (parsed as HistorySummary[]) : []
+      raw = await readFile(join(this.dir, 'index.json'), 'utf8')
     } catch {
-      return []
+      return [] // no index yet
     }
+    try {
+      const parsed = JSON.parse(raw)
+      if (Array.isArray(parsed)) return parsed as HistorySummary[]
+    } catch {
+      // damaged index: rebuild it below
+    }
+    return this.rebuildIndex()
+  }
+
+  /** A damaged index must not hide the checks that are still on disk. */
+  private async rebuildIndex(): Promise<HistorySummary[]> {
+    const rows: HistorySummary[] = []
+    for (const name of await readdir(this.dir).catch(() => [] as string[])) {
+      const id = name.replace(/\.json$/, '')
+      if (id === 'index' || id === name || !ID_RE.test(id)) continue
+      const entry = await this.get(id)
+      if (entry) rows.push(summarize(entry))
+    }
+    rows.sort((a, b) => Date.parse(b.scannedAt) - Date.parse(a.scannedAt))
+    return rows.slice(0, HISTORY_LIMIT)
   }
 
   async get(id: string): Promise<HistoryEntry | null> {

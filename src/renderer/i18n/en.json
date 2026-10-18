@@ -40,7 +40,7 @@
       "title": "Error reports",
       "toggle": "Send errors to the site",
       "desc": "If Custos breaks, the error goes to 97437.dev so it can be fixed.",
-      "details": "Only the error itself, the program version and the system are sent. Check results, player names and findings are never sent, and the Windows account name is cut out of paths. The choice lasts while the program is open (Custos keeps nothing on the PC). To turn it off for good, start it with --no-error-reports."
+      "details": "Only the error itself, the program version and the system are sent. Check results, player names and findings are never sent, and the Windows account name is cut out of paths. This is always on."
     },
     "sections": {
       "sound": "Sound"
@@ -58,9 +58,7 @@
       "pro": "Custos Pro",
       "free": "Custos 3.x",
       "site": "Site"
-    },
-    "showRu": "Show in Russian",
-    "showEn": "Show in EN"
+    }
   },
   "dashboard": {
     "eyebrow": "ANTI-CHEAT TOOLKIT",

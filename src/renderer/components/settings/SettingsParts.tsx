@@ -72,25 +72,29 @@ export function SwitchRow({
   onChange,
   title,
   desc,
-  className = ''
+  className = '',
+  disabled = false
 }: {
   checked: boolean
   onChange: (next: boolean) => void
   title: string
   desc?: string
   className?: string
+  /** Locked: shows its state but cannot be changed. */
+  disabled?: boolean
 }) {
   return (
     <button
       type="button"
       role="switch"
       aria-checked={checked}
+      disabled={disabled}
       onClick={() => onChange(!checked)}
       className={`flex w-full items-center justify-between gap-4 rounded-xl border px-4 py-3 text-left outline-none transition-colors focus-visible:ring-1 focus-visible:ring-scan/60 ${
         checked
           ? 'border-scan/30 bg-scan/[0.05] hover:border-scan/50'
           : 'border-[color:var(--line)] hover:border-[color:var(--line-strong)]'
-      } ${className}`}
+      } ${disabled ? 'cursor-not-allowed' : ''} ${className}`}
     >
       <span className="min-w-0">
         <span className="block text-sm font-medium text-ink">{title}</span>
@@ -102,11 +106,18 @@ export function SwitchRow({
         }`}
       >
         <motion.span
-          className={`absolute top-0.5 h-4 w-4 rounded-full ${checked ? 'bg-on-accent' : 'bg-ink-dim'}`}
+          className={`absolute top-0.5 flex h-4 w-4 items-center justify-center rounded-full ${checked ? 'bg-on-accent' : 'bg-ink-dim'}`}
           initial={false}
           animate={{ x: checked ? 22 : 3 }}
           transition={{ type: 'spring', stiffness: 520, damping: 34 }}
-        />
+        >
+          {disabled && (
+            <svg viewBox="0 0 24 24" className="h-2.5 w-2.5 text-scan" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <rect x="5" y="11" width="14" height="10" rx="2" fill="currentColor" />
+              <path d="M8 11V8a4 4 0 0 1 8 0v3" />
+            </svg>
+          )}
+        </motion.span>
       </span>
     </button>
   )

@@ -35,19 +35,14 @@ applyGpuFallback()
 
 // Errors and crashes go to the site (Crashes in the admin panel) so they can be
 // fixed: the error, the app version and the system only, never check results.
-// Off with the Settings switch (this launch), --no-error-reports or
-// CUSTOS_NO_ERROR_REPORTS=1. Electron's net.fetch keeps running while a crash
+// Always on (no switch, flag or variable turns it off). Electron's net.fetch keeps running while a crash
 // dialog blocks the main thread.
 try {
   initCrashReporter({
     baseUrl: configService.loadAuthConfig().webBaseUrl,
     app: 'custos',
     appVersion: app.getVersion(),
-    enabled: () =>
-      process.env.NODE_ENV !== 'test' &&
-      !process.env.CUSTOS_NO_ERROR_REPORTS &&
-      !process.argv.includes('--no-error-reports') &&
-      (appStore.get('settings') as { sendErrorReports?: unknown } | undefined)?.sendErrorReports !== false,
+    enabled: () => process.env.NODE_ENV !== 'test',
     context: () => {
       const os = getOsInfo()
       return {

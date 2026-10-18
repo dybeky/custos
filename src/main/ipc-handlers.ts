@@ -46,8 +46,7 @@ const execFileP = promisify(execFile)
 
 // Strict schema for partial user settings — rejects unknown properties
 const UserSettingsPartialSchema = z.object({
-  colorTheme: z.enum(COLOR_THEMES).optional(),
-  sendErrorReports: z.boolean().optional()
+  colorTheme: z.enum(COLOR_THEMES).optional()
 }).strict()
 
 /**
@@ -57,10 +56,9 @@ const UserSettingsPartialSchema = z.object({
  * the strict partial schema on the next SETTINGS_SET.
  */
 export function migrateSettings(raw: unknown): UserSettings {
-  const obj = raw && typeof raw === 'object' ? (raw as { colorTheme?: unknown; sendErrorReports?: unknown }) : {}
+  const obj = raw && typeof raw === 'object' ? (raw as { colorTheme?: unknown }) : {}
   return {
-    colorTheme: isColorTheme(obj.colorTheme) ? obj.colorTheme : DEFAULT_THEME,
-    ...(typeof obj.sendErrorReports === 'boolean' ? { sendErrorReports: obj.sendErrorReports } : {})
+    colorTheme: isColorTheme(obj.colorTheme) ? obj.colorTheme : DEFAULT_THEME
   }
 }
 

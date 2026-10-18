@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest'
-import { mkdtempSync, rmSync, readdirSync } from 'fs'
+import { mkdtempSync, rmSync, readdirSync, writeFileSync } from 'fs'
 import { tmpdir } from 'os'
 import { join } from 'path'
 import { HistoryStore } from './history-store'
@@ -34,6 +34,15 @@ describe('HistoryStore', () => {
   it('handles concurrent saves without losing index rows', async () => {
     await Promise.all(Array.from({ length: 10 }, (_, i) => store.save(rep(`s${i}`, `2026-09-${10 + i}T10:00:00Z`), [])))
     expect(await store.list()).toHaveLength(10)
+  })
+
+  it('rebuilds a damaged index from the saved checks', async () => {
+    await store.save(rep('scan-1', '2026-09-20T10:00:00Z'), [])
+    await store.save(rep('scan-2', '2026-09-27T10:00:00Z'), [])
+    writeFileSync(join(dir, 'index.json'), '[{"id":')
+    expect((await store.list()).map((s) => s.id)).toEqual(['scan-2', 'scan-1'])
+    await store.save(rep('scan-3', '2026-09-28T10:00:00Z'), [])
+    expect(await store.list()).toHaveLength(3)
   })
 
   it('deletes a check', async () => {

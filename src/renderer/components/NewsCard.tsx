@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { AnimatePresence, motion } from 'framer-motion'
+import { motion } from 'framer-motion'
 import { useTranslation } from 'react-i18next'
 import type { NewsFeed } from '../../shared/types'
 import { Card, CardContent } from './ui/Card'
@@ -21,51 +21,31 @@ function chipStyle(hex: string): { color: string; borderColor: string; backgroun
 /** EN | RU: the highlight slides to the chosen language. */
 function LangSwitch({ lang, onChange }: { lang: Lang; onChange: (l: Lang) => void }) {
   const { t } = useTranslation()
-  const next: Lang = lang === 'en' ? 'ru' : 'en'
   return (
-    <div className="flex items-center gap-2">
-      <div
-        role="group"
-        aria-label={t('settings.language.title')}
-        className="relative inline-flex rounded-full border border-[color:var(--line)] bg-panel-2 p-0.5"
-      >
-        {(['en', 'ru'] as const).map((l) => (
-          <button
-            key={l}
-            aria-pressed={lang === l}
-            onClick={() => onChange(l)}
-            className={`relative min-w-9 rounded-full px-2.5 py-0.5 text-2xs font-semibold uppercase transition-colors ${
-              lang === l ? 'text-scan' : 'text-ink-dim hover:text-ink'
-            }`}
-          >
-            {lang === l && (
-              <motion.span
-                layoutId="news-lang-thumb"
-                className="absolute inset-0 rounded-full border border-scan/40 bg-scan/15"
-                transition={{ type: 'spring', stiffness: 520, damping: 36 }}
-              />
-            )}
-            <span className="relative">{l}</span>
-          </button>
-        ))}
-      </div>
-      <button
-        onClick={() => onChange(next)}
-        className="hidden text-2xs text-ink-dim hover:text-ink sm:inline"
-      >
-        <AnimatePresence mode="wait" initial={false}>
-          <motion.span
-            key={next}
-            className="inline-block"
-            initial={{ opacity: 0, y: 4 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -4 }}
-            transition={{ duration: 0.15 }}
-          >
-            {next === 'ru' ? t('news.showRu') : t('news.showEn')}
-          </motion.span>
-        </AnimatePresence>
-      </button>
+    <div
+      role="group"
+      aria-label={t('settings.language.title')}
+      className="relative inline-flex rounded-full border border-[color:var(--line)] bg-panel-2 p-0.5"
+    >
+      {(['en', 'ru'] as const).map((l) => (
+        <button
+          key={l}
+          aria-pressed={lang === l}
+          onClick={() => onChange(l)}
+          className={`relative min-w-9 rounded-full px-2.5 py-0.5 text-2xs font-semibold uppercase transition-colors ${
+            lang === l ? 'text-scan' : 'text-ink-dim hover:text-ink'
+          }`}
+        >
+          {lang === l && (
+            <motion.span
+              layoutId="news-lang-thumb"
+              className="absolute inset-0 rounded-full border border-scan/40 bg-scan/15"
+              transition={{ type: 'spring', stiffness: 520, damping: 36 }}
+            />
+          )}
+          <span className="relative">{l}</span>
+        </button>
+      ))}
     </div>
   )
 }

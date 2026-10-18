@@ -61,8 +61,6 @@ export interface ScannerInfo {
 export interface UserSettings {
   /** Color theme of the interface. */
   colorTheme: ColorTheme
-  /** Send errors and crashes to the site so they can be fixed (default on). */
-  sendErrorReports?: boolean
 }
 
 // Desktop auth providers. 'google'/'github' are interactive OAuth via the
