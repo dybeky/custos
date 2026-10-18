@@ -52,7 +52,9 @@ const ChecksPageSchema = z.object({
     player: z.string().nullable(),
     uploader: z.string().nullable(),
     hashVerified: z.boolean(),
-    anonymous: z.boolean()
+    anonymous: z.boolean(),
+    // The site saw another check from the same place; the app shows only a blurred mark.
+    seenBefore: z.boolean().optional().catch(false)
   })).max(200)
 })
 // The stored report is the app's own ScanReport; only what opening it relies on is checked.

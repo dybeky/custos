@@ -94,8 +94,22 @@ export function SiteHistoryList({ query, onOpened }: { query: string; onOpened: 
                 {t(`verdict.band.${c.band}`)}
               </span>
               <span className="flex-1 min-w-0">
-                <span className="block text-sm text-ink truncate">
-                  {c.player || <span className="text-ink-dim italic">{t('history.noPlayer')}</span>}
+                <span className="flex items-center gap-2 text-sm text-ink">
+                  <span className="truncate">
+                    {c.player || <span className="text-ink-dim italic">{t('history.noPlayer')}</span>}
+                  </span>
+                  {c.seenBefore && (
+                    // Decorative bars, blurred: nothing real is behind them, so there is nothing to read.
+                    <span
+                      role="img"
+                      aria-label={t('history.seenBefore')}
+                      title={t('history.seenBefore')}
+                      data-testid="seen-before"
+                      className="shrink-0 select-none rounded-full border border-[color:var(--line)] bg-panel-2 px-2 py-0.5 text-[10px] leading-none text-ink-dim blur-[3px]"
+                    >
+                      ▒▒▒▒▒▒
+                    </span>
+                  )}
                 </span>
                 <span className="block text-xs text-ink-dim truncate">
                   {fmt.format(new Date(c.scannedAt))}

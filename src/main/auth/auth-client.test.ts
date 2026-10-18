@@ -167,6 +167,14 @@ describe('AuthClient site integration', () => {
     await expect(denied.listChecks({ page: 1, q: '' })).rejects.toThrow('forbidden')
   })
 
+  it('keeps the seen-before flag of a listed check and treats a missing or odd one as false', async () => {
+    const row = { id: 'r1', scannedAt: '2026-01-01T00:00:00.000Z', band: 'high', score: 70, leads: 2, gameId: 'cs2', player: 'Bob', uploader: 'mod', hashVerified: true, anonymous: false }
+    const body = { page: 1, pageSize: 50, total: 3, checks: [{ ...row, seenBefore: true }, row, { ...row, id: 'r3', seenBefore: 'yes' }] }
+    const c = new AuthClient(BASE, mockFetch(() => json(body)))
+    const flags = (await c.listChecks({ page: 1, q: '' })).checks.map((x) => x.seenBefore ?? false)
+    expect(flags).toEqual([true, false, false])
+  })
+
   it('opens one check with its report, and refuses a malformed answer', async () => {
     let url = ''
     const report = { id: 's1', meta: { scannedAt: '2026-01-01T00:00:00.000Z' }, verdict: { score: 5, band: 'low', reasons: [] }, findings: [], correlations: [], scanners: [] }

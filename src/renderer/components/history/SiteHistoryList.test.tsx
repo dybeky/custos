@@ -44,6 +44,18 @@ describe('SiteHistoryList', () => {
     expect(api.getSiteChecks).toHaveBeenCalledWith(1, '')
   })
 
+  it('marks a check seen before with a blurred placeholder and no readable text', async () => {
+    api.getSiteChecks.mockResolvedValueOnce({
+      ok: true, page: 1, pageSize: 50, total: 2,
+      checks: [{ ...row('r1', 'Bob', 'mod1'), seenBefore: true }, row('r2', 'Ann', 'mod2')] as never
+    })
+    render(<SiteHistoryList query="" onOpened={() => {}} />)
+    await screen.findByText('Bob')
+    const marks = screen.getAllByTestId('seen-before')
+    expect(marks).toHaveLength(1)
+    expect(marks[0].textContent).toMatch(/^▒+$/)
+  })
+
   it('opens a check from the site read-only, with its case and per-scanner results', async () => {
     const onOpened = vi.fn()
     render(<SiteHistoryList query="" onOpened={onOpened} />)

@@ -899,6 +899,7 @@
     },
     "siteEmpty": "No checks on the site yet.",
     "checkedBy": "checked by {{name}}",
+    "seenBefore": "Checked before",
     "retry": "Try again",
     "prev": "Previous",
     "next": "Next",

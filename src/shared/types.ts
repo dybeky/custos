@@ -201,7 +201,7 @@ export interface SitePlayerResult {
 /** One page of every check on the site (all checkers), newest first. */
 export interface SiteChecksPage {
   ok: boolean
-  checks?: Array<SiteCheck & { anonymous: boolean }>
+  checks?: Array<SiteCheck & { anonymous: boolean; seenBefore?: boolean }>
   page?: number
   pageSize?: number
   total?: number
