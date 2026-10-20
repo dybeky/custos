@@ -77,7 +77,8 @@
     "thanking",
     "titanium",
     "naim",
-    "rift-7"
+    "rift-7",
+    "proaim"
   ],
   "games": {
     "unturned": {
@@ -109,7 +110,9 @@
         "unturnedhake",
         "unturned-ihack",
         "elite-hack-unturned",
-        "unturned-radar"
+        "unturned-radar",
+        "unturned-ai-helper",
+        "proaim"
       ],
       "exactMatch": [],
       "domains": [
