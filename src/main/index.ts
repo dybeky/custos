@@ -21,6 +21,7 @@ import { isAllowedAuthUrl } from './utils/url-policy'
 import { IPC_CHANNELS } from '../shared/types'
 import { DEFAULT_THEME, THEME_SWATCHES, isColorTheme } from '../shared/themes'
 import { applyGpuFallback, installCrashHandlers, watchWindow } from './diagnostics/crash-handler'
+import { cpus, freemem, totalmem } from 'os'
 import { initCrashReporter, postJson, reportCrash } from './services/crash-reporter'
 
 // Window background shown before the renderer paints; matches the CSS `--bg`
@@ -50,7 +51,12 @@ try {
         osBuild: String(os.build),
         arch: os.arch,
         electron: process.versions.electron,
-        locale: app.isReady() ? app.getLocale() : ''
+        locale: app.isReady() ? app.getLocale() : '',
+        appArch: os.appArch,
+        emulated: os.isEmulated,
+        cores: cpus().length,
+        memFreeMb: Math.round(freemem() / 1048576),
+        memTotalMb: Math.round(totalmem() / 1048576)
       }
     },
     send: (url, body) => postJson((app.isReady() ? net.fetch.bind(net) : fetch) as typeof fetch)(url, body)

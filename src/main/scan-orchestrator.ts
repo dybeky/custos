@@ -43,7 +43,7 @@ async function runScannerWithTimeout(
 
   return new Promise((resolve) => {
     const timeout = setTimeout(() => {
-      const detail = lastStep ? `stopped at step ${lastStep.currentItem}/${lastStep.totalItems}` : 'reported no progress'
+      const detail = lastStep ? `step ${lastStep.currentItem}/${lastStep.totalItems}` : 'before its first step'
       logger.warn(`Scanner timeout: ${scanner.name}`, { timeoutMs, detail })
       scanner.cancel()
       resolve({

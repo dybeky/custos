@@ -115,3 +115,12 @@ describe('postJson', () => {
     await expect(postJson(bad as unknown as typeof fetch)('https://x.test/a', '{}')).resolves.toBeUndefined()
   })
 })
+
+describe('hexExitCode', () => {
+  it('shows a signed Windows exit code the way Windows documents it', async () => {
+    const { hexExitCode } = await import('./crash-reporter')
+    expect(hexExitCode(-2147483645)).toBe('0x80000003')
+    expect(hexExitCode(-1073741819)).toBe('0xc0000005')
+    expect(hexExitCode(1)).toBe('0x1')
+  })
+})

@@ -93,12 +93,12 @@ describe('runScan timeout detail', () => {
       return new Promise(() => {}) // never finishes
     })
     expect(r.error).toBe('Scanner timeout (0.05s)')
-    expect(r.detail).toBe('stopped at step 2/4')
+    expect(r.detail).toBe('step 2/4')
     expect(JSON.stringify(r.detail)).not.toContain('secret')
   })
 
   it('says so when it reported no progress at all', async () => {
     const [r] = await run(() => new Promise(() => {}))
-    expect(r.detail).toBe('reported no progress')
+    expect(r.detail).toBe('before its first step')
   })
 })

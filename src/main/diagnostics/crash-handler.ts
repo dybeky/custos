@@ -2,7 +2,7 @@ import { app, BrowserWindow, clipboard, dialog } from 'electron'
 import { readFileSync } from 'fs'
 import { logger } from '../services/logger'
 import { safeOpenExternal } from '../utils/safe-open'
-import { reportCrash } from '../services/crash-reporter'
+import { hexExitCode, reportCrash } from '../services/crash-reporter'
 import {
   diagnoseError, diagnoseLoadFailure, diagnoseProcessGone, gpuVendorFromId,
   type Diagnosis, type GpuVendor
@@ -114,7 +114,9 @@ export function installCrashHandlers(): void {
     if (details.reason !== 'clean-exit') {
       // `name` / `serviceName` say which helper it was (network, audio, …); without them all Utility crashes look alike.
       const who = [details.name, details.serviceName].filter(Boolean).join(' / ')
-      void reportCrash('child_gone', `${details.type} process gone: ${details.reason} (exit ${details.exitCode})${who ? ` [${who}]` : ''}`, { process: details.type })
+      void reportCrash('child_gone', `${details.type} process gone: ${details.reason}`, {
+        process: details.type, reason: details.reason, exitCode: hexExitCode(details.exitCode), ...(who ? { service: who } : {})
+      })
     }
     if (details.type !== 'GPU' || gpuReported) return
     void (async () => {
@@ -135,7 +137,7 @@ export function installCrashHandlers(): void {
 export function watchWindow(win: BrowserWindow): void {
   win.webContents.on('render-process-gone', (_event, details) => {
     if (details.reason !== 'clean-exit') {
-      void reportCrash('renderer_gone', `Window process gone: ${details.reason} (exit ${details.exitCode})`, { process: 'renderer' })
+      void reportCrash('renderer_gone', `Window process gone: ${details.reason}`, { process: 'renderer', reason: details.reason, exitCode: hexExitCode(details.exitCode) })
     }
     const d = diagnoseProcessGone({ reason: details.reason, exitCode: details.exitCode })
     if (!d) return

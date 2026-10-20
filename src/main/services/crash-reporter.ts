@@ -31,6 +31,26 @@ export interface CrashContext {
   scanner?: string
   process?: string
   uptimeSec?: number
+  /** Where a scanner stopped, e.g. "step 2/4". */
+  step?: string
+  scannersLate?: number
+  scannersTotal?: number
+  scanSec?: number
+  cores?: number
+  memFreeMb?: number
+  memTotalMb?: number
+  appArch?: string
+  emulated?: boolean
+  /** Hex exit code of a helper that stopped, e.g. "0x80000003". */
+  exitCode?: string
+  reason?: string
+  /** Which helper (network, audio, ...) stopped. */
+  service?: string
+}
+
+/** Windows exit codes are unsigned: -2147483645 is 0x80000003. */
+export function hexExitCode(code: number): string {
+  return `0x${(code >>> 0).toString(16)}`
 }
 
 const MAX_MESSAGE = 1500
