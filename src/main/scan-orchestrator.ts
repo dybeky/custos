@@ -39,16 +39,19 @@ async function runScannerWithTimeout(
   // Leave the scanner time to wrap up and hand in a partial result: a
   // timeout below discards everything it found.
   scanner.setTimeBudget(Math.max(0, Math.min(timeoutMs * 0.75, timeoutMs - 5000)))
+  let lastStep: ScanProgress | undefined
 
   return new Promise((resolve) => {
     const timeout = setTimeout(() => {
-      logger.warn(`Scanner timeout: ${scanner.name}`, { timeoutMs })
+      const detail = lastStep ? `stopped at step ${lastStep.currentItem}/${lastStep.totalItems}` : 'reported no progress'
+      logger.warn(`Scanner timeout: ${scanner.name}`, { timeoutMs, detail })
       scanner.cancel()
       resolve({
         scannerName: scanner.name,
         success: false,
         findings: [],
         error: `Scanner timeout (${timeoutMs / 1000}s)`,
+        detail,
         startTime: new Date(),
         endTime: new Date(),
         duration: timeoutMs,
@@ -57,7 +60,12 @@ async function runScannerWithTimeout(
       })
     }, timeoutMs)
 
-    scanner.scan(events)
+    scanner.scan({
+      onProgress: (progress: ScanProgress) => {
+        lastStep = progress
+        events.onProgress(progress)
+      }
+    })
       .then(result => {
         clearTimeout(timeout)
         logger.debug(`Scanner completed: ${scanner.name}`, {

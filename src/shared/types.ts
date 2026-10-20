@@ -9,6 +9,8 @@ export interface ScanResult {
   error?: string
   /** Set when the check ran but read only part of its source (e.g. a time limit). */
   partial?: string
+  /** For a scanner stopped by the time limit: the last step it reported. Goes into the error report. */
+  detail?: string
   startTime: Date
   endTime: Date
   duration: number

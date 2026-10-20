@@ -10,6 +10,7 @@ import { promisify } from 'util'
 import { getScannerFactory, ScannerName } from './scanners'
 import { analyze, reportForUpload, type AnalyzeContext } from './intel/risk-engine'
 import { osMetaFromOsInfo, makeScanId } from './intel/report-context'
+import { cpus, freemem, totalmem } from 'os'
 import { getOsInfo, getTimeoutMultiplier } from './utils/os-utils'
 import { getScannerCapabilities, getSupportedScannerIds, getAllCapabilities } from './services/capability-service'
 import { runScan } from './scan-orchestrator'
@@ -252,9 +253,15 @@ export function setupIpcHandlers(mainWindow: BrowserWindow): void {
           return results
         }
 
+        // Second line of the message (the first is what errors are grouped by): shows a slow PC
+        // (many scanners late, few cores or little free memory) apart from one stuck scanner.
+        const lateCount = results.filter((x) => /^Scanner timeout/.test(x.error ?? '')).length
+        const scanSec = Math.round((Math.max(...results.map((x) => +x.endTime)) - Math.min(...results.map((x) => +x.startTime))) / 1000)
+        const machine = `${lateCount} of ${results.length} scanners timed out · scan ran ${scanSec}s · ${cpus().length} cores · ${(freemem() / 1e9).toFixed(1)} of ${(totalmem() / 1e9).toFixed(1)} GB memory free`
+
         for (const r of results) {
           if (r.success || !r.error || /cancel/i.test(r.error)) continue
-          void reportCrash('scanner_error', r.error, {
+          void reportCrash('scanner_error', `${r.error}\n${[r.detail, machine].filter(Boolean).join(' · ')}`, {
             scanner: scannerIdFromDisplayName(r.scannerName) ?? r.scannerName.slice(0, 40),
             game: gameId ?? undefined
           })

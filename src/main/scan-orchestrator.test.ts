@@ -72,3 +72,33 @@ describe('runScan time budget', () => {
     expect(budget).toBe(22500)
   })
 })
+
+describe('runScan timeout detail', () => {
+  const run = async (scan: (events?: { onProgress: (p: never) => void }) => Promise<unknown>) => {
+    const { runScan } = await import('./scan-orchestrator')
+    const scanner = { name: 'Recycle Bin Scanner', setTimeBudget: () => {}, cancel: () => {}, scan }
+    return runScan({
+      factory: { getScanner: () => scanner } as never,
+      requestedIds: ['recyclebin'],
+      supportedIds: new Set(['recyclebin']) as never,
+      emit: () => {},
+      signal: new AbortController().signal,
+      timeoutMs: 50
+    })
+  }
+
+  it('says at which step a scanner that ran out of time stopped', async () => {
+    const [r] = await run(async (events) => {
+      events?.onProgress({ currentItem: 2, totalItems: 4, scannerName: 'x', currentPath: 'C://secret/path', percentage: 50 } as never)
+      return new Promise(() => {}) // never finishes
+    })
+    expect(r.error).toBe('Scanner timeout (0.05s)')
+    expect(r.detail).toBe('stopped at step 2/4')
+    expect(JSON.stringify(r.detail)).not.toContain('secret')
+  })
+
+  it('says so when it reported no progress at all', async () => {
+    const [r] = await run(() => new Promise(() => {}))
+    expect(r.detail).toBe('reported no progress')
+  })
+})

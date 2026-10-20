@@ -21,9 +21,11 @@ export class RecycleBinScanner extends BaseScanner {
     this.reset()
     const findings: string[] = []
     const drives = await getAvailableDrives().catch(() => ['C:'])
+    let timedOut = false
 
     for (let d = 0; d < drives.length; d++) {
       if (this.cancelled) break
+      if (this.outOfTime()) { timedOut = true; break }
       const bin = join(`${drives[d]}\\`, '$Recycle.Bin')
       this.emitProgress(events, d, drives.length, bin)
       if (!existsSync(bin)) continue
@@ -36,6 +38,7 @@ export class RecycleBinScanner extends BaseScanner {
       }
       for (const sid of sids) {
         if (this.cancelled) break
+        if (this.outOfTime()) { timedOut = true; break }
         const dir = join(bin, sid)
         let names: string[]
         try {
@@ -45,6 +48,7 @@ export class RecycleBinScanner extends BaseScanner {
         }
         const present = new Set(names.map((n) => n.toUpperCase()))
         for (const name of names) {
+          if (this.outOfTime()) { timedOut = true; break }
           if (!/^\$I/i.test(name)) continue
           let entry
           try {
@@ -73,6 +77,6 @@ export class RecycleBinScanner extends BaseScanner {
     }
 
     this.emitProgress(events, drives.length, drives.length, '')
-    return this.createSuccessResult(findings, startTime)
+    return this.createSuccessResult(findings, startTime, timedOut ? 'The Recycle Bin was only partly read (time limit reached)' : undefined)
   }
 }
