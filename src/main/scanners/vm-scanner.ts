@@ -2,6 +2,10 @@ import { BaseScanner, ScannerEventEmitter } from './base-scanner'
 import { ScanResult } from '../../shared/types'
 import { asyncExec, execFileAsync } from '../utils/async-exec'
 import { existsSync } from 'fs'
+import { mapWithConcurrency } from '../utils/concurrency'
+
+/** VM checks in flight at once. */
+const VM_PARALLEL = 3
 
 // VM Guest Tools processes (only run INSIDE VM)
 const VM_GUEST_PROCESSES: Record<string, string[]> = {
@@ -167,34 +171,32 @@ export class VMScanner extends BaseScanner {
     ]
 
     let timedOut = false
-    for (let i = 0; i < checkMethods.length; i++) {
-      if (this.cancelled) break
-      // Each check runs PowerShell / sc / tasklist; past the scanner timeout
-      // everything found so far would be dropped.
+    let done = 0
+    // The checks are independent and each costs a PowerShell / sc / tasklist start; on a PC where
+    // a start takes seconds, eight in a row outlast the scanner's time limit. Three at a time.
+    const perCheck = await mapWithConcurrency(checkMethods, VM_PARALLEL, async (method) => {
+      if (this.cancelled) return []
+      // Past the scanner timeout everything found so far would be dropped.
       if (this.outOfTime()) {
         timedOut = true
-        break
+        return []
       }
-
-      const method = checkMethods[i]
-
-      if (events?.onProgress) {
-        events.onProgress({
-          scannerName: this.name,
-          currentItem: i + 1,
-          totalItems: checkMethods.length,
-          currentPath: `Checking ${method.name}...`,
-          percentage: ((i + 1) / checkMethods.length) * 100
-        })
-      }
-
+      let findings: VMFinding[] = []
       try {
-        const findings = await method.fn()
-        allFindings.push(...findings)
+        findings = await method.fn()
       } catch {
         // Continue with other checks on error
       }
-    }
+      events?.onProgress?.({
+        scannerName: this.name,
+        currentItem: ++done,
+        totalItems: checkMethods.length,
+        currentPath: `Checked ${method.name}`,
+        percentage: (done / checkMethods.length) * 100
+      })
+      return findings
+    })
+    allFindings.push(...perCheck.flat())
 
     // Only report if we have CRITICAL findings (actually running in VM)
     const criticalFindings = allFindings.filter(f => f.critical)

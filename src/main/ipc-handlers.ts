@@ -156,7 +156,7 @@ export function setupIpcHandlers(mainWindow: BrowserWindow): void {
   })
 
   // Timeout per scanner — adaptive based on Windows version
-  const SCANNER_TIMEOUT_MS = Math.round(30000 * getTimeoutMultiplier())
+  const SCANNER_TIMEOUT_MS = Math.round(45000 * getTimeoutMultiplier())
 
   // The site's announcements for the Dashboard's news card.
   const news = new NewsService({

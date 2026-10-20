@@ -7,6 +7,10 @@ import { ScanResult } from '../../shared/types'
 import { getAvailableDrives } from '../utils/drive-utils'
 import { formatTimestamp } from '../utils/format'
 import { parseRecycleInfo } from './recycle-bin'
+import { mapWithConcurrency } from '../utils/concurrency'
+
+/** `$I` files read at once. */
+const INFO_PARALLEL = 16
 
 /**
  * Files the user deleted to the Recycle Bin whose ORIGINAL name or path
@@ -47,15 +51,21 @@ export class RecycleBinScanner extends BaseScanner {
           continue
         }
         const present = new Set(names.map((n) => n.toUpperCase()))
-        for (const name of names) {
-          if (this.outOfTime()) { timedOut = true; break }
-          if (!/^\$I/i.test(name)) continue
-          let entry
+        // A bin can hold thousands of small $I files and every open is slowed by an antivirus: read them
+        // several at a time instead of one after the other.
+        const infoNames = names.filter((n) => /^\$I/i.test(n))
+        const entries = await mapWithConcurrency(infoNames, INFO_PARALLEL, async (n) => {
+          if (this.cancelled || this.outOfTime()) return undefined
           try {
-            entry = parseRecycleInfo(await readCapped(join(dir, name), 1024 * 1024))
+            return parseRecycleInfo(await readCapped(join(dir, n), 1024 * 1024))
           } catch {
-            continue
+            return undefined
           }
+        })
+        for (let i = 0; i < infoNames.length; i++) {
+          if (this.outOfTime()) { timedOut = true; break }
+          const name = infoNames[i]
+          const entry = entries[i]
           if (!entry) continue
           const rName = `$R${name.slice(2)}`
           const restorable = present.has(rName.toUpperCase())

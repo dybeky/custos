@@ -3,6 +3,10 @@ import { ScanResult } from '../../shared/types'
 import { RegistrySettings } from '../services/config-service'
 import { RegistryQueryScanner } from './registry-query-scanner'
 import { logger } from '../services/logger'
+import { mapWithConcurrency } from '../utils/concurrency'
+
+/** `reg query` calls in flight at once; the global process limiter still caps all scanners together. */
+const REG_PARALLEL = 4
 
 export class RegistryScanner extends RegistryQueryScanner {
   readonly name = 'Registry Scanner'
@@ -22,29 +26,27 @@ export class RegistryScanner extends RegistryQueryScanner {
   protected async doScan(events: ScannerEventEmitter | undefined, startTime: Date): Promise<ScanResult> {
     this.reset()
 
-    const results: string[] = []
     const scanKeys = this.registrySettings.scanKeys
+    let done = 0
+    let timedOut = false
 
-    for (let i = 0; i < scanKeys.length; i++) {
-      if (this.cancelled) break
-
-      const regKey = scanKeys[i]
-
-      if (events?.onProgress) {
-        events.onProgress({
-          scannerName: this.name,
-          currentItem: i + 1,
-          totalItems: scanKeys.length,
-          currentPath: regKey.name,
-          percentage: ((i + 1) / scanKeys.length) * 100
-        })
-      }
-
+    // Each `reg query` costs a process start; on a PC where that takes seconds, ten in a row
+    // outlast the scanner's time limit. A few at a time keeps the order of the findings.
+    const perKey = await mapWithConcurrency(scanKeys, REG_PARALLEL, async (regKey) => {
+      if (this.cancelled) return []
+      if (this.outOfTime()) { timedOut = true; return [] }
       const findings = await this.scanRegistryKey(regKey.path, regKey.name)
-      results.push(...findings)
-    }
+      events?.onProgress?.({
+        scannerName: this.name,
+        currentItem: ++done,
+        totalItems: scanKeys.length,
+        currentPath: regKey.name,
+        percentage: (done / scanKeys.length) * 100
+      })
+      return findings
+    })
 
-    return this.createSuccessResult(results, startTime)
+    return this.createSuccessResult(perKey.flat(), startTime, timedOut ? 'Some registry keys were not read (time limit reached)' : undefined)
   }
 
   private async scanRegistryKey(path: string, name: string): Promise<string[]> {
