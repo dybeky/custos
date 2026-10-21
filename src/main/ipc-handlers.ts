@@ -261,6 +261,7 @@ export function setupIpcHandlers(mainWindow: BrowserWindow): void {
           void reportCrash('scanner_error', r.error, {
             ...(r.detail ? { step: r.detail } : {}),
             scannersLate: lateCount,
+            slowest: [...results].sort((a, b) => b.duration - a.duration).slice(0, 4).map((x) => `${x.scannerName.replace(/ Scanner$/, '')} ${Math.round(x.duration / 1000)}s`).join(', '),
             scannersTotal: results.length,
             scanSec,
             scanner: scannerIdFromDisplayName(r.scannerName) ?? r.scannerName.slice(0, 40),

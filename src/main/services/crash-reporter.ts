@@ -46,6 +46,10 @@ export interface CrashContext {
   reason?: string
   /** Which helper (network, audio, ...) stopped. */
   service?: string
+  /** Processor model, e.g. "AMD Ryzen 5 3600" (a slow PC is often an old or small one). */
+  cpu?: string
+  /** The slowest scanners of the scan with their seconds, e.g. "AppData 20s, Prefetch 10s". */
+  slowest?: string
 }
 
 /** Windows exit codes are unsigned: -2147483645 is 0x80000003. */
@@ -145,7 +149,7 @@ export class CrashReporter {
         context: Object.fromEntries(
           Object.entries(context)
             .filter(([, v]) => v !== undefined && v !== '')
-            .map(([k, v]) => [k, typeof v === 'string' ? redactForReport(v).slice(0, 80) : v])
+            .map(([k, v]) => [k, typeof v === 'string' ? redactForReport(v).slice(0, 200) : v])
         )
       })
       await this.deps.send(this.url, body)

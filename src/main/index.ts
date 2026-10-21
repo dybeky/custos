@@ -55,6 +55,7 @@ try {
         appArch: os.appArch,
         emulated: os.isEmulated,
         cores: cpus().length,
+        cpu: cpus()[0]?.model.trim().replace(/\s+/g, ' ').slice(0, 80),
         memFreeMb: Math.round(freemem() / 1048576),
         memTotalMb: Math.round(totalmem() / 1048576)
       }
