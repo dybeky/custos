@@ -25,6 +25,8 @@ export abstract class BaseScanner {
   /** How long one scan may take before it should stop and report what it has (see setTimeBudget). */
   private timeBudgetMs = Infinity
   private budgetEndsAt = Infinity
+  /** Set when a step was skipped or cut because the time budget ran out: the result is then marked partial. */
+  protected budgetHit = false
 
   abstract readonly name: string
   abstract readonly description: string
@@ -42,6 +44,7 @@ export abstract class BaseScanner {
   async scan(events?: ScannerEventEmitter): Promise<ScanResult> {
     const startTime = new Date()
     this.budgetEndsAt = startTime.getTime() + this.timeBudgetMs
+    this.budgetHit = false
     try {
       return await this.doScan(events, startTime)
     } catch (error) {
@@ -119,6 +122,11 @@ export abstract class BaseScanner {
   ): Promise<void> {
     if (currentDepth > maxDepth) return
     if (this.cancelled) return
+    // A slow PC (antivirus, HDD, a game running) can take minutes for a big tree: stop at the budget and keep what was found.
+    if (this.outOfTime()) {
+      this.budgetHit = true
+      return
+    }
 
     let entries: Dirent[]
     try {
@@ -129,6 +137,10 @@ export abstract class BaseScanner {
 
     for (const entry of entries) {
       if (this.cancelled) return
+      if (this.outOfTime()) {
+        this.budgetHit = true
+        return
+      }
 
       const name = entry.name
       const fullPath = join(path, name)
@@ -197,6 +209,7 @@ export abstract class BaseScanner {
     // Every finding ends up in an uploaded report: never let a password,
     // e-mail or token copied off the PC (a window title, a command line) through.
     const clean = findings.map(redactSecrets)
+    if (!partial && this.budgetHit) partial = 'Stopped at the time limit; not everything was read'
     return {
       scannerName: this.name,
       success: true,

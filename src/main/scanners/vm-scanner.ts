@@ -174,7 +174,7 @@ export class VMScanner extends BaseScanner {
     let done = 0
     // The checks are independent and each costs a PowerShell / sc / tasklist start; on a PC where
     // a start takes seconds, eight in a row outlast the scanner's time limit. Three at a time.
-    const perCheck = await mapWithConcurrency(checkMethods, VM_PARALLEL, async (method) => {
+    const running = mapWithConcurrency(checkMethods, VM_PARALLEL, async (method) => {
       if (this.cancelled) return []
       // Past the scanner timeout everything found so far would be dropped.
       if (this.outOfTime()) {
@@ -187,6 +187,7 @@ export class VMScanner extends BaseScanner {
       } catch {
         // Continue with other checks on error
       }
+      allFindings.push(...findings) // kept as they arrive: a check still running at the budget must not lose these
       events?.onProgress?.({
         scannerName: this.name,
         currentItem: ++done,
@@ -196,7 +197,14 @@ export class VMScanner extends BaseScanner {
       })
       return findings
     })
-    allFindings.push(...perCheck.flat())
+    // A check already running cannot be interrupted: at the budget hand in what the others found.
+    let budgetTimer: ReturnType<typeof setTimeout> | undefined
+    const budgetHit = new Promise<'budget'>((resolve) => {
+      const left = this.timeLeftMs()
+      if (Number.isFinite(left)) budgetTimer = setTimeout(() => resolve('budget'), Math.max(0, left))
+    })
+    if ((await Promise.race([running.then(() => 'done' as const), budgetHit])) === 'budget') timedOut = true
+    clearTimeout(budgetTimer)
 
     // Only report if we have CRITICAL findings (actually running in VM)
     const criticalFindings = allFindings.filter(f => f.critical)

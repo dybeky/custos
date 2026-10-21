@@ -130,8 +130,15 @@ export abstract class RegistryQueryScanner extends BaseScanner {
    */
   protected async runRegQuery(rootKeyPath: string, recursive = true): Promise<string> {
     const args = ['query', rootKeyPath, ...(recursive ? ['/s'] : [])]
+    // Out of time: skip. Nearly out: the call is cut at the budget (what reg printed so far is still used).
+    const left = this.timeLeftMs()
+    if (left <= 0) {
+      this.budgetHit = true
+      return ''
+    }
     try {
-      const { stdout } = await execFileAsync('reg', args)
+      const { stdout } = await execFileAsync('reg', args, Number.isFinite(left) ? { timeoutMs: Math.max(1000, Math.min(left, 30000)) } : undefined)
+      if (Number.isFinite(left) && this.timeLeftMs() <= 0) this.budgetHit = true
       return stdout
     } catch (error) {
       // execFileAsync should never throw (it catches internally), but guard anyway
