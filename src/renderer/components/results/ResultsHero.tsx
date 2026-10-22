@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { motion } from 'framer-motion'
 import type { ScanReport, Severity } from '../../../shared/types'
 import { GAMES, type GameId } from '../../../shared/games'
-import { reasonText, coverageReason, isCoverageReason } from '../../utils/report-view'
+import { reasonText, coverageReason, isCoverageReason, isIncompleteClean } from '../../utils/report-view'
 import { SEVERITIES, bandTone, severityCounts } from '../../utils/results-view'
 import { dateLocale } from '../../utils/date-locale'
 import { RiskRing } from './RiskRing'
@@ -62,7 +62,7 @@ export function ResultsHero(props: Props) {
         <div className="min-w-0 flex-1 basis-64">
           <div className="flex flex-wrap items-center gap-2">
             <span className={`rounded-lg px-2.5 py-1 text-xs font-bold uppercase tracking-wide ${tone.badge}`}>
-              {t(`verdict.band.${report.verdict.band}`)}
+              {t(`verdict.band.${isIncompleteClean(report) ? 'incomplete' : report.verdict.band}`)}
             </span>
             <span className="text-[11px] text-ink-dim">{t('verdict.title')}</span>
           </div>

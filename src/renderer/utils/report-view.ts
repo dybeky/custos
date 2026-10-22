@@ -60,6 +60,16 @@ export function isCoverageReason(reason: ScoreReason): boolean {
   return reason.code === 'incomplete-coverage' || reason.code === 'partial-coverage'
 }
 
+/** Checks that did not complete at which a finding-free result stops being called "Clean". */
+export const INCOMPLETE_FAILED = 3
+
+/** "Clean" is only honest when the checks behind it ran: no findings but many failed checks is "Incomplete". */
+export function isIncompleteClean(report: ScanReport | null): boolean {
+  if (!report || report.verdict.band !== 'clean') return false
+  const failed = report.scanners.filter(s => !s.success).length
+  return failed >= INCOMPLETE_FAILED
+}
+
 /** The coverage warning reason, if any scanner failed or read only part of its source. */
 export function coverageReason(report: ScanReport | null): ScoreReason | undefined {
   return report?.verdict.reasons.find(r => r.code === 'incomplete-coverage') ??

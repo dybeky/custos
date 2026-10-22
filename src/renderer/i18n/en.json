@@ -785,6 +785,7 @@
     "leadsNotProof": "Findings are leads, not proof — investigate before acting.",
     "band": {
       "clean": "Clean",
+      "incomplete": "Incomplete",
       "low": "Low",
       "medium": "Medium",
       "high": "High",
