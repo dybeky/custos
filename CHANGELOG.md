@@ -5,6 +5,25 @@ shows it in the update dialog and under "What's new". Keep the `### New`,
 `### Fixes` and `### Improvements` headings — the app groups entries by them.
 Keep each entry to one line of about 100 characters so the dialog stays tidy.
 
+## 3.2.1
+
+### New
+- Report a problem: a red button in the header (also during a scan) sends a note and the app's state to the team
+- History: a checked player's earlier check from the same connection is marked, staff see the details on the site
+- An ignored finding shows when it was ignored, and Restore is always one click away
+- Error reports carry much more about the failure: step, slow scanners, processor, memory, system language
+
+### Fixes
+- Slow PCs: the registry, virtual machine and Recycle Bin checks no longer run out of time
+- The time limit now reaches every check, so a slow disk can no longer hold a whole scan back
+- A check that stopped early hands in what it found and says it was partial
+- A result with no findings but several checks that did not run reads Incomplete, not Clean
+- A damaged history index is rebuilt from the saved checks
+
+### Improvements
+- Detection base expanded: more leads for Unturned and Counter-Strike 2
+- A timed-out check says where it stopped and how busy the PC was
+
 ## 3.2.0
 
 ### New
