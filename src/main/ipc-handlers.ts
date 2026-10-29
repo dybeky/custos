@@ -23,6 +23,7 @@ import { resolveSystemTool, systemCwd, systemRoot } from './utils/system-paths'
 import { locateSteamTarget } from './utils/steam-locator'
 import { detectSteamPlayer } from './services/player-detect'
 import { HistoryStore } from './services/history-store'
+import { SiteOutbox, drainOutbox, trackUpload } from './services/site-outbox'
 import { NewsService } from './services/news-service'
 import { reportCrash } from './services/crash-reporter'
 import { SteamBansService, SteamIdsSchema } from './services/steam-bans-service'
@@ -531,7 +532,59 @@ function syncKeyFor(reportId: string): string {
   return key
 }
 
+// Checks the site has not received yet (down, or no network). Kept on disk so
+// closing the app loses nothing; sent again as soon as the site answers.
+const OUTBOX_RETRY_MS = 2 * 60_000
+let siteOutbox: SiteOutbox | null = null
+function outbox(): SiteOutbox {
+  siteOutbox ??= new SiteOutbox(join(app.getPath('userData'), 'site-outbox.json'))
+  return siteOutbox
+}
+
 export function setupAuthHandlers(_mainWindow: BrowserWindow, authService: AuthService): void {
+  // One send per check at a time: the screen's own retry and the outbox must not race.
+  const inflight = new Map<string, Promise<SiteUploadResult>>()
+  const sendCheck = (id: string, kase: { player: string; notes: string; checker: string }): Promise<SiteUploadResult> => {
+    const running = inflight.get(id)
+    if (running) return running
+    const run = (async (): Promise<SiteUploadResult> => {
+      const entry = await history().get(id)
+      if (!entry) {
+        await outbox().remove(id)
+        return { ok: false, error: 'not_found' }
+      }
+      const result = await authService.uploadCheck(reportForUpload(entry.report), kase, syncKeyFor(id), uploadedVia.get(id))
+      if (result.ok && result.via) uploadedVia.set(id, result.via)
+      try {
+        await trackUpload(outbox(), id, result, { syncKey: syncKeyFor(id), via: uploadedVia.get(id), ...kase })
+      } catch (err) {
+        logger.warn('Could not update the site outbox', { error: err instanceof Error ? err.message : String(err) })
+      }
+      return result
+    })().finally(() => inflight.delete(id))
+    inflight.set(id, run)
+    return run
+  }
+
+  void outbox().load().then(() => {
+    // After a restart a queued check is sent with the key it already used.
+    for (const [id, e] of outbox().entries()) {
+      syncKeys.set(id, e.syncKey)
+      if (e.via) uploadedVia.set(id, e.via)
+    }
+    let draining = false
+    const drain = (): void => {
+      if (draining || outbox().entries().length === 0) return
+      draining = true
+      drainOutbox(outbox(), (id, e) => sendCheck(id, { player: e.player, notes: e.notes, checker: e.checker }))
+        .then(({ sent, left }) => { if (sent) logger.info('Sent checks held back while the site was unreachable', { sent, left }) })
+        .catch((err) => logger.warn('Outbox pass failed', { error: err instanceof Error ? err.message : String(err) }))
+        .finally(() => { draining = false })
+    }
+    setTimeout(drain, 20_000).unref()
+    setInterval(drain, OUTBOX_RETRY_MS).unref()
+  })
+
   secureIpc.handle(IPC_CHANNELS.AUTH_GET_STATE, (): AuthState => authService.getState())
 
   secureIpc.handle(IPC_CHANNELS.AUTH_LOGIN, async (_e, payload: unknown): Promise<void> => {
@@ -565,18 +618,12 @@ export function setupAuthHandlers(_mainWindow: BrowserWindow, authService: AuthS
   secureIpc.handle(IPC_CHANNELS.SITE_UPLOAD_CHECK, async (_e, payload: unknown): Promise<SiteUploadResult> => {
     const parsed = SiteUploadPayloadSchema.safeParse(payload)
     if (!parsed.success) return { ok: false, error: 'invalid_payload' }
-    const entry = await history().get(parsed.data.historyId)
-    if (!entry) return { ok: false, error: 'not_found' }
     // The site stores up to 120 / 4000 / 60 characters of case text.
-    const kase = {
+    return sendCheck(parsed.data.historyId, {
       player: parsed.data.player.trim().slice(0, 120),
       notes: parsed.data.notes.trim().slice(0, 4000),
       checker: parsed.data.checker.trim().slice(0, 60)
-    }
-    const id = entry.report.id
-    const result = await authService.uploadCheck(reportForUpload(entry.report), kase, syncKeyFor(id), uploadedVia.get(id))
-    if (result.ok && result.via) uploadedVia.set(id, result.via)
-    return result
+    })
   })
 
   secureIpc.handle(IPC_CHANNELS.SITE_PLAYER_CHECKS, async (_e, payload: unknown): Promise<SitePlayerResult> => {

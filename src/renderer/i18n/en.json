@@ -1010,6 +1010,7 @@
     "otherChecks_one": "{{count}} check of this player on the site:",
     "otherChecks_other": "{{count}} checks of this player on the site:",
     "openPlayer": "Open player card",
+    "queued": "Saved on this PC. It is sent on its own as soon as the site is reachable, even after a restart.",
     "updateRequired": "The site requires Custos {{version}} or newer. Update the app to use site features.",
     "errors": {
       "failed": "Something went wrong. Try again.",

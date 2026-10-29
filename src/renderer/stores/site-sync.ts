@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import type { SiteUploadResult } from '../../shared/types'
+import { UNSENDABLE_ERRORS } from '../../shared/site-upload'
 import { useAuthStore } from './auth-store'
 import { useScanStore } from './scan-store'
 
@@ -21,10 +22,9 @@ let resyncTimer: ReturnType<typeof setTimeout> | null = null
 // A send that failed for a passing reason (no network, site busy) is retried
 // on its own, backing off; a refusal that won't change by waiting is not.
 const RETRY_DELAYS_MS = [15_000, 30_000, 60_000, 120_000, 300_000]
-const PERMANENT_ERRORS = new Set([
-  'invalid_report', 'invalid_request', 'invalid_payload', 'too_large', 'update_required',
-  'disabled', 'not_found', 'forbidden', 'not_signed_in'
-])
+// Beyond those, retrying on this screen can't help until the app is updated or signed in again
+// (the check itself stays queued in main and is sent once that is fixed).
+const PERMANENT_ERRORS = new Set([...UNSENDABLE_ERRORS, 'update_required', 'not_signed_in'])
 let retryTimer: ReturnType<typeof setTimeout> | null = null
 let retryAttempt = 0
 // An edit made while a send is in flight is sent right after it, not dropped.

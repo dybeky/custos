@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { SiteCheck } from '../../../shared/types'
+import { isPassingUploadError } from '../../../shared/site-upload'
 import { useAuthStore } from '../../stores/auth-store'
 import { useScanStore } from '../../stores/scan-store'
 import { useSiteSync } from '../../stores/site-sync'
@@ -81,6 +82,9 @@ export function SitePanel() {
                 </>
               )}
               {upload && !upload.ok && <span className="text-xs text-alert">{errorText(upload.error)}</span>}
+              {upload && !upload.ok && isPassingUploadError(upload.error) && (
+                <span className="text-xs text-amber">{t('site.queued')}</span>
+              )}
             </div>
           )}
           {caseInfo.player.trim() && !canView && (
