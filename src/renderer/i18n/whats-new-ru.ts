@@ -8,6 +8,17 @@ import type { ChangelogGroup } from '../../shared/types'
 const entries = (...texts: string[]) => texts.map((text) => ({ text, sha: '', date: '' }))
 
 export const WHATS_NEW_RU: Record<string, ChangelogGroup[]> = {
+  '3.2.2': [
+    { group: 'New', entries: entries('Постоянный офлайн-архив: завершённые проверки остаются доступными после закрытия Custos') },
+    { group: 'Fixes', entries: entries(
+      'Отчёты из старых временных сеансов восстанавливаются перед очисткой',
+      'Проверка попадает в очередь до сетевого запроса, поэтому прерванная отправка безопасно повторяется'
+    ) },
+    { group: 'Improvements', entries: entries(
+      'Сохранённые проверки и очередь больше не удаляются автоматически по возрасту или количеству',
+      'Убрана ссылка на закрытую страницу Pro'
+    ) }
+  ],
   '3.2.1': [
     {
       group: 'New',

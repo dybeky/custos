@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest'
 import { mkdtemp, rm, writeFile, readFile } from 'fs/promises'
 import { tmpdir } from 'os'
 import { join } from 'path'
-import { SiteOutbox, drainOutbox, trackUpload, OUTBOX_LIMIT, OUTBOX_MAX_AGE_MS } from './site-outbox'
+import { SiteOutbox, drainOutbox, trackUpload } from './site-outbox'
 import type { SiteUploadResult } from '../../shared/types'
 
 const KEY = 'a'.repeat(64)
@@ -44,19 +44,19 @@ describe('SiteOutbox', () => {
     expect(a.get('first')?.notes).toBe('edited')
   })
 
-  it('drops the oldest beyond the limit and anything older than 30 days', async () => {
+  it('retains every unsent report beyond 100 entries and after a month offline', async () => {
     let t = 1_000_000_000_000
     const a = new SiteOutbox(file, () => t)
-    for (let i = 0; i <= OUTBOX_LIMIT; i++) {
+    for (let i = 0; i <= 100; i++) {
       t += 1
       await a.put(`s${i}`, entry())
     }
-    expect(a.entries()).toHaveLength(OUTBOX_LIMIT)
-    expect(a.get('s0')).toBeUndefined()
+    expect(a.entries()).toHaveLength(101)
+    expect(a.get('s0')).toBeDefined()
 
-    const later = new SiteOutbox(file, () => t + OUTBOX_MAX_AGE_MS + 1)
+    const later = new SiteOutbox(file, () => t + 90 * 24 * 3600 * 1000)
     await later.load()
-    expect(later.entries()).toHaveLength(0)
+    expect(later.entries()).toHaveLength(101)
   })
 
   it('starts empty on a damaged file or malformed rows instead of failing', async () => {

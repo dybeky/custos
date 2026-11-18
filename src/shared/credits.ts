@@ -9,7 +9,6 @@ export const CREDITS = {
   year: 2026,
   repoUrl: 'https://github.com/dybeky/custos',
   releasesUrl: 'https://github.com/dybeky/custos/releases',
-  proUrl: 'https://97437.dev/pro',
   licenseUrl: 'https://github.com/dybeky/custos/blob/stable/LICENSE'
 } as const
 

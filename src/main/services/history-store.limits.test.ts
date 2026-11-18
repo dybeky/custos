@@ -3,7 +3,6 @@ import { mkdtempSync, rmSync, readdirSync } from 'fs'
 import { tmpdir } from 'os'
 import { join } from 'path'
 import { HistoryStore } from './history-store'
-import { HISTORY_LIMIT } from '../../shared/history'
 import type { ScanReport } from '../../shared/types'
 
 const rep = (id: string, scannedAt: string): ScanReport => ({
@@ -16,27 +15,27 @@ let store: HistoryStore
 beforeEach(() => { dir = mkdtempSync(join(tmpdir(), 'custos-hist-')); store = new HistoryStore(dir) })
 afterEach(() => rmSync(dir, { recursive: true, force: true }))
 
-describe('HistoryStore limits', () => {
-  it('keeps the newest HISTORY_LIMIT checks and deletes the files of the rest', async () => {
-    const total = HISTORY_LIMIT + 5
+describe('HistoryStore retention', () => {
+  it('keeps every report beyond the former 100-check limit across a restart', async () => {
+    const total = 105
     for (let i = 0; i < total; i++) {
       await store.save(rep(`s${i}`, new Date(Date.UTC(2026, 0, 1, 0, i)).toISOString()), [])
     }
-    const rows = await store.list()
-    expect(rows).toHaveLength(HISTORY_LIMIT)
+    const rows = await new HistoryStore(dir).list()
+    expect(rows).toHaveLength(total)
     expect(rows[0].id).toBe(`s${total - 1}`)
     const files = readdirSync(dir).filter((f) => f.endsWith('.json') && f !== 'index.json')
-    expect(files).toHaveLength(HISTORY_LIMIT)
-    expect(await store.get('s0')).toBeNull()
+    expect(files).toHaveLength(total)
+    expect((await store.get('s0'))?.id).toBe('s0')
   })
 
-  it('an old check saved after a full history does not push out newer ones', async () => {
-    for (let i = 0; i < HISTORY_LIMIT; i++) await store.save(rep(`n${i}`, new Date(Date.UTC(2026, 5, 1, 0, i)).toISOString()), [])
+  it('keeps an older report without pushing out newer ones', async () => {
+    for (let i = 0; i < 100; i++) await store.save(rep(`n${i}`, new Date(Date.UTC(2026, 5, 1, 0, i)).toISOString()), [])
     await store.save(rep('old', '2020-01-01T00:00:00Z'), [])
     const ids = (await store.list()).map((s) => s.id)
-    expect(ids).toHaveLength(HISTORY_LIMIT)
-    expect(ids).not.toContain('old')
-    expect(await store.get('old')).toBeNull()
+    expect(ids).toHaveLength(101)
+    expect(ids.at(-1)).toBe('old')
+    expect((await store.get('old'))?.id).toBe('old')
   })
 
   it('refuses ids that could leave the folder, and never throws on get', async () => {

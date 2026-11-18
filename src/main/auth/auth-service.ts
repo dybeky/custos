@@ -291,17 +291,19 @@ export class AuthService {
    * `via` is how this check reached the site before: re-sends stay on that
    * path, so one check never ends up as two rows (one per path).
    */
-  async uploadCheck(report: ScanReport, kase: UploadCase, syncKey: string, via?: 'account' | 'public'): Promise<SiteUploadResult> {
+  async uploadCheck(report: ScanReport, kase: UploadCase, syncKey: string, via?: 'account' | 'public', beforeSend?: (via: 'account' | 'public') => Promise<void>): Promise<SiteUploadResult> {
     if (!this.deps.config.enabled) return { ok: false, error: 'disabled' }
     const canUseAccount = this.status === 'authed' && this.capabilities.includes('upload_reports')
     if (via === 'account' && !canUseAccount) return { ok: false, error: 'not_signed_in' }
     if (via !== 'public' && canUseAccount) {
+      await beforeSend?.('account')
       const res = await this.withToken((t) => this.client.uploadReport(t, { report, case: kase }))
       if (res.ok) return { ok: true, url: res.value.url, hashVerified: res.value.hashVerified, via: 'account' }
       // A first send whose session lapsed still gets through without it.
       if (via || (res.error !== 'not_signed_in' && res.error !== 'unauthorized')) return { ok: false, error: res.error }
     }
     try {
+      await beforeSend?.('public')
       const value = await this.client.uploadReportPublic({ report, case: kase, syncKey })
       return { ok: true, url: this.siteCheckUrl(value.id), hashVerified: value.hashVerified, via: 'public' }
     } catch (e) {

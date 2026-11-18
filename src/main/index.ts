@@ -1,6 +1,5 @@
-// First: moves every app path into a per-launch temp folder that is wiped on
-// quit (nothing is left on the checked PC). Must run before anything below
-// resolves userData.
+// First: isolates disposable app data in a temporary folder. Reports and the
+// upload queue live in a separate persistent archive. Must precede userData users.
 import { ownsInstanceLock } from './ephemeral'
 import { app, BrowserWindow, net, safeStorage, shell } from 'electron'
 import { secureIpc, setTrustedRendererCheck } from './utils/ipc-guard'

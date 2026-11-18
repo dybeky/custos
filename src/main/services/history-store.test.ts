@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest'
-import { mkdtempSync, rmSync, readdirSync, writeFileSync } from 'fs'
+import { mkdtempSync, rmSync, readdirSync, writeFileSync, unlinkSync } from 'fs'
 import { tmpdir } from 'os'
 import { join } from 'path'
 import { HistoryStore } from './history-store'
@@ -50,6 +50,15 @@ describe('HistoryStore', () => {
     expect(await store.remove('scan-1')).toEqual([])
     expect(await store.get('scan-1')).toBeNull()
     expect(readdirSync(dir)).toEqual(['index.json'])
+  })
+
+  it('recovers all reports after a restart with a missing index', async () => {
+    await store.save(rep('scan-1', '2026-09-20T10:00:00Z'), [])
+    unlinkSync(join(dir, 'index.json'))
+    const reopened = new HistoryStore(dir)
+    expect((await reopened.list()).map((row) => row.id)).toEqual(['scan-1'])
+    await reopened.save(rep('scan-2', '2026-09-21T10:00:00Z'), [])
+    expect(await reopened.list()).toHaveLength(2)
   })
 
   it('rejects ids that could escape the folder', async () => {
