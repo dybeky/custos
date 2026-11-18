@@ -5,6 +5,19 @@ shows it in the update dialog and under "What's new". Keep the `### New`,
 `### Fixes` and `### Improvements` headings — the app groups entries by them.
 Keep each entry to one line of about 100 characters so the dialog stays tidy.
 
+## 3.2.2
+
+### New
+- Persistent offline archive: completed checks remain available after closing Custos
+
+### Fixes
+- Reports from leftover sessions are recovered before temporary files are cleaned up
+- Uploads are queued before the network request, so interrupted sends can be retried safely
+
+### Improvements
+- Saved checks and pending uploads are no longer removed automatically by count or age
+- Removed the link to the discontinued Pro page
+
 ## 3.2.1
 
 ### New

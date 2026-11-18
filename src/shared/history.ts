@@ -27,9 +27,6 @@ export interface HistorySummary {
   gameId: string | null
 }
 
-/** Maximum checks kept on disk; the oldest are dropped first. */
-export const HISTORY_LIMIT = 100
-
 /**
  * Identity used to match re-checks of the same player: the SteamID64 when the
  * player field contains one (robust to nickname changes), else the

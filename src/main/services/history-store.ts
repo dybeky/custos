@@ -1,7 +1,7 @@
 import { mkdir, readdir, readFile, rename, rm, writeFile } from 'fs/promises'
 import { join } from 'path'
 import {
-  HISTORY_LIMIT, scanPlayerLabel, summarize, type HistoryCase, type HistoryEntry, type HistorySummary
+  scanPlayerLabel, summarize, type HistoryCase, type HistoryEntry, type HistorySummary
 } from '../../shared/history'
 import type { ScanReport, ScanResult } from '../../shared/types'
 
@@ -41,7 +41,7 @@ export class HistoryStore {
     try {
       raw = await readFile(join(this.dir, 'index.json'), 'utf8')
     } catch {
-      return [] // no index yet
+      return this.rebuildIndex() // a missing index must not hide existing files
     }
     try {
       const parsed = JSON.parse(raw)
@@ -62,7 +62,7 @@ export class HistoryStore {
       if (entry) rows.push(summarize(entry))
     }
     rows.sort((a, b) => Date.parse(b.scannedAt) - Date.parse(a.scannedAt))
-    return rows.slice(0, HISTORY_LIMIT)
+    return rows
   }
 
   async get(id: string): Promise<HistoryEntry | null> {
@@ -77,12 +77,8 @@ export class HistoryStore {
     const rows = (await this.list()).filter((s) => s.id !== summary.id)
     rows.push(summary)
     rows.sort((a, b) => Date.parse(b.scannedAt) - Date.parse(a.scannedAt))
-    const kept = rows.slice(0, HISTORY_LIMIT)
-    for (const dropped of rows.slice(HISTORY_LIMIT)) {
-      await rm(this.file(dropped.id), { force: true }).catch(() => {})
-    }
-    await this.writeAtomic(join(this.dir, 'index.json'), kept)
-    return kept
+    await this.writeAtomic(join(this.dir, 'index.json'), rows)
+    return rows
   }
 
   /** Save (or overwrite) a check; the case is kept if the entry already exists. */

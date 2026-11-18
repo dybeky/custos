@@ -7,16 +7,18 @@ import { randomBytes } from 'crypto'
 import { LOCK_DIR_NAME, SESSION_PREFIX, isLauncherDirName, isLegacyLogName, isSessionDirName, isUpdateFileName } from './utils/session-names'
 import { cmdPath, systemCwd } from './utils/system-paths'
 import { restoreRegeditLastKey } from './utils/regedit-state'
+import { preserveReports, reportStorageDir } from './services/report-storage'
 
 /**
  * Custos runs on the checked player's PC and must leave nothing behind.
  *
- * Everything the app writes — Chromium caches, settings, the (encrypted)
- * login, saved checks, the downloaded signature cache and the log — goes to a
+ * Chromium caches, settings, the (encrypted) login, the downloaded signature
+ * cache and the log go to a
  * per-launch folder under %TEMP%, which is wiped when the app quits. A run
  * that crashed before it could clean up is swept on the next launch, together
  * with the %APPDATA%\custos folder and next-to-exe log files older versions
- * left behind.
+ * left behind. Reports and their upload queue are retained separately in
+ * appData/Custos Reports so an offline check survives quitting the app.
  *
  * This module must be imported before anything that resolves app paths
  * (electron-store, the logger): it redirects `userData` at import time.
@@ -56,14 +58,16 @@ function sweepLeftovers(sessionDir: string, legacyUserData: string): void {
       const path = join(tmpdir(), name)
       // Another Custos window still running holds its folder open; rm fails
       // on the locked files and the folder is retried next launch.
-      if (isSessionDirName(name) && path !== sessionDir) removeQuietly(path)
+      if (isSessionDirName(name) && path !== sessionDir) {
+        if (preserveReports(path, reportStorageDir(app.getPath('appData')))) removeQuietly(path)
+      }
       else if (isUpdateFileName(name)) removeQuietly(path) // an update whose swap never ran
       else if (isLauncherDirName(name) && isStaleLauncherDir(path)) removeQuietly(path)
     }
   } catch {
     // temp folder unreadable — nothing to sweep
   }
-  removeQuietly(legacyUserData)
+  if (preserveReports(legacyUserData, reportStorageDir(app.getPath('appData')))) removeQuietly(legacyUserData)
   const exeDir = process.env.PORTABLE_EXECUTABLE_DIR
   if (exeDir) {
     try {

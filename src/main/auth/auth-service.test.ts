@@ -494,6 +494,22 @@ describe('AuthService site features', () => {
     expect(await svc.uploadCheck(report, { player: '', notes: '', checker: '' }, 'kkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkk')).toEqual({ ok: false, error: 'network' })
   })
 
+  it('awaits durable route selection before starting an upload', async () => {
+    let persisted = false
+    const uploadReportPublic = vi.fn(async () => {
+      expect(persisted).toBe(true)
+      return { id: 'r2', hashVerified: true }
+    })
+    const { svc } = build({ uploadReportPublic } as any)
+    const result = await svc.uploadCheck(report, { player: '', notes: '', checker: '' }, 'a'.repeat(64), undefined, async (via) => {
+      expect(via).toBe('public')
+      await Promise.resolve()
+      persisted = true
+    })
+    expect(result).toMatchObject({ ok: true, via: 'public' })
+    expect(uploadReportPublic).toHaveBeenCalledOnce()
+  })
+
   it('opens site pages only through the allowlisted opener, and only when signed in', async () => {
     const { svc, tokens, opened } = build({
       getSession: vi.fn(async () => ({ user })),
