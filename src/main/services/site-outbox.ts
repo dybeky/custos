@@ -14,10 +14,6 @@ export interface OutboxEntry {
   queuedAt: number
 }
 
-/** Checks the site has not received (it was down, or there was no network). Kept longer than that is pointless. */
-export const OUTBOX_LIMIT = 100
-export const OUTBOX_MAX_AGE_MS = 30 * 24 * 3600 * 1000
-
 const ID_RE = /^[A-Za-z0-9_-]{1,80}$/
 const isEntry = (v: unknown): v is OutboxEntry => {
   const e = v as OutboxEntry
@@ -41,7 +37,7 @@ export class SiteOutbox {
     try {
       const parsed = JSON.parse(await readFile(this.file, 'utf8')) as Record<string, unknown>
       for (const [id, e] of Object.entries(parsed)) {
-        if (ID_RE.test(id) && isEntry(e) && this.now() - e.queuedAt < OUTBOX_MAX_AGE_MS) this.rows.set(id, e)
+        if (ID_RE.test(id) && isEntry(e)) this.rows.set(id, e)
       }
     } catch {
       // no file yet, or a damaged one: start empty (the checks are still in history)
@@ -60,7 +56,6 @@ export class SiteOutbox {
   put(id: string, entry: Omit<OutboxEntry, 'queuedAt'>): Promise<void> {
     // A later edit of the same check keeps its place in the line.
     this.rows.set(id, { ...entry, queuedAt: this.rows.get(id)?.queuedAt ?? this.now() })
-    while (this.rows.size > OUTBOX_LIMIT) this.rows.delete(this.entries()[0][0])
     return this.persist()
   }
 

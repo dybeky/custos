@@ -23,6 +23,7 @@ import { resolveSystemTool, systemCwd, systemRoot } from './utils/system-paths'
 import { locateSteamTarget } from './utils/steam-locator'
 import { detectSteamPlayer } from './services/player-detect'
 import { HistoryStore } from './services/history-store'
+import { reportStorageDir } from './services/report-storage'
 import { SiteOutbox, drainOutbox, trackUpload } from './services/site-outbox'
 import { NewsService } from './services/news-service'
 import { reportCrash } from './services/crash-reporter'
@@ -81,10 +82,10 @@ const SuppressionSchema = z.object({
   dismissedFindingIds: z.array(z.string().regex(/^[0-9a-f]{16}$/)).max(10_000)
 }).strict()
 
-// Saved checks (userData/history). Created lazily: app paths need 'ready'.
+// Reports persist independently of the temporary Chromium/session data.
 let historyStore: HistoryStore | null = null
 function history(): HistoryStore {
-  historyStore ??= new HistoryStore(join(app.getPath('userData'), 'history'))
+  historyStore ??= new HistoryStore(join(reportStorageDir(app.getPath('appData')), 'history'))
   return historyStore
 }
 
@@ -93,7 +94,16 @@ function history(): HistoryStore {
  * Awaitable so the report is on disk before the renderer can upload it by id.
  */
 function saveToHistory(report: ScanReport, results: ScanResult[]): Promise<void> {
-  return history().save(report, results).catch((err) =>
+  return history().save(report, results).then(async () => {
+    // Queue before announcing completion: closing the window or losing the
+    // renderer before its first upload must not strand a finished report.
+    await loadOutbox()
+    const entry = await history().get(report.id)
+    await outbox().put(report.id, {
+      syncKey: syncKeyFor(report.id), via: uploadedVia.get(report.id),
+      player: (entry?.case.player ?? '').slice(0, 120), notes: (entry?.case.notes ?? '').slice(0, 4000), checker: ''
+    })
+  }).catch((err) =>
     logger.warn('Could not save check to history', { error: err instanceof Error ? err.message : String(err) })
   )
 }
@@ -518,8 +528,7 @@ export function setupIpcHandlers(mainWindow: BrowserWindow): void {
  * the AuthService `onChange` callback (kept beside construction so a single
  * import in index.ts wires both the handlers and the push).
  */
-// Per-check secret for uploads without an account: the site stores its hash
-// and lets only this app update that check later. Session-only, like history.
+// Per-check secrets for this run; pending keys are restored from the durable outbox.
 const syncKeys = new Map<string, string>()
 // How each check reached the site, so re-sends take the same path.
 const uploadedVia = new Map<string, 'account' | 'public'>()
@@ -537,8 +546,18 @@ function syncKeyFor(reportId: string): string {
 const OUTBOX_RETRY_MS = 2 * 60_000
 let siteOutbox: SiteOutbox | null = null
 function outbox(): SiteOutbox {
-  siteOutbox ??= new SiteOutbox(join(app.getPath('userData'), 'site-outbox.json'))
+  siteOutbox ??= new SiteOutbox(join(reportStorageDir(app.getPath('appData')), 'site-outbox.json'))
   return siteOutbox
+}
+
+let outboxLoaded: Promise<void> | null = null
+function loadOutbox(): Promise<void> {
+  return outboxLoaded ??= outbox().load().then(() => {
+    for (const [id, e] of outbox().entries()) {
+      syncKeys.set(id, e.syncKey)
+      if (e.via) uploadedVia.set(id, e.via)
+    }
+  })
 }
 
 export function setupAuthHandlers(_mainWindow: BrowserWindow, authService: AuthService): void {
@@ -548,12 +567,19 @@ export function setupAuthHandlers(_mainWindow: BrowserWindow, authService: AuthS
     const running = inflight.get(id)
     if (running) return running
     const run = (async (): Promise<SiteUploadResult> => {
+      await loadOutbox()
       const entry = await history().get(id)
       if (!entry) {
         await outbox().remove(id)
         return { ok: false, error: 'not_found' }
       }
-      const result = await authService.uploadCheck(reportForUpload(entry.report), kase, syncKeyFor(id), uploadedVia.get(id))
+      // Persist before the request, not only after it fails: a process can
+      // close while the request is in flight, including after server commit.
+      await outbox().put(id, { syncKey: syncKeyFor(id), via: uploadedVia.get(id), ...kase })
+      const result = await authService.uploadCheck(reportForUpload(entry.report), kase, syncKeyFor(id), uploadedVia.get(id), async (via) => {
+        uploadedVia.set(id, via)
+        await outbox().put(id, { syncKey: syncKeyFor(id), via, ...kase })
+      })
       if (result.ok && result.via) uploadedVia.set(id, result.via)
       try {
         await trackUpload(outbox(), id, result, { syncKey: syncKeyFor(id), via: uploadedVia.get(id), ...kase })
@@ -566,12 +592,7 @@ export function setupAuthHandlers(_mainWindow: BrowserWindow, authService: AuthS
     return run
   }
 
-  void outbox().load().then(() => {
-    // After a restart a queued check is sent with the key it already used.
-    for (const [id, e] of outbox().entries()) {
-      syncKeys.set(id, e.syncKey)
-      if (e.via) uploadedVia.set(id, e.via)
-    }
+  void loadOutbox().then(() => {
     let draining = false
     const drain = (): void => {
       if (draining || outbox().entries().length === 0) return

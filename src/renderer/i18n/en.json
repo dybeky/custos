@@ -7,7 +7,6 @@
       "madeBy": "Made by",
       "officialBuilds": "Official builds",
       "license": "License",
-      "pro": "Custos Pro",
       "notice": "Official builds come only from the dybeky/custos releases page. Modified or re-uploaded copies are not allowed and may not be safe."
     },
     "account": "Account",
@@ -909,9 +908,9 @@
   },
   "history": {
     "title": "Check history",
-    "subtitle": "Every check is saved to the site automatically, under the player. Here are all checks by every checker; nobody can change or delete them. This session's own checks are on the other tab.",
+    "subtitle": "Every check is saved on this PC and sent to the site automatically. All checks are on the first tab; this PC's offline archive is on the other tab.",
     "search": "Search by player…",
-    "empty": "No checks in this session yet. This list is cleared when Custos closes — earlier checks are on the site, under the player.",
+    "empty": "No checks saved on this PC yet. Completed checks remain here after Custos closes, even without internet.",
     "noMatches": "No checks match this player.",
     "noPlayer": "No player recorded",
     "leads_one": "{{count}} lead",
@@ -924,7 +923,7 @@
     "back": "Back to history",
     "tab": {
       "site": "All checks",
-      "session": "This session"
+      "session": "Saved on this PC"
     },
     "siteEmpty": "No checks on the site yet.",
     "checkedBy": "checked by {{name}}",
